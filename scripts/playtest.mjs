@@ -30,7 +30,7 @@ const evalJs = async (expr) => (await send('Runtime.evaluate', { expression: exp
 const shot = async (name) => { const s = await send('Page.captureScreenshot', { format: 'png' }); fs.writeFileSync(`/tmp/supercapybara-${name}.png`, Buffer.from(s.data, 'base64')); };
 const scene = 'game.scene.getScene("World1")';
 await send('Runtime.enable');
-await send('Page.navigate', { url: 'http://localhost:5173/' });
+await send('Page.navigate', { url: process.env.PLAYTEST_URL ?? 'http://localhost:5173/' }); // PLAYTEST_URL: test another address, e.g. the built site
 await sleep(2500);
 for (const step of JSON.parse(process.argv[2])) {
   const [cmd, a, b] = step;

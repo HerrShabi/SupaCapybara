@@ -17,9 +17,10 @@ SuperCapybara is a web game made by Ethan (age 9), who writes the prompts and ow
 
 - `npm run dev`: start the dev server (Vite) at http://localhost:5173
 - `npm run dev:ipad`: same, but also reachable from other devices on the home Wi-Fi (for testing on iPad/iPhone; open `http://<this Mac's IP>:5173`)
-- `npm run build`: production build to `dist/`
+- `npm run build`: production build to `dist/` (for the `/SupaCapybara/` path; `npm run preview` serves it at http://localhost:4173/SupaCapybara/)
+- **Hosting:** every push to `main` builds and publishes the game to GitHub Pages (https://herrshabi.github.io/SupaCapybara/) via `.github/workflows/deploy.yml`. The repo's remote is `git@github.com:HerrShabi/SupaCapybara.git` (SSH). Only commit or push when Ethan's dad asks.
 
-There are no unit tests or linter. To check that something works in the real game, run `node scripts/playtest.mjs '<steps>'` while the dev server is running. It drives headless Chrome with real key presses, saves screenshots, and can reach into the scene through `window.game` (that's only set in dev mode, in `src/main.js`). See the top of the script for the step format. Look at the screenshots before saying something works. The test browser uses software WebGL, so Phaser runs in WebGL and World 2's 3D works. If WebGL suddenly fails, leftover headless Chrome processes are the usual cause (the script now kills its browser on exit). The screenshots are 960x453 page pixels, which is what `touchdown` uses.
+There are no unit tests or linter. To check that something works in the real game, run `node scripts/playtest.mjs '<steps>'` while the dev server is running (or set `PLAYTEST_URL` to test another address, like the built site). It drives headless Chrome with real key presses, saves screenshots, and can reach into the scene through `window.game` (that's only set in dev mode, in `src/main.js`). See the top of the script for the step format. Look at the screenshots before saying something works. The test browser uses software WebGL, so Phaser runs in WebGL and World 2's 3D works. If WebGL suddenly fails, leftover headless Chrome processes are the usual cause (the script now kills its browser on exit). The screenshots are 960x453 page pixels, which is what `touchdown` uses.
 
 ## Architecture
 
