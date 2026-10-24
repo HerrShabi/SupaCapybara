@@ -1,0 +1,46 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Who's building this
+
+SuperCapybara is a web game made by Ethan (age 9), who writes the prompts and owns the creative vision, with support from his dad. Talk to Ethan in short, simple, friendly language. Ask him about the creative choices (characters, worlds, enemies, powers). Make the technical choices yourself. Keep changes small and playable so he can try each step.
+
+## Game vision
+
+- World 1: side-scroller. **The only world being built right now.**
+- World 2: 3D. World 3: side-scroller. Not started.
+- Beating a boss gives a key that unlocks travel to other worlds.
+- Full design (players, power-ups, bad guys, bosses, ⚡ money) is in `GAME_DESIGN.md`. Ethan's original drawings are in `concept-art/`. Look at them before drawing a character, and keep `GAME_DESIGN.md` updated as he decides things.
+
+## Commands
+
+- `npm run dev`: start the dev server (Vite) at http://localhost:5173
+- `npm run dev:ipad`: same, but also reachable from other devices on the home Wi-Fi (for testing on iPad/iPhone; open `http://<this Mac's IP>:5173`)
+- `npm run build`: production build to `dist/`
+
+There are no unit tests or linter. To check that something works in the real game, run `node scripts/playtest.mjs '<steps>'` while the dev server is running. It drives headless Chrome with real key presses, saves screenshots, and can reach into the scene through `window.game` (that's only set in dev mode, in `src/main.js`). See the top of the script for the step format. Look at the screenshots before saying something works. The test browser uses software WebGL, so Phaser runs in WebGL and World 2's 3D works. If WebGL suddenly fails, leftover headless Chrome processes are the usual cause (the script now kills its browser on exit). The screenshots are 960x453 page pixels, which is what `touchdown` uses.
+
+## Architecture
+
+- Phaser 3 with Arcade physics, bundled with Vite, in plain JavaScript (ES modules). Entry point: `src/main.js` (game config, scene list).
+- The game starts on `TitleScene` (modes: STORY → `MenuScene`, ADVENTURE → `AdventureScene`, TRAINING → `TrainingScene`, 2 PLAYERS → `TwoPlayerScene` → a world in team mode or `BattleScene`; plus 🎬 credits and reset). `MenuScene` is the character select screen for ADVENTURE. It has the hero cards, buying locked heroes, the shop (bottom right) and the keys (under the shop). The level scenes go back to it on a win or ESC.
+- `src/characters.js` is the data for every hero (`attack`, `doubleJump`, `invisibility`, `fireAura`, `price`, `unlockKey`), plus the power-up list and the boss keys. `src/save.js` keeps the save (bolts, keys, owned heroes, power-ups, selected hero) in localStorage. Every scene loads it fresh with `loadSave()` and writes it with `writeSave()`.
+- `src/Player.js` is the hero you control: movement, jumping, every hero power (including Bloodmoon Cat's homing moon and shadow form) and the power-ups (Shield, Fly, Mecha), all driven by the character data and `save.powerUps`. The level asks `player.unhurtable` (shadow or Mecha) before hurting, and implements `nearestTarget(x, y)` for homing shots. It doesn't know about bad guys: attacks call back into the scene through `scene.hitArea(rect, damage)`, and the scene sets up overlaps for `player.lasers`. When any attack lands, the scene calls `player.landedHit()`.
+- One scene per world in `src/scenes/`. In `World1Scene.js`, the whole level layout is data arrays at the top (ground, platforms, bolts, bad guys). Edit those to change the level. World 1 ends in a locked boss room (the last screen, starting at `ARENA_START`). Walking in starts the Pizza Boss fight: a helicopter drops him in, and the checkpoint moves to the room's door. Picking up the key the boss drops wins the level and saves the `world1` key.
+- **Every word the player sees goes through `t('key')` from `src/i18n.js`**, which has English and German (Ethan's friends only speak German). When you add text, add the key in both languages. Hero names stay the same in both. Scenes call `setLanguage(save.language)` in `create()`.
+- Difficulty (`src/difficulty.js`, picked in the menu and saved as `save.difficulty`) controls hearts, how bad guys shoot, and boss strength. A level reads it as `this.settings`. Don't hard-code those numbers in a scene.
+- **Side-scrolling worlds (1 and 3) share `SideScrollerScene`**: hero, bolts, bad guys, getting hurt, the boss bar, the key, winning. Each world passes its layout to `super()` and fills in `createScenery`, `groundAt`, `createBoss`, `bossEntrance`, `bossAction`, `updateBoss` and `afterWin` (see the comment at the top of that file). Put new shared behavior there, not in a world.
+- Boss Rush runs World1 then World3 with `scene.start(key, { bossRush: true, hearts })`. Each side-scroller then starts at its arena, and `level.bossRushNext` decides what comes next. `EndingScene` plays after the first World 3 win.
+- Secrets unlock with the `world3` key: heroes with `secret: true` show up in the menu (owned for free), and so do the Boss Rush button and secret colors. Hero textures for a palette are keyed `heroKey(id, palette)` (e.g. `supa-cat~2-idle`). Always go through `heroKey` and `createHeroTextures(scene, palette)`.
+- World 3 (`World3Scene`) is the volcano: lava pits (`fallY`), falling rocks (`this.hazards`), fire bad guys (`level.fire`), horned knights with TNT bolts (`level.knights`, handled in `SideScrollerScene`), and the Lava Dragon. The dragon has no gravity; tweens move it, and `this.busy` stops attacks from overlapping.
+- World 1 is a city. `BUILDINGS` are solid (the gaps between them are a fall). Billboards and water towers are one-way platforms (`this.platforms`, which you can jump up through). Pizza Boss collides only with buildings, so the platforms never block him. The sky changes with the player's progress toward `ARENA_START`: day, then sunset, then night.
+- Sound: `src/audio.js` makes every sound effect and song with the Web Audio API (there are no sound files). Use `audio.play('<effect>')`, `audio.playMusic('menu'|'city'|'boss')` and `audio.startCity()`/`stopCity()`. Songs are note strings in `SONGS`. Sound can only start after the first click or key press. The playtest tool's key presses count, so `audio.context.state` is `'running'` in tests. In dev, `window.audio` is exposed.
+- **ADVENTURE is 3D too** (`src/adventure/`): `AdventureScene` wraps `AdventureWorld` the same way `World2Scene` wraps `SpaceWorld`. Unlike World 2, up is always +Y: the ground is the `groundHeight(x, z)` height map, and buildings, rocks, trees, caves and the door are boxes in `this.solids` that the hero collides with and stands on. The layout is in `map.js`. Progress is saved in `save.adventure` (opened chests, super boss beaten). The super boss is a state machine in `updateBoss` (evil → transforming → giant).
+- Hats: `src/art/hats.js` (2D textures and where each animal's head is) and `makeHat3D` in `world2/models.js`. Players get `hat` from `save.wearing[heroId]`.
+- **World 2 is 3D with Three.js, not Phaser** (`src/world2/`). `World2Scene` is a thin Phaser scene that hides Phaser's canvas and runs `SpaceWorld` (its own renderer, loop, keyboard listeners and HTML HUD in `hud.js`) until you exit back to the Menu. In dev it's exposed as `window.world2`. Each planet pulls toward its own center: the player's "up" is away from the nearest planet's center, so you can walk around planets. Shots travel around the planet they started on (great circles), so they hug the ground. The layout (planets, jump rings, crystals, bolts, bad guys) is data in `level.js`. Models in `models.js` are built from simple shapes.
+- Input goes through `src/controls.js`: a `Controls` per player maps actions (left, jump, attack, special...) to keys for a scheme (`solo`, `p1`, `p2`) plus a game controller. Use `justPressed`/`isDown` with action names, never raw keys, in hero code.
+- Two players: `SideScrollerScene` has `this.players` (and `this.player` = player 1). Anything touching "the player" must loop over `this.players` or use `nearestPlayer(x)`. Hearts are shared in TEAM. `BattleScene` is its own scene; it implements the same `hitArea`/`nearestTarget` hooks Player calls, with the attacker passed in.
+- Touch controls (`src/touch.js`) are HTML buttons over the game that send fake keyboard events (Phaser needs `keyCode`, Three needs `code`). So levels only listen for keys. Turn them on with `save.touch`.
+- Rewards for beating bad guys and bosses (`BAD_GUY_REWARD`, `BOSS_REWARD`) are in `difficulty.js`.
+- There are no image files. Art is drawn with Phaser Graphics and turned into textures at runtime in `src/art/`. `heroes.js` builds every hero's frames (`<hero-id>-idle/run1/run2/jump`) and the `<hero-id>-run` animation, using the per-animal drawings and shared cape/bolt pieces in `heroParts.js`. `effects.js` builds attack and power effects.
