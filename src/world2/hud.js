@@ -19,6 +19,9 @@ const STYLE = `
   .w2-sub { top: 46%; width: 100%; text-align: center; font-size: 24px; }
   .w2-controls { bottom: 12px; left: 16px; font-size: 14px; }
   .w2-menu { bottom: 12px; right: 16px; font-size: 14px; }
+  .w2-hearts2 { top: 88px; right: 18px; font-size: 26px; color: #4fc3f7; letter-spacing: 2px; display: none; }
+  .w2-hearts2 .lost { opacity: 0.25; }
+  .w2-split { top: 0; bottom: 0; left: 50%; width: 4px; margin-left: -2px; background: #000; display: none; }
 `;
 
 export class Hud {
@@ -40,6 +43,8 @@ export class Hud {
       <div class="w2-sub"></div>
       <div class="w2-controls">${controls}</div>
       <div class="w2-menu">${menu}</div>
+      <div class="w2-hearts2"></div>
+      <div class="w2-split"></div>
     `;
     container.appendChild(this.root);
     this.maxHearts = maxHearts;
@@ -56,6 +61,16 @@ export class Hud {
 
   setHearts(hearts) {
     this.el('hearts').innerHTML = Array.from({ length: this.maxHearts }, (_, i) => `<span class="${i < hearts ? '' : 'lost'}">❤</span>`).join('');
+  }
+
+  // Two players (split screen): a line down the middle, and player 2's hearts (blue) on the right.
+  showTwoPlayers() {
+    this.el('hearts2').style.display = 'block';
+    this.el('split').style.display = 'block';
+  }
+
+  setHearts2(hearts) {
+    this.el('hearts2').innerHTML = Array.from({ length: this.maxHearts }, (_, i) => `<span class="${i < hearts ? '' : 'lost'}">❤</span>`).join('');
   }
 
   setBolts(bolts) {

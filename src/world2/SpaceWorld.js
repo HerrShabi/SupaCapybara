@@ -3,9 +3,9 @@ import { t } from '../i18n.js';
 import { audio } from '../audio.js';
 import { getCharacter } from '../characters.js';
 import { getDifficulty, BAD_GUY_REWARD, BOSS_REWARD } from '../difficulty.js';
-import { writeSave } from '../save.js';
+import { writeSave, addBaby } from '../save.js';
 import { Hud } from './hud.js';
-import { PLANETS, START_PLANET, FORCE_FIELD_RADIUS, JUMPS, BOLT_RINGS, BAD_GUYS } from './level.js';
+import { PLANETS, START_PLANET, FORCE_FIELD_RADIUS, JUMPS, BOLT_RINGS, BAD_GUYS, SAUCERS, SHIP } from './level.js';
 import * as models from './models.js';
 
 // World 2: 3D space. Each little planet pulls you toward its center, so you can walk all the way around it.
@@ -44,6 +44,18 @@ const BOSS_JUMP_HEIGHT = 10;
 const BOSS_HEIGHT = 4.2;
 const WAVE_SPEED = 2; // how fast Grape Boss's ground pound wave spreads (radians per second)
 const WAVE_WIDTH = 0.15;
+
+// Aliens and their flying saucers
+const SAUCER_ALTITUDE = 2.3;
+const SAUCER_SPEED = 2.2;
+const SAUCER_HP = 3;
+const SAUCER_REST_MS = 5000; // after a beam, before it can beam you again
+const BEAM_RANGE = 1.4; // how close below the saucer you have to be
+const BEAM_MS = 3500; // how long until you're pulled inside
+const WIGGLES_TO_ESCAPE = 8;
+const ALIEN_SPEED = 1.8;
+const SHIP_ALIEN_SPEED = 1.1; // slower inside the spaceship, where there are lots of them
+const SAUCER_GRACE_MS = 3000; // after landing on a planet, before its saucer can beam you
 
 const ATTACK_NAMES = {
   laser: 'game.attack.laser',
@@ -223,6 +235,37 @@ export class SpaceWorld {
       };
     });
 
+    // Flying saucers are bad guys too (kind 'saucer'), so lasers, scratches and the Freeze Ray work on them.
+    for (const [planetId, dir] of SAUCERS) {
+      const { group, lights } = models.makeSaucer();
+      this.scene.add(group);
+      const saucerDir = vec(dir).normalize();
+      this.enemies.push({
+        kind: 'saucer',
+        planet: this.planet(planetId),
+        dir: saucerDir,
+        heading: anyTangent(saucerDir),
+        altitude: SAUCER_ALTITUDE,
+        mesh: group,
+        lights,
+        alive: true,
+        hp: SAUCER_HP,
+        hitRadius: 2.2,
+        readyAt: 0,
+        phase: Math.random() * 6,
+      });
+    }
+
+    // The inside of the alien spaceship: a floor planet far away, inside a metal room
+    this.shipPlanet = { id: 'ship', ship: true, center: vec(SHIP.center), radius: SHIP.radius, color: 0x90a4ae, spawn: new THREE.Vector3(0, 1, 0) };
+    this.shipPlanet.mesh = models.makePlanet(SHIP.radius, 0x90a4ae, 9);
+    this.shipPlanet.mesh.position.copy(this.shipPlanet.center);
+    this.scene.add(this.shipPlanet.mesh);
+    const room = models.makeShipRoom(SHIP.room);
+    room.position.copy(this.shipPlanet.center);
+    this.scene.add(room);
+    this.planets.push(this.shipPlanet);
+
     this.shots = []; // lasers and blaster shots that fly around planets
     this.effects = []; // short-lived things: pops, slashes, the tongue
   }
@@ -388,9 +431,11 @@ export class SpaceWorld {
     this.now = performance.now();
 
     if (!this.won) {
-      this.updatePlayer(dt);
+      if (this.beam) this.updateBeam(dt);
+      else this.updatePlayer(dt);
       this.updatePowers();
       this.updateEnemies(dt);
+      this.updateShip();
       this.updateBoss(dt);
     }
     this.updateShots(dt);
@@ -493,6 +538,8 @@ export class SpaceWorld {
   }
 
   landed(planet) {
+    this.landedAt = this.now;
+    if (planet.ship) return;
     if (!planet.boss || this.fieldDown) this.player.checkpoint = planet;
     if (this.fieldDown && planet.boss && !this.bossStarted) this.startBoss();
   }
@@ -656,7 +703,7 @@ export class SpaceWorld {
       if (!enemy.alive) continue;
       const to = this.enemyPosition(enemy).sub(body);
       if (to.length() < SCRATCH_REACH && to.dot(p.forward) > -0.2) {
-        this.defeat(enemy);
+        this.defeat(enemy, 2);
         hit = true;
       }
     }
@@ -699,7 +746,7 @@ export class SpaceWorld {
       if (along < 0 || along > length) return false;
       return point.distanceTo(mouth.clone().addScaledVector(p.forward, along)) < reach;
     };
-    const enemy = this.enemies.find((e) => e.alive && near(this.enemyPosition(e), 1));
+    const enemy = this.enemies.find((e) => e.alive && near(this.enemyPosition(e), e.hitRadius ?? 1));
     if (enemy) {
       this.defeat(enemy);
       p.tongue.hit = true;
@@ -729,9 +776,9 @@ export class SpaceWorld {
       shot.mesh.lookAt(shot.mesh.position.clone().add(shot.heading));
 
       if (shot.fromPlayer) {
-        const enemy = this.enemies.find((e) => e.alive && this.enemyPosition(e).distanceTo(shot.mesh.position) < 1);
+        const enemy = this.enemies.find((e) => e.alive && this.enemyPosition(e).distanceTo(shot.mesh.position) < (e.hitRadius ?? 1));
         if (enemy) {
-          this.defeat(enemy);
+          this.defeat(enemy, shot.damage);
           shot.life = 0;
           this.landedHit();
         } else if (this.bossIsHittable() && this.bossCenter().distanceTo(shot.mesh.position) < 2.6) {
@@ -789,8 +836,17 @@ export class SpaceWorld {
         enemy.ice.position.copy(this.enemyPosition(enemy));
         continue;
       }
+      if (enemy.kind === 'saucer') {
+        this.updateSaucer(enemy, dt);
+        continue;
+      }
       if (enemy.kind === 'robot' && this.now > (enemy.bouncedUntil ?? 0)) {
         slide(enemy.dir, enemy.heading, (ROBOT_SPEED * dt) / enemy.planet.radius);
+      }
+      if (enemy.kind === 'alien' && p.planet === enemy.planet && this.now > (enemy.bouncedUntil ?? 0)) {
+        // Aliens run after you
+        this.turnToward(enemy, this.upAt(enemy.planet, p.pos), dt * 3);
+        slide(enemy.dir, enemy.heading, ((enemy.inShip ? SHIP_ALIEN_SPEED : ALIEN_SPEED) * dt) / enemy.planet.radius);
       }
       if (enemy.kind === 'sunglasses') enemy.altitude = 0.25 + 0.25 * Math.sin(this.now / 400 + enemy.phase);
 
@@ -833,19 +889,28 @@ export class SpaceWorld {
       if (this.now < enemy.nextShotAt) continue;
       enemy.nextShotAt = this.now + enemy.shotEveryMs * this.settings.enemyShotSlowdown;
       const directions = enemy.kind === 'apple' ? [toPlayer, toPlayer.clone().negate()] : [toPlayer];
-      for (const dir of directions) this.enemyShoot(enemy.planet, position, dir, shotSpeed);
+      const color = enemy.kind === 'alien' ? 0x76ff03 : 0xffa000; // aliens shoot green ray-gun zaps
+      for (const dir of directions) this.enemyShoot(enemy.planet, position, dir, shotSpeed, color);
     }
   }
 
-  enemyShoot(planet, start, dir, speed) {
+  enemyShoot(planet, start, dir, speed, color = 0xffa000) {
     audio.play('enemyShot');
-    const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffa000 }));
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 6), new THREE.MeshBasicMaterial({ color }));
     this.addShot({ mesh, planet, start: start.clone().addScaledVector(dir.clone().normalize(), 0.6), dir, speed, life: 4, fromPlayer: false });
   }
 
-  defeat(enemy) {
+  // damage only matters for bad guys with more than 1 hit (flying saucers).
+  defeat(enemy, damage = 1) {
     if (!enemy.alive) return;
+    if (enemy.hp > damage) {
+      enemy.hp -= damage;
+      audio.play('bossHit');
+      this.pop(this.enemyPosition(enemy), 0xffffff, 0.6);
+      return;
+    }
     enemy.alive = false;
+    if (enemy.kind === 'saucer') this.saucerDown(enemy);
     // A frozen bad guy shatters, for double bolts
     audio.play(enemy.ice ? 'shatter' : 'pop');
     this.addBolts(enemy.ice ? BAD_GUY_REWARD * 2 : BAD_GUY_REWARD);
@@ -895,6 +960,8 @@ export class SpaceWorld {
 
   respawn() {
     const p = this.player;
+    if (this.beam) this.endBeam(false);
+    if (this.inShip) this.clearShip();
     const planet = p.checkpoint;
     p.planet = planet;
     p.pos.copy(this.pointOn(planet, planet.spawn, 0));
@@ -903,6 +970,182 @@ export class SpaceWorld {
     p.forward.copy(planet.jumpDir ?? anyTangent(planet.spawn));
     p.safeUntil = this.now + this.settings.hurtSafeMs;
     p.flyUntil = 0;
+    this.landedAt = this.now;
+  }
+
+  // ---------- Flying saucers and the alien spaceship ----------
+
+  // Turns a bad guy's heading toward a spot on its planet (given as a direction from the planet's center).
+  turnToward(enemy, targetDir, amount) {
+    const toward = targetDir.clone().addScaledVector(enemy.dir, -targetDir.dot(enemy.dir));
+    if (toward.lengthSq() < 1e-6) return;
+    enemy.heading.lerp(toward.normalize(), Math.min(1, amount));
+    enemy.heading.addScaledVector(enemy.dir, -enemy.heading.dot(enemy.dir)).normalize();
+  }
+
+  // A saucer flies after you. Right above you, it switches on its tractor beam.
+  updateSaucer(saucer, dt) {
+    const p = this.player;
+    saucer.lights.forEach((light, i) => light.material.emissive.setHex(Math.floor(this.now / 150 + i) % 2 ? 0xffeb3b : 0x000000));
+    if (saucer.ice) {
+      saucer.ice.position.copy(this.enemyPosition(saucer));
+      return;
+    }
+    const position = this.enemyPosition(saucer);
+    if (this.beam?.saucer !== saucer) {
+      const hunting = p.planet === saucer.planet && !this.invisible && !this.inShip;
+      const playerDir = this.upAt(saucer.planet, p.pos);
+      const distance = saucer.dir.angleTo(playerDir) * saucer.planet.radius;
+      if (hunting) this.turnToward(saucer, playerDir, dt * 2);
+      if (!hunting || distance > 0.4) slide(saucer.dir, saucer.heading, (SAUCER_SPEED * dt) / (saucer.planet.radius + SAUCER_ALTITUDE));
+      const settled = this.now > (this.landedAt ?? 0) + SAUCER_GRACE_MS;
+      if (hunting && settled && distance < BEAM_RANGE && p.onGround && this.now > saucer.readyAt) this.startBeam(saucer);
+    }
+    saucer.mesh.position.copy(this.pointOn(saucer.planet, saucer.dir, saucer.altitude + 0.15 * Math.sin(this.now / 400 + saucer.phase)));
+    orient(saucer.mesh, saucer.dir, saucer.heading);
+
+    // Jump on it from above to knock it
+    const toPlayer = this.playerBody().sub(position);
+    const falling = p.vel.dot(this.upAt(p.planet, p.pos)) < 0;
+    if (!this.beam && toPlayer.length() < 1.7 && falling && toPlayer.dot(saucer.dir) > 0.3) {
+      this.defeat(saucer);
+      this.stompBounce();
+    }
+  }
+
+  // Knocked down: the saucer breaks, and the alien jumps out to fight you on foot.
+  saucerDown(saucer) {
+    if (this.beam?.saucer === saucer) this.endBeam(false);
+    audio.play('explosion');
+    this.pop(this.enemyPosition(saucer), 0xb0bec5, 2);
+    this.addAlien(saucer.planet, saucer.dir.clone());
+  }
+
+  addAlien(planet, dir, extra = {}) {
+    const mesh = models.makeAlien();
+    this.scene.add(mesh);
+    this.enemies.push({ kind: 'alien', planet, dir, heading: anyTangent(dir), altitude: 0, mesh, alive: true, nextShotAt: 0, shotEveryMs: 1800, phase: 0, ...extra });
+  }
+
+  startBeam(saucer) {
+    this.beam = { saucer, startedAt: this.now, wiggles: 0, lastSide: 0, mesh: models.makeTractorBeam() };
+    this.scene.add(this.beam.mesh);
+    audio.play('fly');
+    this.hud.message('', t('game.wiggle'), 2500);
+  }
+
+  // In the beam: you float up toward the saucer. Press left and right, left and right... to wiggle free!
+  updateBeam(dt) {
+    const beam = this.beam;
+    const saucer = beam.saucer;
+    const p = this.player;
+    if (!saucer.alive || saucer.ice) {
+      this.endBeam(true);
+      return;
+    }
+    const side = this.pressed('ArrowLeft', 'KeyA') ? -1 : this.pressed('ArrowRight', 'KeyD') ? 1 : 0;
+    if (side && side !== beam.lastSide) {
+      beam.wiggles += 1;
+      beam.lastSide = side;
+      audio.play('click');
+    }
+    if (beam.wiggles >= WIGGLES_TO_ESCAPE) {
+      this.endBeam(true);
+      return;
+    }
+    const k = (this.now - beam.startedAt) / BEAM_MS;
+    const up = saucer.dir;
+    p.planet = saucer.planet;
+    p.pos.copy(this.pointOn(saucer.planet, up, Math.min(1, k) * (SAUCER_ALTITUDE - 1.2)));
+    p.vel.set(0, 0, 0);
+    p.onGround = false;
+    p.forward.applyAxisAngle(up, dt * 4).addScaledVector(up, -p.forward.dot(up)).normalize(); // spinning around
+    p.model.position.copy(p.pos);
+    orient(p.model, up, p.forward);
+    if (this.aura) this.aura.position.copy(this.playerBody());
+    beam.mesh.position.copy(this.pointOn(saucer.planet, up, saucer.altitude));
+    beam.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), up);
+    beam.mesh.scale.set(1, saucer.altitude, 1);
+    if (k >= 1) this.enterShip();
+  }
+
+  endBeam(escaped) {
+    const beam = this.beam;
+    this.scene.remove(beam.mesh);
+    this.beam = null;
+    beam.saucer.readyAt = this.now + SAUCER_REST_MS;
+    if (!escaped) return;
+    audio.play('bounce');
+    this.hud.message('', t('game.escaped'), 1500);
+    this.player.safeUntil = this.now + 1000;
+  }
+
+  // Pulled inside the spaceship: it's full of aliens!
+  enterShip() {
+    const saucer = this.beam.saucer;
+    this.endBeam(false);
+    saucer.readyAt = this.now + SAUCER_REST_MS * 2;
+    this.shipReturn = { planet: saucer.planet, dir: saucer.dir.clone() };
+    this.inShip = true;
+    const p = this.player;
+    const ship = this.shipPlanet;
+    p.planet = ship;
+    p.pos.copy(this.pointOn(ship, ship.spawn, 0));
+    p.vel.set(0, 0, 0);
+    p.onGround = true;
+    p.forward.copy(anyTangent(ship.spawn));
+    p.safeUntil = this.now + this.settings.hurtSafeMs * 2;
+    this.landedAt = this.now;
+    this.camera.position.copy(p.pos).addScaledVector(ship.spawn, 3.5).addScaledVector(p.forward, -7);
+    for (const dir of SHIP.aliens) this.addAlien(ship, vec(dir).normalize(), { inShip: true });
+    audio.play('blastOff');
+    this.hud.message(t('game.abducted'), t('game.beatAliens'), 3000);
+  }
+
+  // Beat all the aliens and the big red button shows up. Press it (walk onto it) to drop back down.
+  updateShip() {
+    if (!this.inShip) return;
+    const aliensLeft = this.enemies.some((e) => e.inShip && e.alive);
+    if (!aliensLeft && !this.redButton) {
+      const dir = vec(SHIP.button).normalize();
+      this.redButton = models.makeRedButton();
+      this.redButton.position.copy(this.pointOn(this.shipPlanet, dir, 0));
+      orient(this.redButton, dir, anyTangent(dir));
+      this.scene.add(this.redButton);
+      audio.play('crystal');
+      this.hud.message('', t('game.pressButton'), 3000);
+    }
+    if (this.redButton && this.redButton.position.distanceTo(this.player.pos) < 1.3) this.leaveShip();
+  }
+
+  clearShip() {
+    for (const enemy of this.enemies.filter((e) => e.inShip)) {
+      enemy.alive = false;
+      this.scene.remove(enemy.mesh);
+      if (enemy.ice) this.scene.remove(enemy.ice);
+    }
+    this.enemies = this.enemies.filter((e) => !e.inShip);
+    if (this.redButton) this.scene.remove(this.redButton);
+    this.redButton = null;
+    this.inShip = false;
+  }
+
+  // You pressed the button: back down to the planet, with an alien baby for Cube Islands!
+  leaveShip() {
+    this.clearShip();
+    const p = this.player;
+    const { planet, dir } = this.shipReturn;
+    p.planet = planet;
+    p.pos.copy(this.pointOn(planet, dir, 0));
+    p.vel.set(0, 0, 0);
+    p.onGround = true;
+    p.safeUntil = this.now + this.settings.hurtSafeMs;
+    this.landedAt = this.now;
+    this.camera.position.copy(p.pos).addScaledVector(dir, 3.5).addScaledVector(p.forward, -7);
+    addBaby(this.save, 'alien', 'alien');
+    audio.play('key');
+    this.pop(this.playerBody(), 0x76ff03, 2);
+    this.hud.message(t('game.alienBaby'), t('game.alienBabySub'), 4000);
   }
 
   // ---------- Bolts, crystals and the key ----------

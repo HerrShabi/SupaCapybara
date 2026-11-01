@@ -12,20 +12,24 @@ export class QuestScene extends Phaser.Scene {
     super('Quest');
   }
 
-  create() {
+  // team: { heroes: [hero1, hero2] } for 2 players (from World 1 in 2 PLAYERS TEAM mode): split screen.
+  create(data = {}) {
     const save = loadSave();
     setLanguage(save.language);
+    const team = data.team ?? null;
+    this.readsGamepad = Boolean(team); // each player's controller is read by QuestWorld, not turned into keys
     this.game.canvas.style.visibility = 'hidden';
     this.world = new QuestWorld({
       container: this.game.canvas.parentElement,
       save,
+      team,
       onExit: () => {
         this.world = null;
-        this.scene.start('Menu');
+        this.scene.start(team ? 'Title' : 'Menu');
       },
     });
     if (import.meta.env.DEV) window.quest = this.world;
-    const touch = save.touch
+    const touch = save.touch && !team
       ? showTouchControls(this.game.canvas.parentElement, touchButtonsFor(getCharacter(save.selected), save.powerUps, true), { jump: t('touch.jump') })
       : null;
 

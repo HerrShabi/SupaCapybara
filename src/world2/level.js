@@ -49,3 +49,22 @@ export const BAD_GUYS = [
   ['robot', 'p4', [0, 1, 0]],
   ['sunglasses', 'p4', [-0.7, 0.3, -0.6]],
 ];
+
+// Flying saucers with little green aliens inside: [planet, dir]. They chase you, and if one gets right above you,
+// its tractor beam pulls you up into the alien spaceship (wiggle ◀ ▶ to escape!). Knock one down and the alien
+// jumps out and fights you. (Ethan's design)
+export const SAUCERS = [
+  ['p2', [0.6, 0.7, 0.4]],
+  ['p3', [0, 0.8, -0.6]],
+  ['p4', [-0.5, 0.6, 0.6]],
+];
+
+// Inside the alien spaceship: a little floor planet far away from everything, inside a metal room (room = its radius).
+// You arrive on top. Beat the aliens, then the big red button shows up at the bottom: press it to drop back down.
+export const SHIP = {
+  center: [0, 160, -40],
+  radius: 6,
+  room: 15,
+  aliens: [[0.9, -0.2, 0], [-0.9, -0.2, 0], [0, -0.2, 0.9], [0, -0.2, -0.9]], // around the middle, away from where you arrive
+  button: [0, -1, 0],
+};

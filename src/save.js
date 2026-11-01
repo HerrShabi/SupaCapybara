@@ -2,6 +2,7 @@
 
 import { STARTING_CHARACTERS } from './characters.js';
 import { isTouchDevice } from './touch.js';
+import { FOOD_COLORS, TEAM_SIZE } from './quest/map.js';
 
 const STORAGE_KEY = 'supercapybara-save-v1';
 
@@ -34,6 +35,28 @@ export function loadSave() {
 
 export function writeSave(save) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
+}
+
+// CUBE ISLANDS progress: { food: { color: count }, babies: [{ animal, color, xp, team }], dragonBeaten }.
+// It lives here because World 2's alien spaceship gives babies too. Older saves get the newer fields filled in.
+export function questProgress(save) {
+  const quest = (save.quest ??= { food: {}, babies: [], dragonBeaten: false });
+  for (const color of FOOD_COLORS) quest.food[color] ??= 0;
+  const hadTeams = quest.babies.some((b) => b.team !== undefined);
+  quest.babies.forEach((baby, i) => {
+    baby.xp ??= 0;
+    if (!hadTeams) baby.team = i < TEAM_SIZE;
+  });
+  return quest;
+}
+
+// A new baby joins the team if there's room (or waits at base camp).
+export function addBaby(save, animal, color) {
+  const quest = questProgress(save);
+  const baby = { animal, color, xp: 0, team: quest.babies.filter((b) => b.team).length < TEAM_SIZE };
+  quest.babies.push(baby);
+  writeSave(save);
+  return baby;
 }
 
 // RESET on the title screen: start the whole game over (bolts, keys, heroes, power-ups),

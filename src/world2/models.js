@@ -379,3 +379,91 @@ export function makeMecha() {
   group.add(box(0.5, 0.5, 0.9, 0x37474f, 0, 2.0, -0.8)); // rocket launcher on the back
   return group;
 }
+
+// ---------- Aliens (Ethan's design: little green aliens with big eyes and ray guns, riding flying saucers) ----------
+
+function makeAlienBody(group, y = 0) {
+  const green = 0x76ff03;
+  group.add(box(0.5, 0.55, 0.35, green, 0, y + 0.55, 0));
+  group.add(ball(0.38, green, 0, y + 1.15, 0));
+  for (const side of [-1, 1]) {
+    const eye = ball(0.13, 0x000000, side * 0.15, y + 1.18, 0.3);
+    eye.scale.set(1, 1.4, 0.6); // big black alien eyes
+    group.add(eye);
+    group.add(box(0.04, 0.35, 0.04, green, side * 0.15, y + 1.6, 0)); // antennas
+    group.add(ball(0.07, 0xff4081, side * 0.15, y + 1.8, 0));
+  }
+}
+
+// A little green alien with a ray gun (walks on the ground after its saucer is knocked down).
+export function makeAlien() {
+  const group = new THREE.Group();
+  makeAlienBody(group);
+  for (const side of [-1, 1]) group.add(box(0.15, 0.3, 0.15, 0x64dd17, side * 0.13, 0.15, 0));
+  group.add(box(0.12, 0.12, 0.45, 0x607d8b, 0.32, 0.6, 0.25)); // ray gun
+  group.add(box(0.08, 0.08, 0.08, 0x00e5ff, 0.32, 0.6, 0.5));
+  return group;
+}
+
+// A flying saucer with an alien inside the glass dome. Returns { group, lights } (the lights blink).
+export function makeSaucer() {
+  const group = new THREE.Group();
+  const disc = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.2, 0.35, 24), mat(0xb0bec5, { metalness: 0.4 }));
+  group.add(disc);
+  const bottom = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.5, 0.3, 20), mat(0x78909c));
+  bottom.position.y = -0.3;
+  group.add(bottom);
+  const alien = new THREE.Group();
+  makeAlienBody(alien, -0.45);
+  alien.scale.setScalar(0.7);
+  group.add(alien);
+  const dome = new THREE.Mesh(
+    new THREE.SphereGeometry(0.75, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2),
+    new THREE.MeshStandardMaterial({ color: 0x80deea, transparent: true, opacity: 0.35 }),
+  );
+  dome.position.y = 0.15;
+  group.add(dome);
+  const lights = [];
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    const light = ball(0.1, 0xffeb3b, Math.cos(angle) * 1.4, 0, Math.sin(angle) * 1.4, { emissive: 0x000000 });
+    light.material = light.material.clone();
+    group.add(light);
+    lights.push(light);
+  }
+  return { group, lights };
+}
+
+// The tractor beam: a see-through cone, pointing down from the saucer (height 1, scaled to the right length).
+export function makeTractorBeam() {
+  const beam = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.4, 1.3, 1, 20, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0xb2ff59, transparent: true, opacity: 0.3, depthWrite: false, side: THREE.DoubleSide }),
+  );
+  beam.geometry.translate(0, -0.5, 0); // the top is at y = 0
+  return beam;
+}
+
+// Inside the alien spaceship: a big metal room all around its little floor planet, with glowing stripes.
+export function makeShipRoom(radius) {
+  const group = new THREE.Group();
+  group.add(new THREE.Mesh(new THREE.SphereGeometry(radius, 32, 20), new THREE.MeshStandardMaterial({ color: 0x37474f, side: THREE.BackSide, flatShading: true })));
+  for (let i = -2; i <= 2; i++) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(radius * Math.cos(i * 0.45) - 0.1, 0.12, 6, 48), new THREE.MeshBasicMaterial({ color: 0x76ff03 }));
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = radius * Math.sin(i * 0.45);
+    group.add(ring);
+  }
+  group.add(new THREE.PointLight(0xb2ff59, 60, radius * 3));
+  return group;
+}
+
+// The big red button that drops you back down from the spaceship.
+export function makeRedButton() {
+  const group = new THREE.Group();
+  group.add(box(1.4, 0.3, 1.4, 0x424242, 0, 0.15, 0));
+  const button = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.3, 20), mat(0xff1744, { emissive: 0x550000 }));
+  button.position.y = 0.45;
+  group.add(button);
+  return group;
+}

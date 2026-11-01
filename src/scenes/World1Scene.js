@@ -190,7 +190,7 @@ export class World1Scene extends SideScrollerScene {
       },
     });
     this.time.delayedCall(1200, () => this.cameras.main.fadeOut(600, 0, 0, 0));
-    this.time.delayedCall(1900, () => this.scene.start('Quest', {}));
+    this.time.delayedCall(1900, () => this.scene.start('Quest', this.team ? { team: this.team } : {})); // 2 players: split screen
   }
 
   groundAt(x) {

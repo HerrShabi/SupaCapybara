@@ -31,9 +31,10 @@ const game = new Phaser.Game({
   scene: [TitleScene, MenuScene, World1Scene, World2Scene, World3Scene, EndingScene, TrainingScene, TwoPlayerScene, BattleScene, AdventureScene, QuestScene],
 });
 
-// The controller presses keys in the menus and 3D worlds. These 2D scenes read it themselves (controls.js).
+// The controller presses keys in the menus and 3D worlds. These 2D scenes read it themselves (controls.js),
+// and so does any scene that sets `readsGamepad` (2-player Cube Islands).
 const READS_GAMEPAD = ['World1', 'World3', 'Training', 'Battle'];
-startGamepadKeys(() => READS_GAMEPAD.some((key) => game.scene.isActive(key)));
+startGamepadKeys(() => game.scene.getScenes(true).some((scene) => READS_GAMEPAD.includes(scene.scene.key) || scene.readsGamepad));
 
 // Lets automated tests reach into the game while developing.
 if (import.meta.env.DEV) {

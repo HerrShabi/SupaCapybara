@@ -59,6 +59,29 @@ const WAVE_SPEED = 9;
 
 const vec = (x, y, z) => new THREE.Vector3(x, y, z);
 
+// Keyboard keys for each player's actions. solo: one player. p1 / p2: two players on one keyboard.
+export const KEYS = {
+  solo: {
+    left: ['ArrowLeft', 'KeyA'],
+    right: ['ArrowRight', 'KeyD'],
+    up: ['ArrowUp', 'KeyW'],
+    down: ['ArrowDown', 'KeyS'],
+    jump: ['Space'],
+    attack: ['KeyX'],
+    special: ['KeyC'],
+    shield: ['KeyV'],
+    fly: ['KeyF'],
+    mecha: ['KeyR'],
+    swap: ['KeyQ'],
+    freeze: ['KeyZ'],
+  },
+  p1: { left: ['KeyA'], right: ['KeyD'], up: ['KeyW'], down: ['KeyS'], jump: ['Space'], attack: ['KeyF'], special: ['KeyG'], swap: ['KeyT'] },
+  p2: { left: ['ArrowLeft'], right: ['ArrowRight'], up: ['ArrowUp'], down: ['ArrowDown'], jump: ['ShiftRight'], attack: ['Enter'], special: ['Slash'], swap: ['Backspace'] },
+};
+
+// Game controller buttons (standard layout, the same as gamepadKeys.js), for players this world reads itself.
+const PAD_BUTTONS = { 0: 'jump', 1: 'attack', 2: 'attack', 3: 'special', 4: 'shield', 5: 'fly', 6: 'mecha', 7: 'swap', 8: 'back', 10: 'freeze', 12: 'up', 13: 'down', 14: 'left', 15: 'right' };
+
 function orient(object, forward) {
   object.rotation.set(0, Math.atan2(forward.x, forward.z), 0);
 }
@@ -101,8 +124,10 @@ export function groundHeight(x, z) {
 const ZONE_COLORS = { grass: 0x5aa83c, city: 0x6b6b6b, space: 0x9e9e9e, volcano: 0x6d3b2a, arena: 0x3a2350 };
 
 export class AdventureWorld {
-  constructor({ container, save, onExit }) {
+  // team: { heroes: [hero1, hero2] } for two players (only worlds that support it, like QuestWorld, use it).
+  constructor({ container, save, onExit, team = null }) {
     this.container = container;
+    this.twoPlayers = team;
     this.save = save;
     this.onExit = onExit;
     save.adventure ??= { opened: [], superBossBeaten: false };
@@ -202,8 +227,10 @@ export class AdventureWorld {
     this.resize = () => {
       const { clientWidth: width, clientHeight: height } = this.container;
       this.renderer.setSize(width, height, false);
-      this.camera.aspect = width / height;
-      this.camera.updateProjectionMatrix();
+      for (const camera of this.players?.map((p) => p.camera) ?? [this.camera]) {
+        camera.aspect = width / (this.players?.length ?? 1) / height; // split screen: each camera gets half
+        camera.updateProjectionMatrix();
+      }
     };
     this.resize();
     window.addEventListener('resize', this.resize);
@@ -432,10 +459,29 @@ export class AdventureWorld {
     this.guards = this.chests.flatMap((c) => c.guards);
   }
 
+  // ---------- Players ----------
+
+  // Solo: one player on this.player. A world can make more (this.players) with makePlayer(); this.player is always player 1.
   createPlayer() {
     this.palette = this.save.keys.includes('world3') ? this.save.palette ?? 0 : 0;
-    this.player = {
-      pos: vec(this.spawn.x, this.groundAt(this.spawn.x, this.spawn.z), this.spawn.z),
+    this.player = this.makePlayer({ character: this.character, keys: KEYS.solo, powerUps: this.powerUps });
+    this.players = [this.player];
+    this.checkpoint = { x: this.spawn.x, z: this.spawn.z };
+  }
+
+  // keys: which keyboard keys (KEYS.solo / p1 / p2). padIndex: which game controller this world reads itself
+  // (in solo, gamepadKeys.js turns the controller into keys instead). baby: { animal, color, xp } for a baby player.
+  makePlayer({ character, keys, padIndex = null, powerUps = [], baby = null, offset = 0 }) {
+    const side = vec(-this.spawn.facing[1], 0, this.spawn.facing[0]);
+    const x = this.spawn.x + side.x * offset;
+    const z = this.spawn.z + side.z * offset;
+    const p = {
+      character,
+      keys,
+      padIndex,
+      powerUps,
+      baby,
+      pos: vec(x, this.groundAt(x, z), z),
       vel: vec(0, 0, 0),
       forward: vec(this.spawn.facing[0], 0, this.spawn.facing[1]),
       onGround: true,
@@ -449,39 +495,46 @@ export class AdventureWorld {
       readyAt: {},
       mechaUsed: false,
       tongue: null,
+      padDown: new Set(),
+      padPressed: new Set(),
     };
-    this.checkpoint = { x: this.spawn.x, z: this.spawn.z };
-    this.buildHeroModel();
-    this.mechaModel = heroModels.makeMecha();
-    this.mechaModel.visible = false;
-    this.scene.add(this.mechaModel);
-    if (this.character.fireAura) {
-      this.aura = heroModels.makeAura(this.character.auraColor);
-      this.scene.add(this.aura);
+    p.camera = this.players?.length ? this.camera.clone() : this.camera;
+    this.buildHeroModel(p);
+    p.mechaModel = heroModels.makeMecha();
+    p.mechaModel.visible = false;
+    this.scene.add(p.mechaModel);
+    if (character.fireAura) {
+      p.aura = heroModels.makeAura(character.auraColor);
+      this.scene.add(p.aura);
     }
-    this.shieldMesh = new THREE.Mesh(
+    p.shieldMesh = new THREE.Mesh(
       new THREE.SphereGeometry(1.5, 20, 16),
       new THREE.MeshBasicMaterial({ color: 0x4fc3f7, transparent: true, opacity: 0.25, depthWrite: false }),
     );
-    this.shieldMesh.visible = false;
-    this.scene.add(this.shieldMesh);
-    this.camera.position.copy(this.player.pos).add(vec(0, 5, 9));
+    p.shieldMesh.visible = false;
+    this.scene.add(p.shieldMesh);
+    p.camera.position.copy(p.pos).add(vec(0, 5, 9));
+    return p;
   }
 
-  // (Re)build the hero's 3D model, e.g. after finding a new hat.
-  buildHeroModel() {
-    if (this.heroModel) this.scene.remove(this.heroModel);
-    const { group, legs, cape } = heroModels.makeHero(this.character.id, this.palette, this.save.wearing?.[this.character.id]);
-    this.heroMaterials = [];
+  // (Re)build a hero's 3D model, e.g. after finding a new hat.
+  buildHeroModel(p = this.player) {
+    if (p.model) this.scene.remove(p.model);
+    const { group, legs, cape } = heroModels.makeHero(p.character.id, this.palette, this.save.wearing?.[p.character.id]);
+    this.setModel(p, group, legs, cape);
+  }
+
+  setModel(p, group, legs, cape = null) {
+    p.materials = [];
     group.traverse((part) => {
       if (!part.material) return;
       part.material = part.material.clone();
       part.material.transparent = true;
-      this.heroMaterials.push(part.material);
+      p.materials.push(part.material);
     });
-    this.heroModel = group;
-    this.heroLegs = legs;
-    this.heroCape = cape;
+    p.model = group;
+    p.legs = legs;
+    p.cape = cape;
     this.scene.add(group);
   }
 
@@ -528,12 +581,58 @@ export class AdventureWorld {
     return codes.some((code) => this.keysPressed.has(code));
   }
 
-  active(power) {
-    return this.now < (this.player.until[power] ?? 0);
+  // A player's actions (left, jump, attack...): their keyboard keys, or their game controller.
+  isDown(p, action) {
+    return this.down(...(p.keys[action] ?? [])) || p.padDown.has(action);
+  }
+
+  wasPressed(p, action) {
+    return this.pressed(...(p.keys[action] ?? [])) || p.padPressed.has(action);
+  }
+
+  // Read each player's own game controller once per frame (only players with a padIndex).
+  pollPads() {
+    const pads = navigator.getGamepads?.() ?? [];
+    for (const p of this.players) {
+      if (p.padIndex === null) continue;
+      const pad = pads[p.padIndex];
+      const down = new Set();
+      if (pad) {
+        for (const [index, action] of Object.entries(PAD_BUTTONS)) {
+          const button = pad.buttons[index];
+          if (button && (button.pressed || button.value > 0.5)) down.add(action);
+        }
+        const [x = 0, y = 0] = pad.axes;
+        if (x < -0.5) down.add('left');
+        if (x > 0.5) down.add('right');
+        if (y < -0.5) down.add('up');
+        if (y > 0.5) down.add('down');
+      }
+      p.padPressed = new Set([...down].filter((action) => !p.padDown.has(action)));
+      p.padDown = down;
+    }
+  }
+
+  active(power, p = this.player) {
+    return this.now < (p.until[power] ?? 0);
+  }
+
+  bodyOf(p) {
+    return p.pos.clone().addScaledVector(UP, 0.6);
   }
 
   get body() {
-    return this.player.pos.clone().addScaledVector(UP, 0.6);
+    return this.bodyOf(this.player);
+  }
+
+  get aura() {
+    return this.player.aura;
+  }
+
+  // The closest player who isn't knocked out (bad guys go after them).
+  nearestPlayer(point) {
+    const awake = this.players.filter((p) => !p.knockedOut);
+    return awake.sort((a, b) => a.pos.distanceTo(point) - b.pos.distanceTo(point))[0] ?? this.player;
   }
 
   // ---------- Every frame ----------
@@ -543,6 +642,7 @@ export class AdventureWorld {
     const dt = Math.min((time - this.lastFrame) / 1000, 0.05);
     this.lastFrame = time;
     this.now = performance.now();
+    this.pollPads();
 
     if (this.paused) {
       this.updatePaused(dt);
@@ -556,30 +656,59 @@ export class AdventureWorld {
     this.updateCamera(dt);
 
     this.keysPressed.clear();
-    this.renderer.render(this.scene, this.camera);
+    this.render();
     this.frame = requestAnimationFrame((next) => this.loop(next));
   }
 
+  // One player: the whole screen. Two players: split screen, player 1 on the left.
+  render() {
+    if (this.players.length === 1) {
+      this.renderer.render(this.scene, this.camera);
+      return;
+    }
+    const { clientWidth: width, clientHeight: height } = this.container;
+    this.renderer.setScissorTest(true);
+    this.players.forEach((p, i) => {
+      const half = width / this.players.length;
+      this.renderer.setViewport(i * half, 0, half, height);
+      this.renderer.setScissor(i * half, 0, half, height);
+      this.renderer.render(this.scene, p.camera);
+    });
+    this.renderer.setScissorTest(false);
+  }
+
   updatePlayer(dt) {
-    const p = this.player;
-    const turn = (this.down('ArrowLeft', 'KeyA') ? 1 : 0) - (this.down('ArrowRight', 'KeyD') ? 1 : 0);
+    for (const p of this.players) this.updateHero(p, dt);
+  }
+
+  updateHero(p, dt) {
+    if (p.knockedOut) {
+      this.updateKnockedOut(p, dt);
+      return;
+    }
+    const turn = (this.isDown(p, 'left') ? 1 : 0) - (this.isDown(p, 'right') ? 1 : 0);
     p.forward.applyAxisAngle(UP, turn * TURN_SPEED * dt);
-    const move = (this.down('ArrowUp', 'KeyW') ? 1 : 0) - (this.down('ArrowDown', 'KeyS') ? 1 : 0);
+    const move = (this.isDown(p, 'up') ? 1 : 0) - (this.isDown(p, 'down') ? 1 : 0);
+    if (p.ridingOn) {
+      this.updateRider(p, dt);
+      return;
+    }
     const zone = this.zoneAt(p.pos.x, p.pos.z);
     const inSpace = zone === 'space';
     const bouncing = this.now < p.hurtAt + 300;
-    const speed = RUN_SPEED * (this.active('shadow') ? SHADOW_SPEED : 1);
+    const speed = RUN_SPEED * (this.active('shadow', p) ? SHADOW_SPEED : 1);
+    const flying = this.active('fly', p);
     const previousY = p.pos.y;
 
     if (!bouncing) {
-      p.vel.x = p.forward.x * move * (this.active('fly') ? FLY_SPEED : speed);
-      p.vel.z = p.forward.z * move * (this.active('fly') ? FLY_SPEED : speed);
+      p.vel.x = p.forward.x * move * (flying ? FLY_SPEED : speed);
+      p.vel.z = p.forward.z * move * (flying ? FLY_SPEED : speed);
     }
-    if (this.active('fly')) {
-      p.vel.y = this.down('Space') ? 6 : 0;
+    if (flying) {
+      p.vel.y = this.isDown(p, 'jump') ? 6 : 0;
     } else {
       p.vel.y -= (inSpace ? SPACE_GRAVITY : GRAVITY) * dt;
-      if (this.pressed('Space')) {
+      if (this.wasPressed(p, 'jump')) {
         if (p.onGround) {
           p.vel.y = inSpace ? SPACE_JUMP_SPEED : JUMP_SPEED;
           audio.play('jump');
@@ -593,7 +722,7 @@ export class AdventureWorld {
 
     p.pos.addScaledVector(p.vel, dt);
     p.onGround = false;
-    this.collide(previousY);
+    this.collide(p, previousY);
 
     const ground = this.groundAt(p.pos.x, p.pos.z);
     if (p.pos.y <= ground) {
@@ -601,12 +730,12 @@ export class AdventureWorld {
       if (p.vel.y < 0) p.vel.y = 0;
       p.onGround = true;
     }
-    if (p.onGround) p.airJumpsLeft = this.character.doubleJump ? 1 : 0;
+    if (p.onGround) p.airJumpsLeft = p.character.doubleJump ? 1 : 0;
 
     this.keepInside(p);
 
-    if (this.onLava()) {
-      this.hurt(p.pos.clone().add(p.forward));
+    if (this.onLava(p)) {
+      this.hurt(p.pos.clone().add(p.forward), p);
       p.vel.y = 9;
       if (this.now > (this.lavaMessageAt ?? 0)) {
         this.lavaMessageAt = this.now + 3000;
@@ -614,33 +743,76 @@ export class AdventureWorld {
       }
     }
 
-    if (zone !== this.zone && zone !== 'arena') {
+    if (p === this.player && zone !== this.zone && zone !== 'arena') {
       if (this.zone && zone !== 'grass') this.hud.message(this.zoneName(zone), '', 1800);
       this.zone = zone;
     }
 
-    // Model, running legs, cape, invisible/shadow look, Mecha suit
-    this.heroModel.position.copy(p.pos);
-    orient(this.heroModel, p.forward);
-    const running = p.onGround && move !== 0;
-    this.heroLegs.forEach((leg, i) => (leg.rotation.x = running ? Math.sin(this.now / 60 + i * Math.PI) * 0.6 : 0));
-    this.heroCape.rotation.x = running || !p.onGround ? 1.1 : 0.5;
-    const blinking = this.now < p.safeUntil && Math.floor(this.now / 100) % 2 === 0;
-    const mecha = this.active('mecha');
-    this.heroModel.visible = !blinking && !mecha;
-    for (const material of this.heroMaterials) material.opacity = this.active('invisible') ? 0.25 : this.active('shadow') ? 0.45 : 1;
-    this.mechaModel.visible = mecha && !blinking;
-    this.mechaModel.position.copy(p.pos);
-    this.mechaModel.rotation.copy(this.heroModel.rotation);
-    if (this.aura) this.aura.position.copy(this.body);
+    this.updateHeroModel(p, p.onGround && move !== 0);
+    if (this.isDown(p, 'attack')) this.attack(p);
+    this.updateTongue(p);
+  }
 
-    if (this.down('KeyX')) this.attack();
-    this.updateTongue();
+  // Model, running legs, cape, invisible/shadow look, Mecha suit
+  updateHeroModel(p, running) {
+    p.model.position.copy(p.pos);
+    orient(p.model, p.forward);
+    p.model.rotation.z = 0;
+    p.legs.forEach((leg, i) => (leg.rotation.x = running ? Math.sin(this.now / 60 + i * Math.PI) * 0.6 : 0));
+    if (p.cape) p.cape.rotation.x = running || !p.onGround ? 1.1 : 0.5;
+    const blinking = this.now < p.safeUntil && Math.floor(this.now / 100) % 2 === 0;
+    const mecha = this.active('mecha', p);
+    p.model.visible = !blinking && !mecha;
+    for (const material of p.materials) material.opacity = this.active('invisible', p) ? 0.25 : this.active('shadow', p) ? 0.45 : 1;
+    p.mechaModel.visible = mecha && !blinking;
+    p.mechaModel.position.copy(p.pos);
+    p.mechaModel.rotation.copy(p.model.rotation);
+    if (p.aura) p.aura.position.copy(this.bodyOf(p));
+  }
+
+  // Riding on another player's head (a baby player 2 can hop on): turn to aim, attack, jump to hop off.
+  updateRider(p, dt) {
+    const carrier = p.ridingOn;
+    p.pos.copy(carrier.pos).addScaledVector(UP, 1.25);
+    p.vel.set(0, 0, 0);
+    p.onGround = true;
+    if (this.wasPressed(p, 'jump') || carrier.knockedOut) {
+      p.ridingOn = null;
+      p.vel.y = JUMP_SPEED * 0.8;
+      p.onGround = false;
+      audio.play('jump');
+    }
+    this.updateHeroModel(p, false);
+    if (this.isDown(p, 'attack')) this.attack(p);
+  }
+
+  // Knocked out (2 players): lie down until the other player stands next to you for a moment.
+  updateKnockedOut(p, dt) {
+    p.model.position.copy(p.pos);
+    p.model.rotation.z = Math.PI / 2;
+    p.model.visible = Math.floor(this.now / 300) % 2 === 0;
+    const helper = this.players.find((o) => o !== p && !o.knockedOut && o.pos.distanceTo(p.pos) < 2.2);
+    p.revive = helper ? (p.revive ?? 0) + dt : 0;
+    if (p.revive > 1.5) {
+      p.knockedOut = false;
+      p.revive = 0;
+      p.hearts = this.settings.hearts;
+      p.safeUntil = this.now + this.settings.hurtSafeMs;
+      audio.play('key');
+      this.pop(this.bodyOf(p), 0xff4081, 1.5);
+      this.hud.message('', t('game.revived'), 1500);
+      this.updateHearts();
+    }
+  }
+
+  // Shows the hearts (player 2's too, with two players).
+  updateHearts() {
+    this.hud.setHearts(this.player.knockedOut ? 0 : this.player.hearts);
+    if (this.players[1]) this.hud.setHearts2(this.players[1].knockedOut ? 0 : this.players[1].hearts);
   }
 
   // Bump into buildings, rocks, trees and cave walls; land on top of them.
-  collide(previousY) {
-    const p = this.player;
+  collide(p, previousY) {
     for (const s of this.solids) {
       if (p.pos.x + RADIUS <= s.minX || p.pos.x - RADIUS >= s.maxX || p.pos.z + RADIUS <= s.minZ || p.pos.z - RADIUS >= s.maxZ) continue;
       if (p.pos.y >= s.maxY || p.pos.y + HEIGHT <= s.minY) continue;
@@ -667,8 +839,7 @@ export class AdventureWorld {
     }
   }
 
-  onLava() {
-    const p = this.player;
+  onLava(p) {
     if (!p.onGround) return false;
     const dv = Math.hypot(p.pos.x - VOLCANO.x, p.pos.z - VOLCANO.z);
     if (dv < VOLCANO.craterRadius - 0.5) return true;
@@ -683,84 +854,93 @@ export class AdventureWorld {
 
   // ---------- Powers (C, V, F, R, Q) ----------
 
-  startPower(power, sound) {
-    const p = this.player;
-    if (this.active(power) || this.now < (p.readyAt[power] ?? 0)) return;
+  startPower(p, power, sound) {
+    if (this.active(power, p) || this.now < (p.readyAt[power] ?? 0)) return;
     p.until[power] = this.now + POWER_MS[power];
     audio.play(sound);
   }
 
   updatePowers() {
-    const p = this.player;
-    if (this.pressed('KeyC') && this.character.invisibility) this.startPower('invisible', 'invisible');
-    if (this.pressed('KeyC') && this.character.shadow) this.startPower('shadow', 'shadow');
-    if (this.pressed('KeyV') && this.powerUps.includes('shield')) this.startPower('shield', 'shield');
-    if (this.pressed('KeyF') && this.powerUps.includes('fly')) this.startPower('fly', 'fly');
-    if (this.pressed('KeyR') && this.powerUps.includes('mecha-capybara') && !p.mechaUsed) {
-      p.mechaUsed = true;
-      this.startPower('mecha', 'mecha');
+    for (const p of this.players) {
+      if (!p.knockedOut) this.updateHeroPowers(p);
     }
-    if (this.pressed('KeyZ') && this.powerUps.includes('freeze')) this.useFreezeRay(this.guards);
     this.meltIce(this.guards);
-    if (this.pressed('KeyQ') && this.character.attacks) {
-      p.attackIndex = (p.attackIndex + 1) % this.character.attacks.length;
+    this.showPowers(this.player);
+  }
+
+  updateHeroPowers(p) {
+    const character = p.character;
+    if (this.wasPressed(p, 'special') && character.invisibility) this.startPower(p, 'invisible', 'invisible');
+    if (this.wasPressed(p, 'special') && character.shadow) this.startPower(p, 'shadow', 'shadow');
+    if (this.wasPressed(p, 'shield') && p.powerUps.includes('shield')) this.startPower(p, 'shield', 'shield');
+    if (this.wasPressed(p, 'fly') && p.powerUps.includes('fly')) this.startPower(p, 'fly', 'fly');
+    if (this.wasPressed(p, 'mecha') && p.powerUps.includes('mecha-capybara') && !p.mechaUsed) {
+      p.mechaUsed = true;
+      this.startPower(p, 'mecha', 'mecha');
+    }
+    if (this.wasPressed(p, 'freeze') && p.powerUps.includes('freeze')) this.useFreezeRay(this.guards);
+    if (this.wasPressed(p, 'swap') && character.attacks) {
+      p.attackIndex = (p.attackIndex + 1) % character.attacks.length;
       audio.play('click');
-      this.hud.message('', t(`game.attack.${this.currentAttack}`), 1000);
+      this.hud.message('', t(`game.attack.${this.currentAttack(p)}`), 1000);
     }
     // When a power runs out, start its wait
     for (const power of Object.keys(POWER_MS)) {
-      if (p.until[power] && !this.active(power)) {
+      if (p.until[power] && !this.active(power, p)) {
         p.until[power] = 0;
         if (power !== 'mecha') p.readyAt[power] = this.now + POWER_WAIT_MS;
       }
     }
-    this.shieldMesh.visible = this.active('shield');
-    if (this.shieldMesh.visible) this.shieldMesh.position.copy(this.body);
+    p.shieldMesh.visible = this.active('shield', p);
+    if (p.shieldMesh.visible) p.shieldMesh.position.copy(this.bodyOf(p));
+  }
 
+  // The power line at the top of the screen (player 1's powers).
+  showPowers(p) {
     const seconds = (ms) => Math.ceil(ms / 1000);
     const status = (key, name, power) => {
-      if (this.active(power)) return `${name}! ${seconds(p.until[power] - this.now)}`;
+      if (this.active(power, p)) return `${name}! ${seconds(p.until[power] - this.now)}`;
       if (this.now < (p.readyAt[power] ?? 0)) return `${key} = ${name}: ${t('game.wait', { seconds: seconds(p.readyAt[power] - this.now) })}`;
       return `${key} = ${name}: ${t('game.ready')}`;
     };
+    const character = p.character;
     const parts = [];
-    if (this.character.attacks) parts.push(`Q = ${t('game.switch')}`);
-    if (this.character.invisibility) parts.push(status('C', t('game.invisible'), 'invisible'));
-    if (this.character.shadow) parts.push(status('C', t('game.shadow'), 'shadow'));
-    if (this.powerUps.includes('shield')) parts.push(status('V', t('game.shield'), 'shield'));
-    if (this.powerUps.includes('fly')) parts.push(status('F', t('game.fly'), 'fly'));
-    if (this.powerUps.includes('freeze')) {
+    if (character.attacks) parts.push(`Q = ${t('game.switch')}`);
+    if (character.invisibility) parts.push(status('C', t('game.invisible'), 'invisible'));
+    if (character.shadow) parts.push(status('C', t('game.shadow'), 'shadow'));
+    if (p.powerUps.includes('shield')) parts.push(status('V', t('game.shield'), 'shield'));
+    if (p.powerUps.includes('fly')) parts.push(status('F', t('game.fly'), 'fly'));
+    if (p.powerUps.includes('freeze')) {
       if (this.frozen) parts.push(`${t('game.freeze')}! ${seconds(this.freezeUntil - this.now)}`);
       else if (this.now < (this.freezeReadyAt ?? 0)) parts.push(`Z = ${t('game.freeze')}: ${t('game.wait', { seconds: seconds(this.freezeReadyAt - this.now) })}`);
       else parts.push(`Z = ${t('game.freeze')}: ${t('game.ready')}`);
     }
-    if (this.powerUps.includes('mecha-capybara')) {
-      parts.push(p.mechaUsed && !this.active('mecha') ? `R = ${t('game.mecha')}: ${t('game.used')}` : status('R', t('game.mecha'), 'mecha'));
+    if (p.powerUps.includes('mecha-capybara')) {
+      parts.push(p.mechaUsed && !this.active('mecha', p) ? `R = ${t('game.mecha')}: ${t('game.used')}` : status('R', t('game.mecha'), 'mecha'));
     }
-    this.hud.setPower(parts.join('     '));
+    this.hud.setPower(this.players.length > 1 ? '' : parts.join('     '));
   }
 
-  get currentAttack() {
-    if (this.active('mecha')) return 'rocket';
-    return this.character.attacks ? this.character.attacks[this.player.attackIndex] : this.character.attack;
+  currentAttack(p = this.player) {
+    if (this.active('mecha', p)) return 'rocket';
+    return p.character.attacks ? p.character.attacks[p.attackIndex] : p.character.attack;
   }
 
-  get unhurtable() {
-    return this.active('invisible') || this.active('shadow') || this.active('mecha');
+  isUnhurtable(p = this.player) {
+    return this.active('invisible', p) || this.active('shadow', p) || this.active('mecha', p);
   }
 
   // ---------- Attacks ----------
 
-  attack() {
-    const p = this.player;
+  attack(p) {
     if (this.now < p.nextAttackAt) return;
-    const kind = this.currentAttack;
+    const kind = this.currentAttack(p);
     p.nextAttackAt = this.now + ATTACK_COOLDOWN_MS[kind];
-    const start = this.body.addScaledVector(UP, 0.3).addScaledVector(p.forward, 0.9);
+    const start = this.bodyOf(p).addScaledVector(UP, 0.3).addScaledVector(p.forward, 0.9);
 
     if (kind === 'scratch') {
       audio.play('scratch');
-      this.scratch();
+      this.scratch(p);
     } else if (kind === 'tongue') {
       audio.play('tongue');
       p.tongue = { startedAt: this.now, hit: false };
@@ -795,9 +975,8 @@ export class AdventureWorld {
     return list;
   }
 
-  scratch() {
-    const p = this.player;
-    const body = this.body;
+  scratch(p) {
+    const body = this.bodyOf(p);
     const slash = new THREE.Group();
     for (let i = -1; i <= 1; i++) {
       const line = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.2, 0.08), new THREE.MeshBasicMaterial({ color: 0xffffff }));
@@ -814,8 +993,7 @@ export class AdventureWorld {
     }
   }
 
-  updateTongue() {
-    const p = this.player;
+  updateTongue(p) {
     if (p.tongueMesh) {
       this.scene.remove(p.tongueMesh);
       p.tongueMesh = null;
@@ -827,7 +1005,7 @@ export class AdventureWorld {
       return;
     }
     const length = TONGUE_REACH * Math.sin(Math.PI * k);
-    const mouth = this.body.addScaledVector(p.forward, 0.9);
+    const mouth = this.bodyOf(p).addScaledVector(p.forward, 0.9);
     p.tongueMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, length, 6), new THREE.MeshBasicMaterial({ color: 0xff6fa8 }));
     p.tongueMesh.position.copy(mouth).addScaledVector(p.forward, length / 2);
     p.tongueMesh.quaternion.setFromUnitVectors(UP, p.forward);
@@ -845,7 +1023,6 @@ export class AdventureWorld {
   }
 
   updateShots(dt) {
-    const body = this.body;
     for (const shot of this.shots) {
       shot.life -= dt;
       if (shot.homing) {
@@ -865,12 +1042,16 @@ export class AdventureWorld {
           target.hit(shot.damage, shot);
           shot.life = 0;
         }
-      } else if (!this.won) {
-        const toShot = shot.pos.clone().sub(body);
-        if (this.active('shield') && toShot.length() < 1.6) {
+        continue;
+      }
+      if (this.won) continue;
+      for (const p of this.players) {
+        if (p.knockedOut) continue;
+        const toShot = shot.pos.clone().sub(this.bodyOf(p));
+        if (this.active('shield', p) && toShot.length() < 1.6) {
           shot.life = 0;
         } else if (toShot.length() < (shot.radius ?? 0.8)) {
-          this.hurt(shot.pos);
+          this.hurt(shot.pos, p);
           shot.life = 0;
         }
       }
@@ -1025,19 +1206,30 @@ export class AdventureWorld {
 
   // ---------- Getting hurt ----------
 
-  hurt(fromPos) {
-    const p = this.player;
-    if (this.won || this.unhurtable || this.now < p.safeUntil) return;
+  hurt(fromPos, p = this.player) {
+    if (this.won || p.knockedOut || this.isUnhurtable(p) || this.now < p.safeUntil) return;
     audio.play('hurt');
     p.hearts -= 1;
     p.safeUntil = this.now + this.settings.hurtSafeMs;
     if (p.hearts <= 0) {
-      p.hearts = this.settings.hearts;
-      this.hud.setHearts(p.hearts);
+      // Two players: knocked out until the other one revives you. Everyone out (or solo): start over.
+      if (this.players.some((o) => o !== p && !o.knockedOut)) {
+        p.knockedOut = true;
+        p.ridingOn = null;
+        p.vel.set(0, 0, 0);
+        this.hud.message('', t('game.reviveHint'), 2500);
+        this.updateHearts();
+        return;
+      }
+      for (const o of this.players) {
+        o.hearts = this.settings.hearts;
+        o.knockedOut = false;
+      }
+      this.updateHearts();
       this.respawn();
       return;
     }
-    this.hud.setHearts(p.hearts);
+    this.updateHearts();
     const away = p.pos.clone().sub(fromPos);
     away.y = 0;
     if (away.lengthSq() > 0) away.setLength(4);
@@ -1407,13 +1599,19 @@ export class AdventureWorld {
   }
 
   updateCamera(dt) {
-    const p = this.player;
-    const wanted = p.pos.clone().addScaledVector(p.forward, -7).addScaledVector(UP, 3.5);
-    wanted.y = Math.max(wanted.y, this.groundAt(wanted.x, wanted.z) + 1);
-    this.camera.position.lerp(wanted, 1 - Math.exp(-dt * 5));
-    const lookAt = p.pos.clone().addScaledVector(UP, 1.2).addScaledVector(p.forward, 2);
-    if (this.now < (this.shakeUntil ?? 0)) lookAt.add(new THREE.Vector3().randomDirection().multiplyScalar(0.3));
-    this.camera.lookAt(lookAt);
+    for (const p of this.players) {
+      const wanted = p.pos.clone().addScaledVector(p.forward, -7).addScaledVector(UP, 3.5);
+      wanted.y = Math.max(wanted.y, this.groundAt(wanted.x, wanted.z) + 1);
+      p.camera.position.lerp(wanted, 1 - Math.exp(-dt * 5));
+      const lookAt = p.pos.clone().addScaledVector(UP, 1.2).addScaledVector(p.forward, 2);
+      if (this.now < (this.shakeUntil ?? 0)) lookAt.add(new THREE.Vector3().randomDirection().multiplyScalar(0.3));
+      p.camera.lookAt(lookAt);
+    }
+  }
+
+  // Put a player's camera right behind them (after jumping somewhere far away).
+  snapCamera(p) {
+    p.camera.position.copy(p.pos).addScaledVector(p.forward, -7).addScaledVector(UP, 3.5);
   }
 
   // ---------- Leaving ----------

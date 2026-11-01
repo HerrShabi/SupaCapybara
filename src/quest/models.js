@@ -21,11 +21,13 @@ export const BABY_COLORS = {
   pink: { body: 0xff8fc8, shot: 0xff4081 }, // heals you
   purple: { body: 0xab47bc, shot: 0xe1bee7 }, // ghost balls
   rainbow: { body: 0xffffff, shot: 0xffffff }, // all the powers (each part a different color)
+  alien: { body: 0x76ff03, shot: 0x76ff03 }, // from World 2's spaceship: shrink rays from a mini saucer
 };
 const RAINBOW = [0xff5252, 0xffa726, 0xffee58, 0x66bb6a, 0x42a5f5, 0xab47bc];
 
 // A baby cat or baby capybara. Returns { group, legs }.
 export function makeBaby(animal, color) {
+  if (animal === 'alien') return makeAlienBaby();
   // Rainbow babies get a different color for every part
   let part = 0;
   const body = () => (color === 'rainbow' ? RAINBOW[part++ % RAINBOW.length] : BABY_COLORS[color].body);
@@ -66,6 +68,27 @@ export function makeBaby(animal, color) {
     }),
   );
   return { group, legs };
+}
+
+// The alien baby rides a mini flying saucer (it has no legs to walk with).
+function makeAlienBaby() {
+  const group = new THREE.Group();
+  const green = 0x76ff03;
+  group.add(box(1.3, 0.2, 1.3, 0xb0bec5, 0, 0.1, 0)); // the saucer
+  group.add(box(0.9, 0.15, 0.9, 0x78909c, 0, -0.05, 0));
+  for (const [x, z] of [[-0.5, 0], [0.5, 0], [0, -0.5], [0, 0.5]]) group.add(box(0.12, 0.08, 0.12, 0xffeb3b, x, 0.02, z));
+  group.add(box(0.4, 0.4, 0.35, green, 0, 0.4, 0));
+  const head = new THREE.Group();
+  head.position.set(0, 0.85, 0.05);
+  head.add(box(0.6, 0.5, 0.5, green));
+  head.add(box(0.2, 0.25, 0.05, 0x111111, -0.15, 0.03, 0.26)); // big black alien eyes
+  head.add(box(0.2, 0.25, 0.05, 0x111111, 0.15, 0.03, 0.26));
+  head.add(box(0.04, 0.3, 0.04, green, -0.15, 0.38, 0)); // antennas
+  head.add(box(0.04, 0.3, 0.04, green, 0.15, 0.38, 0));
+  head.add(box(0.1, 0.1, 0.1, 0xff4081, -0.15, 0.55, 0));
+  head.add(box(0.1, 0.1, 0.1, 0xff4081, 0.15, 0.55, 0));
+  group.add(head);
+  return { group, legs: [] };
 }
 
 // Cooking food. Its color decides which baby comes: red berry, blue mushroom, yellow corn.

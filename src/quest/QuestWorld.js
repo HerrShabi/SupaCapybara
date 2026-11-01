@@ -2,9 +2,11 @@ import * as THREE from 'three';
 import { t } from '../i18n.js';
 import { audio } from '../audio.js';
 import { BAD_GUY_REWARD, BOSS_REWARD } from '../difficulty.js';
-import { writeSave } from '../save.js';
+import { writeSave, questProgress, addBaby } from '../save.js';
 import { Hud } from '../world2/hud.js';
-import { AdventureWorld } from '../adventure/AdventureWorld.js';
+import { AdventureWorld, KEYS } from '../adventure/AdventureWorld.js';
+import { getCharacter } from '../characters.js';
+import * as heroModels from '../world2/models.js';
 import * as models from './models.js';
 import { QuestMenu } from './menu.js';
 import { CELL, WATER_Y, FOOD_PER_BABY, TEAM_SIZE, FOOD_COLORS, RAINBOW_EGG_CHANCE, SHOP, ISLANDS, CAGED_BABIES } from './map.js';
@@ -24,8 +26,8 @@ function orient(object, forward) {
 }
 
 const FOOD_ICONS = { red: '🍓', blue: '🍄', yellow: '🌽', green: '🥝', pink: '🍬', purple: '🍆' };
-const BABY_ICONS = { red: '🔥', blue: '❄️', yellow: '⚡', green: '🌿', pink: '💗', purple: '👻', rainbow: '🌈' };
-const ANIMAL_ICONS = { cat: '🐱', capybara: '🦫' };
+const BABY_ICONS = { red: '🔥', blue: '❄️', yellow: '⚡', green: '🌿', pink: '💗', purple: '👻', rainbow: '🌈', alien: '🛸' };
+const ANIMAL_ICONS = { cat: '🐱', capybara: '🦫', alien: '👽' };
 const PAD_COLORS = { base: 0xffffff, beach: 0xffd54f, forest: 0x4fc3f7, candy: 0xff80ab, dragon: 0xff5252 };
 const COOK_MS = 3000;
 const SEE = 12;
@@ -47,6 +49,7 @@ const BABY_POWERS = {
   purple: { waitMs: 1000, damage: 1.5, power: 'ghost' },
   pink: { healMs: 9000 },
   rainbow: { waitMs: 700, damage: 2, power: 'rainbow', healMs: 12000 },
+  alien: { waitMs: 1100, damage: 1, power: 'shrink' }, // shrunk bad guys take double damage
 };
 const RAINBOW_POWERS = ['fire', 'ice', 'lightning', 'vine', 'ghost'];
 // How each power's shot looks: [color, size, speed, sound]
@@ -56,7 +59,9 @@ const SHOT_LOOKS = {
   lightning: [0xfff176, 0.08, 26, 'laser'],
   vine: [0x2e7d32, 0.12, 16, 'tongue'],
   ghost: [0xe1bee7, 0.3, 13, 'moon'],
+  shrink: [0x76ff03, 0.12, 20, 'laser'],
 };
+const SHRINK_MS = 4000;
 
 // The bad guys. height: where their middle is. shoots: [ms between shots, color, size].
 // sideways: walks like a crab. hops: bounces like a gummy bear. flies: how high it flies (drops fireballs).
@@ -98,14 +103,7 @@ function islandAt(x, z) {
 
 export class QuestWorld extends AdventureWorld {
   constructor(options) {
-    const quest = (options.save.quest ??= { food: {}, babies: [], dragonBeaten: false });
-    // Saves from before levels, the team tent and the new foods
-    for (const color of FOOD_COLORS) quest.food[color] ??= 0;
-    const hadTeams = quest.babies.some((b) => b.team !== undefined);
-    quest.babies.forEach((baby, i) => {
-      baby.xp ??= 0;
-      if (!hadTeams) baby.team = i < TEAM_SIZE;
-    });
+    questProgress(options.save);
     super(options);
   }
 
@@ -210,6 +208,52 @@ export class QuestWorld extends AdventureWorld {
     return { x: base.x + base.start[0], z: base.z + base.start[1], facing: base.facing };
   }
 
+  // Two players (from World 1 in 2 PLAYERS TEAM): split screen, keys A/D/W/S + SPACE + F and arrows + right SHIFT + ENTER,
+  // or one game controller each. Player 2 can be a hero or one of your babies (picked in the team tent).
+  createPlayer() {
+    if (!this.twoPlayers) {
+      super.createPlayer();
+      return;
+    }
+    this.palette = 0;
+    const [hero1, hero2] = this.twoPlayers.heroes;
+    this.character = getCharacter(hero1);
+    this.players = [];
+    this.player = this.makePlayer({ character: this.character, keys: KEYS.p1, padIndex: 0 });
+    this.players.push(this.player);
+    this.players.push(this.makePlayer({ character: getCharacter(hero2), keys: KEYS.p2, padIndex: 1, offset: 1.6 }));
+    this.player2Hero = getCharacter(hero2);
+    this.checkpoint = { x: this.spawn.x, z: this.spawn.z };
+    this.resize(); // each camera gets half the screen
+    const babyIndex = this.quest.player2Baby;
+    if (babyIndex !== undefined && this.quest.babies[babyIndex]) this.setPlayer2(babyIndex);
+  }
+
+  // Player 2 plays as a hero (null) or as one of your babies (its index in save.quest.babies).
+  setPlayer2(babyIndex) {
+    const p = this.players[1];
+    const baby = babyIndex === null ? null : this.quest.babies[babyIndex];
+    this.quest.player2Baby = baby ? babyIndex : undefined;
+    writeSave(this.save);
+    p.baby = baby;
+    p.ridingOn = null;
+    p.character = baby ? { id: 'baby', attack: 'baby' } : this.player2Hero;
+    if (p.aura) this.scene.remove(p.aura);
+    p.aura = null;
+    if (baby) {
+      this.scene.remove(p.model);
+      const { group, legs } = models.makeBaby(baby.animal, baby.color);
+      this.setModel(p, group, legs);
+    } else {
+      this.buildHeroModel(p);
+      if (p.character.fireAura) {
+        p.aura = heroModels.makeAura(p.character.auraColor);
+        this.scene.add(p.aura);
+      }
+    }
+    if (this.babies) this.refreshBabies();
+  }
+
   begin() {
     audio.playMusic('menu');
     this.island = 'base';
@@ -231,7 +275,12 @@ export class QuestWorld extends AdventureWorld {
       bossName: t('quest.dragonName'),
     });
     if (this.save.touch) this.hud.hideKeyboardHints();
-    this.hud.setHearts(this.player.hearts);
+    if (this.twoPlayers) {
+      this.hud.showTwoPlayers();
+      this.hud.el('hint').textContent = '';
+      this.hud.el('controls').textContent = t('quest.twoPlayerKeys');
+    }
+    this.updateHearts();
     this.hud.setBolts(this.save.bolts);
     this.updateItems();
   }
@@ -247,14 +296,17 @@ export class QuestWorld extends AdventureWorld {
     this.clearIsland();
     this.island = id;
     const island = ISLANDS[id];
+    // Everyone travels together (player 2 a little to the side)
+    this.players.forEach((p, i) => {
+      p.pos.set(island.x + island.start[0] - island.facing[1] * 1.6 * i, 0, island.z + island.start[1] + island.facing[0] * 1.6 * i);
+      p.pos.y = this.groundAt(p.pos.x, p.pos.z);
+      p.vel.set(0, 0, 0);
+      p.forward.set(island.facing[0], 0, island.facing[1]);
+      this.snapCamera(p);
+    });
     const p = this.player;
-    p.pos.set(island.x + island.start[0], 0, island.z + island.start[1]);
-    p.pos.y = this.groundAt(p.pos.x, p.pos.z);
-    p.vel.set(0, 0, 0);
-    p.forward.set(island.facing[0], 0, island.facing[1]);
     this.checkpoint = { x: p.pos.x, z: p.pos.z };
     this.padReadyAt = this.now + 1000;
-    this.camera.position.copy(p.pos).addScaledVector(p.forward, -7).addScaledVector(UP, 3.5);
     audio.play('blastOff');
 
     // Every visit is a new mission: the food and bad guys come back (and so does the dragon, for a rematch)
@@ -282,26 +334,30 @@ export class QuestWorld extends AdventureWorld {
   }
 
   updatePads() {
-    const p = this.player;
     for (const pad of this.pads) {
       pad.cube.rotation.y += 0.03;
       pad.cube.position.y = 2.2 + Math.sin(this.now / 300) * 0.2;
-      if (pad.from !== this.island || this.now < (this.padReadyAt ?? 0) || !p.onGround) continue;
-      if (Math.hypot(p.pos.x - pad.x, p.pos.z - pad.z) < 1.5) {
+      if (pad.from !== this.island || this.now < (this.padReadyAt ?? 0)) continue;
+      const onPad = this.players.some((p) => !p.knockedOut && p.onGround && Math.hypot(p.pos.x - pad.x, p.pos.z - pad.z) < 1.5);
+      if (onPad) {
         this.goTo(pad.target);
         return;
       }
     }
   }
 
+  // A player standing near a spot (x, z), if any.
+  playerNear(x, z, distance) {
+    return this.players.find((p) => !p.knockedOut && Math.hypot(p.pos.x - x, p.pos.z - z) < distance);
+  }
+
   // Fell in the sea: SPLASH, lose a heart, and swim back to where you arrived.
-  splash() {
-    const p = this.player;
+  splash(p) {
     audio.play('fall');
     this.pop(p.pos.clone().setY(WATER_Y), 0x81d4fa, 2);
     this.hud.message('', t('quest.splash'), 1200);
     p.safeUntil = 0;
-    this.hurt(p.pos); // out of hearts: this sends you to base camp
+    this.hurt(p.pos, p); // out of hearts: this sends you to base camp
     p.pos.set(this.checkpoint.x, this.groundAt(this.checkpoint.x, this.checkpoint.z), this.checkpoint.z);
     p.vel.set(0, 0, 0);
   }
@@ -309,13 +365,14 @@ export class QuestWorld extends AdventureWorld {
   // Out of hearts: back to base camp.
   respawn() {
     this.goTo('base');
-    this.player.safeUntil = this.now + this.settings.hurtSafeMs;
+    for (const p of this.players) p.safeUntil = this.now + this.settings.hurtSafeMs;
   }
 
   // ---------- Every frame ----------
 
   updateWorld(dt) {
-    if (this.player.pos.y < WATER_Y - 0.5) this.splash();
+    for (const p of this.players) if (p.pos.y < WATER_Y - 0.5) this.splash(p);
+    this.updateRiding();
     this.updatePads();
     this.updateFood();
     this.updateEgg();
@@ -348,11 +405,10 @@ export class QuestWorld extends AdventureWorld {
   }
 
   updateFood() {
-    const body = this.body;
     for (const food of this.foods) {
       food.mesh.rotation.y += 0.04;
       food.mesh.position.y = food.pos.y + 0.2 + Math.sin(this.now / 300 + food.phase) * 0.15;
-      if (food.taken || food.mesh.position.distanceTo(body) > 1.3) continue;
+      if (food.taken || !this.players.some((p) => !p.knockedOut && food.mesh.position.distanceTo(this.bodyOf(p)) < 1.3)) continue;
       food.taken = true;
       this.scene.remove(food.mesh);
       this.quest.food[food.color] += 1;
@@ -391,9 +447,7 @@ export class QuestWorld extends AdventureWorld {
       if (k >= 1) this.finishCooking();
       return;
     }
-    if (this.island !== 'base') return;
-    const p = this.player;
-    if (Math.hypot(p.pos.x - pot.x, p.pos.z - pot.z) > 3.2) return;
+    if (this.island !== 'base' || !this.playerNear(pot.x, pot.z, 3.2)) return;
     const food = this.quest.food;
     const total = FOOD_COLORS.reduce((sum, color) => sum + food[color], 0);
     if (total < FOOD_PER_BABY) {
@@ -432,9 +486,7 @@ export class QuestWorld extends AdventureWorld {
 
   // A new baby joins the team if there's room (or waits at base camp).
   addBaby(animal, color) {
-    const baby = { animal, color, xp: 0, team: this.quest.babies.filter((b) => b.team).length < TEAM_SIZE };
-    this.quest.babies.push(baby);
-    writeSave(this.save);
+    const baby = addBaby(this.save, animal, color);
     audio.play('key');
     this.refreshBabies();
     this.updateItems();
@@ -442,6 +494,7 @@ export class QuestWorld extends AdventureWorld {
   }
 
   babyName(baby) {
+    if (baby.animal === 'alien') return t('quest.alienBaby');
     return t('quest.babyName', { color: t(`quest.color.${baby.color}`), animal: t(`quest.animal.${baby.animal}`) });
   }
 
@@ -467,9 +520,8 @@ export class QuestWorld extends AdventureWorld {
   // Walk into the tent or up to the shop and its screen opens (once, until you walk away again).
   updateSpots() {
     if (this.island !== 'base') return;
-    const p = this.player;
     for (const [id, spot] of Object.entries(this.spots)) {
-      const inside = Math.hypot(p.pos.x - spot.x, p.pos.z - spot.z) < 2.8;
+      const inside = Boolean(this.playerNear(spot.x, spot.z, 2.8));
       if (inside && !spot.inside) (id === 'team' ? this.openTeam() : this.openShop());
       spot.inside = inside;
     }
@@ -477,7 +529,7 @@ export class QuestWorld extends AdventureWorld {
 
   openMenu(options, onPick) {
     this.paused = true;
-    this.player.vel.set(0, this.player.vel.y, 0);
+    for (const p of this.players) p.vel.set(0, p.vel.y, 0);
     audio.play('click');
     this.menu = new QuestMenu(this.container, options);
     this.onMenuPick = onPick;
@@ -490,32 +542,51 @@ export class QuestWorld extends AdventureWorld {
     audio.play('click');
   }
 
-  // While a menu is open: arrows choose, SPACE/ENTER picks, ESC or X closes (B on a game controller).
+  // While a menu is open, any player can use it: up/down choose, jump (SPACE, A) picks, attack (X, B) or ESC closes.
   updatePaused() {
     if (!this.menu) return;
-    if (this.pressed('ArrowUp', 'KeyW')) this.menu.move(-1);
-    if (this.pressed('ArrowDown', 'KeyS')) this.menu.move(1);
-    if (this.pressed('Space', 'Enter')) {
+    const anyone = (action) => this.players.some((p) => this.wasPressed(p, action));
+    if (anyone('up')) this.menu.move(-1);
+    if (anyone('down')) this.menu.move(1);
+    if (anyone('jump') || (!this.twoPlayers && this.pressed('Enter'))) {
       this.onMenuPick(this.menu.index);
       this.menu.render();
     }
-    if (this.pressed('Escape', 'KeyX')) this.closeMenu();
+    if (anyone('attack') || anyone('back') || this.pressed('Escape')) this.closeMenu();
   }
 
   openTeam() {
     const babies = this.quest.babies;
+    // Two players: the first row picks what player 2 plays (a hero, or one of the babies)
+    const extra = this.twoPlayers ? 1 : 0;
+    const player2Row = () => {
+      const baby = this.players[1].baby;
+      const who = baby ? `${BABY_ICONS[baby.color]} ${this.babyName(baby)}` : t('quest.player2Hero');
+      return { text: `🎮 ${t('quest.player2')}`, note: who };
+    };
     this.openMenu(
       {
         title: `⛺ ${t('quest.team')}`,
         sub: () => (babies.length ? t('quest.teamSub', { count: babies.filter((b) => b.team).length, max: TEAM_SIZE }) : t('quest.noBabies')),
         help: t('quest.teamHelp'),
-        rows: () =>
-          babies.map((baby) => ({
+        rows: () => [
+          ...(extra ? [player2Row()] : []),
+          ...babies.map((baby) => ({
             text: `${BABY_ICONS[baby.color]} ${ANIMAL_ICONS[baby.animal]} ${this.babyName(baby)}`,
             note: `${t('quest.level', { level: levelOf(baby.xp) })}   ${baby.team ? '✅' : '⬜'}`,
           })),
+        ],
       },
-      (index) => {
+      (row) => {
+        if (extra && row === 0) {
+          // Hero → first baby → next baby... → hero again
+          const current = this.players[1].baby ? babies.indexOf(this.players[1].baby) : -1;
+          const next = current + 1 < babies.length ? current + 1 : null;
+          this.setPlayer2(next);
+          audio.play('click');
+          return;
+        }
+        const index = row - extra;
         const baby = babies[index];
         if (!baby) return;
         if (!baby.team && babies.filter((b) => b.team).length >= TEAM_SIZE) {
@@ -565,7 +636,8 @@ export class QuestWorld extends AdventureWorld {
     let slot = 0;
     let waiting = 0;
     const waitingCount = this.quest.babies.filter((b) => !b.team).length;
-    this.babies = this.quest.babies.map((data) => {
+    const played = this.players[1]?.baby; // player 2 is playing this baby, so it doesn't follow by itself
+    this.babies = this.quest.babies.filter((data) => data !== played).map((data) => {
       const { group, legs } = models.makeBaby(data.animal, data.color);
       this.scene.add(group);
       const angle = (waiting / Math.max(1, waitingCount)) * Math.PI * 2;
@@ -583,7 +655,7 @@ export class QuestWorld extends AdventureWorld {
   }
 
   updateBabies(dt) {
-    const p = this.player;
+    const p = this.player.knockedOut ? this.players[1] : this.player;
     const side = vec(-p.forward.z, 0, p.forward.x);
     const targets = this.targets();
     for (const baby of this.babies) {
@@ -602,7 +674,8 @@ export class QuestWorld extends AdventureWorld {
         baby.pos.copy(baby.home);
       }
       const ground = Math.max(this.groundAt(baby.pos.x, baby.pos.z), WATER_Y);
-      const hop = moving || !baby.inTeam ? Math.abs(Math.sin(this.now / 140 + baby.slot)) * 0.35 : 0;
+      const flying = baby.data.animal === 'alien'; // rides its mini saucer
+      const hop = flying ? 1.4 + Math.sin(this.now / 300 + baby.slot) * 0.2 : moving || !baby.inTeam ? Math.abs(Math.sin(this.now / 140 + baby.slot)) * 0.35 : 0;
       baby.pos.y = ground;
       baby.mesh.position.copy(baby.pos).addScaledVector(UP, hop);
       baby.legs.forEach((leg, i) => (leg.rotation.x = moving ? Math.sin(this.now / 60 + i * Math.PI) * 0.6 : 0));
@@ -615,13 +688,13 @@ export class QuestWorld extends AdventureWorld {
   // Pink (and rainbow) babies give you a heart back now and then. Higher levels heal more often.
   babyHeal(baby) {
     const { healMs } = BABY_POWERS[baby.data.color];
-    const p = this.player;
-    if (!healMs || this.now < baby.nextHealAt || p.hearts >= this.settings.hearts) return;
+    const p = this.players.filter((o) => !o.knockedOut).sort((a, b) => a.hearts - b.hearts)[0]; // whoever is most hurt
+    if (!healMs || !p || this.now < baby.nextHealAt || p.hearts >= this.settings.hearts) return;
     baby.nextHealAt = this.now + Math.max(4000, healMs - (levelOf(baby.data.xp) - 1) * 500);
     p.hearts += 1;
-    this.hud.setHearts(p.hearts);
+    this.updateHearts();
     audio.play('shield');
-    this.pop(this.body, 0xff4081, 1.2);
+    this.pop(this.bodyOf(p), 0xff4081, 1.2);
   }
 
   // Each baby shoots at the nearest bad guy by itself. Its color is its power; higher levels hit harder.
@@ -637,28 +710,70 @@ export class QuestWorld extends AdventureWorld {
     if (!target) return;
     baby.nextShotAt = this.now + waitMs;
     baby.shots += 1;
+    const direction = target.point.clone().sub(from);
+    orient(baby.mesh, vec(direction.x, 0, direction.z));
+    this.babyShot(from, direction, kind, damage * (1 + 0.2 * (levelOf(baby.data.xp) - 1)));
+  }
+
+  // A baby's shot: fire, ice, lightning, vines, ghost balls or shrink rays (they all find their way to a bad guy).
+  babyShot(from, direction, kind, damage) {
     const [color, size, speed, sound] = SHOT_LOOKS[kind];
     const geometry =
       kind === 'fire' || kind === 'ghost'
         ? new THREE.SphereGeometry(size, 8, 6)
         : kind === 'ice'
           ? new THREE.BoxGeometry(size, size, size)
-          : new THREE.BoxGeometry(size, size, kind === 'vine' ? 0.7 : 0.9);
+          : new THREE.BoxGeometry(size, size, kind === 'vine' ? 0.7 : 0.9); // lightning, vines, shrink rays
     const material = new THREE.MeshBasicMaterial({ color, transparent: kind === 'ghost', opacity: kind === 'ghost' ? 0.6 : 1 });
-    const vel = target.point.clone().sub(from).setLength(speed);
-    orient(baby.mesh, vec(vel.x, 0, vel.z));
     audio.play(sound);
     this.addShot({
       mesh: new THREE.Mesh(geometry, material),
       pos: from,
-      vel,
+      vel: direction.clone().setLength(speed),
       life: kind === 'ghost' ? 2 : 1.4,
-      damage: damage * (1 + 0.2 * (levelOf(baby.data.xp) - 1)),
+      damage,
       fromPlayer: true,
       homing: true,
       power: kind,
       ghost: kind === 'ghost', // flies through hills and trees
     });
+  }
+
+  // Player 2 as a baby: attack shoots that baby's power straight ahead (pink heals player 1 when close instead).
+  attack(p) {
+    if (!p.baby) {
+      super.attack(p);
+      return;
+    }
+    if (this.now < p.nextAttackAt) return;
+    const { waitMs = 1000, damage = 1, power } = BABY_POWERS[p.baby.color];
+    if (!power) {
+      p.nextAttackAt = this.now + 4000;
+      const friend = this.players.find((o) => o !== p && !o.knockedOut && o.pos.distanceTo(p.pos) < 5 && o.hearts < this.settings.hearts);
+      if (!friend) return;
+      friend.hearts += 1;
+      this.updateHearts();
+      audio.play('shield');
+      this.pop(this.bodyOf(friend), 0xff4081, 1.2);
+      return;
+    }
+    p.nextAttackAt = this.now + waitMs * 0.6;
+    p.shots = (p.shots ?? 0) + 1;
+    const kind = power === 'rainbow' ? RAINBOW_POWERS[p.shots % RAINBOW_POWERS.length] : power;
+    const from = this.bodyOf(p).addScaledVector(UP, 0.3).addScaledVector(p.forward, 0.6);
+    this.babyShot(from, p.forward, kind, damage * (1 + 0.2 * (levelOf(p.baby.xp) - 1)));
+  }
+
+  // A baby player 2 can land on player 1's head to ride along (jump to hop off; see AdventureWorld.updateRider).
+  updateRiding() {
+    const [p1, p2] = this.players;
+    if (!p2?.baby || p2.ridingOn || p2.knockedOut || p1.knockedOut || p2.vel.y >= 0) return;
+    const head = p1.pos.y + 1;
+    if (Math.hypot(p2.pos.x - p1.pos.x, p2.pos.z - p1.pos.z) < 1 && p2.pos.y > head && p2.pos.y < head + 1) {
+      p2.ridingOn = p1;
+      audio.play('bounce');
+      this.hud.message('', t('quest.riding'), 1500);
+    }
   }
 
   // Every baby in the team gets xp when a bad guy is beaten.
@@ -697,10 +812,10 @@ export class QuestWorld extends AdventureWorld {
   }
 
   updateBadGuys(dt) {
-    const p = this.player;
-    const body = this.body;
     for (const bad of this.badGuys) {
       if (!bad.alive) continue;
+      const p = this.nearestPlayer(bad.pos); // bad guys go after whoever is closest
+      const body = this.bodyOf(p);
       if (bad.ice) {
         bad.ice.position.copy(this.badGuyCenter(bad));
         continue;
@@ -717,7 +832,7 @@ export class QuestWorld extends AdventureWorld {
       const slow = this.now < (bad.slowUntil ?? 0) ? 0.35 : 1;
       const toPlayer = body.clone().sub(this.badGuyCenter(bad));
       const flat = vec(toPlayer.x, 0, toPlayer.z);
-      const sees = flat.length() < (info.flies ? 14 : SEE) && !this.active('invisible');
+      const sees = flat.length() < (info.flies ? 14 : SEE) && !this.active('invisible', p) && !p.knockedOut;
 
       // Move: chase you when it sees you, or walk (fly) around its home
       let step = vec(0, 0, 0);
@@ -739,6 +854,7 @@ export class QuestWorld extends AdventureWorld {
       else if (info.hops && !trapped) bad.pos.y = ground + Math.abs(Math.sin(this.now / 260 + bad.phase)) * 1.3;
       else bad.pos.y = ground;
       bad.mesh.position.copy(bad.pos);
+      bad.mesh.scale.setScalar(this.now < (bad.shrunkUntil ?? 0) ? 0.5 : 1); // tiny!
       const facing = sees ? flat : step.lengthSq() > 0 ? step : flat;
       if (facing.lengthSq() > 0) orient(bad.mesh, facing);
       if (info.sideways) bad.mesh.rotation.y += Math.PI / 2; // crabs walk sideways!
@@ -763,10 +879,10 @@ export class QuestWorld extends AdventureWorld {
           this.defeatBadGuy(bad);
           p.vel.y = JUMP_SPEED * 0.8;
           audio.play('stomp');
-        } else if (this.character.fireAura || this.active('mecha')) {
+        } else if (p.character.fireAura || this.active('mecha', p)) {
           this.defeatBadGuy(bad);
         } else {
-          this.hurt(bad.pos);
+          this.hurt(bad.pos, p);
         }
         continue;
       }
@@ -791,7 +907,8 @@ export class QuestWorld extends AdventureWorld {
         this.scene.add(bad.vines);
       }
     }
-    bad.hp -= damage;
+    if (shot?.power === 'shrink') bad.shrunkUntil = this.now + SHRINK_MS;
+    bad.hp -= damage * (this.now < (bad.shrunkUntil ?? 0) ? 2 : 1);
     if (bad.hp <= 0) this.defeatBadGuy(bad);
     else this.pop(this.badGuyCenter(bad), 0xffffff, 0.5);
   }
@@ -807,7 +924,7 @@ export class QuestWorld extends AdventureWorld {
     this.pop(this.badGuyCenter(bad), 0xffffff);
     const colors = ISLANDS[this.island].foodColors;
     if (colors.length) this.addFood(bad.pos.x, bad.pos.z, colors[Math.floor(Math.random() * colors.length)]);
-    if (this.active('invisible')) this.player.until.invisible = this.now;
+    for (const p of this.players) if (this.active('invisible', p)) p.until.invisible = this.now;
   }
 
   // ---------- The cages and the Block Dragon ----------
@@ -867,7 +984,8 @@ export class QuestWorld extends AdventureWorld {
   updateDragon() {
     const dragon = this.dragon;
     if (!dragon || dragon.state === 'defeated') return;
-    const p = this.player;
+    const p = this.nearestPlayer(dragon.pos);
+    dragon.target = p;
     const toPlayer = vec(p.pos.x - dragon.pos.x, 0, p.pos.z - dragon.pos.z);
 
     if (dragon.state === 'sleeping') {
@@ -899,23 +1017,25 @@ export class QuestWorld extends AdventureWorld {
       const k = Math.min(1, (this.now - dragon.charge.startedAt) / 1000);
       dragon.pos.copy(dragon.charge.from).lerp(dragon.charge.to, k);
       if (k === 1) dragon.charge = null;
-    } else if (this.now > dragon.nextActionAt && !this.active('invisible')) {
+    } else if (this.now > dragon.nextActionAt && !this.active('invisible', p)) {
       dragon.nextActionAt = this.now + this.settings.bossActionMs * (slow ? 2 : 1.3);
       this.dragonAction(toPlayer);
     }
     dragon.mesh.position.copy(dragon.pos);
+    dragon.mesh.scale.setScalar(this.now < (dragon.shrunkUntil ?? 0) ? 0.7 : 1);
     if (toPlayer.lengthSq() > 0.01) orient(dragon.mesh, toPlayer);
     dragon.jaw.position.y = this.now < (dragon.mouthOpenUntil ?? 0) ? -0.95 : -0.65;
 
     // Touching the dragon hurts (unless you're on fire or in the Mecha suit)
-    if (this.body.distanceTo(this.dragonCenter()) < DRAGON_HIT_RADIUS + 0.5) {
-      if (this.character.fireAura || this.active('mecha')) {
+    for (const player of this.players) {
+      if (this.bodyOf(player).distanceTo(this.dragonCenter()) > DRAGON_HIT_RADIUS + 0.5) continue;
+      if (player.character.fireAura || this.active('mecha', player)) {
         if (this.now > (dragon.burnReadyAt ?? 0)) {
           dragon.burnReadyAt = this.now + 300;
           this.hitDragon(1);
         }
       } else {
-        this.hurt(dragon.pos);
+        this.hurt(dragon.pos, player);
       }
     }
   }
@@ -938,7 +1058,8 @@ export class QuestWorld extends AdventureWorld {
   dragonAction(toPlayer) {
     const dragon = this.dragon;
     const island = ISLANDS.dragon;
-    const target = vec(this.player.pos.x, 1, this.player.pos.z);
+    const aimAt = dragon.target;
+    const target = vec(aimAt.pos.x, 1, aimAt.pos.z);
     const fromHome = vec(target.x - island.x, 0, target.z - island.z);
     if (fromHome.length() > island.radius - 7) fromHome.setLength(island.radius - 7);
     target.set(island.x + fromHome.x, 1, island.z + fromHome.z);
@@ -950,9 +1071,9 @@ export class QuestWorld extends AdventureWorld {
       for (let i = 0; i < 8; i++) {
         setTimeout(() => {
           if (!this.dragon || this.dragon.state !== 'fighting' || this.ended) return;
-          const forward = vec(this.player.pos.x - dragon.pos.x, 0, this.player.pos.z - dragon.pos.z).normalize();
+          const forward = vec(aimAt.pos.x - dragon.pos.x, 0, aimAt.pos.z - dragon.pos.z).normalize();
           const mouth = dragon.pos.clone().addScaledVector(UP, 4.6).addScaledVector(forward, 5);
-          this.enemyShot(mouth, vec(this.player.pos.x, this.player.pos.y + 0.6, this.player.pos.z), (this.settings.enemyShotSpeed / 30) * 1.2, 0xff6d00, 0.45);
+          this.enemyShot(mouth, vec(aimAt.pos.x, aimAt.pos.y + 0.6, aimAt.pos.z), (this.settings.enemyShotSpeed / 30) * 1.2, 0xff6d00, 0.45);
         }, i * 150);
       }
     } else if (action === 'stomp') {
@@ -976,8 +1097,9 @@ export class QuestWorld extends AdventureWorld {
     audio.play('pound');
     this.shakeUntil = this.now + 600;
     this.pop(dragon.pos.clone().addScaledVector(UP, 0.5), 0xbcaaa4, 5);
-    const p = this.player;
-    if (Math.hypot(p.pos.x - dragon.pos.x, p.pos.z - dragon.pos.z) < 5 && p.onGround) this.hurt(dragon.pos);
+    for (const p of this.players) {
+      if (Math.hypot(p.pos.x - dragon.pos.x, p.pos.z - dragon.pos.z) < 5 && p.onGround) this.hurt(dragon.pos, p);
+    }
   }
 
   hitDragon(damage, shot) {
@@ -985,10 +1107,11 @@ export class QuestWorld extends AdventureWorld {
     if (!dragon || dragon.state !== 'fighting') return;
     // Ice and vines can't stop a dragon, but they slow him down
     if (shot?.power === 'ice' || shot?.power === 'vine') dragon.slowUntil = this.now + SLOW_MS;
-    dragon.hp = Math.max(0, dragon.hp - damage);
+    if (shot?.power === 'shrink') dragon.shrunkUntil = this.now + SHRINK_MS;
+    dragon.hp = Math.max(0, dragon.hp - damage * (this.now < (dragon.shrunkUntil ?? 0) ? 2 : 1));
     this.hud.showBoss(dragon.hp / dragon.maxHp);
     audio.play('bossHit');
-    if (this.active('invisible')) this.player.until.invisible = this.now;
+    for (const p of this.players) if (this.active('invisible', p)) p.until.invisible = this.now;
     if (dragon.hp === 0) this.defeatDragon();
   }
 
@@ -1047,7 +1170,7 @@ export class QuestWorld extends AdventureWorld {
     if (!egg) return;
     egg.mesh.rotation.y += 0.03;
     egg.mesh.position.y = egg.pos.y + Math.abs(Math.sin(this.now / 250)) * 0.3;
-    if (Math.hypot(this.player.pos.x - egg.pos.x, this.player.pos.z - egg.pos.z) > 1.8) return;
+    if (!this.playerNear(egg.pos.x, egg.pos.z, 1.8)) return;
     this.scene.remove(egg.mesh);
     this.egg = null;
     this.pop(egg.pos.clone().addScaledVector(UP, 1), 0xffffff, 2.5);

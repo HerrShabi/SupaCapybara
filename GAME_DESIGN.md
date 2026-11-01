@@ -140,6 +140,33 @@ Ethan's decisions (round 2, built 2026-11-01):
 - Q9: Candy Island's bad guys are bouncy 🐻 **gummy bears**.
 - Q10: The portal stays a secret: you **always go through World 1** to reach Cube Islands.
 
+### 2 players in Cube Islands (round 3, in the game)
+
+- Play **2 PLAYERS → TEAM → World 1** and jump into the secret portal together: Cube Islands opens in **split screen** (player 1 on the left, player 2 on the right).
+- Keys: player 1 = W A S D, SPACE jump, F attack. Player 2 = arrows, right SHIFT jump, ENTER attack. Or one game controller each.
+- **Player 2 can play as a baby**: in the ⛺ team tent, the first row picks what player 2 plays (their hero, or any of your babies). A baby player shoots its baby's power (pink heals player 1 when close). Land on player 1's head to **ride along**, jump to hop off.
+- Each player has **their own hearts** (player 2's are blue). Run out and you're **knocked out**: your friend stands next to you to **revive** you. If both are knocked out, back to base camp.
+
+### Aliens in World 2 (round 3, in the game)
+
+- 🛸 **Flying saucers** with little green aliens inside fly around planets 2, 3 and 4 and chase you.
+- 🔦 Get right under one and its **tractor beam** lifts you up. **Wiggle** (◀ ▶ ◀ ▶ fast) to escape!
+- Don't escape in time and you're pulled **into the spaceship**: a metal room full of aliens. Beat them all, then the **big red button** shows up on the bottom of the floor. Press it to drop back down, and you win an 👽 **alien baby** for Cube Islands!
+- Shoot a saucer 3 times (or jump on it) and it breaks: the alien jumps out and fights you with its green ray gun.
+- 👽 The **alien baby** rides a mini flying saucer and shoots **shrink rays**: shrunk bad guys are tiny and take double damage.
+
+Ethan's decisions (round 3, built 2026-11-01):
+- Q1: This round: 👫 **2 players in Cube Islands** AND 👽 **aliens in World 2**.
+- Q2: 2 players play with a **split screen** (one half each). Player 2 can also **choose to play as a baby** instead of a hero.
+- Q3: Baby player 2 **picks one of your babies** and shoots that baby's power, AND can **hop on player 1's head** to ride along and shoot from there (hop off anytime).
+- Q4: World 2's aliens are **little green aliens with big eyes and ray guns, riding flying saucers**. Knock a saucer down and the alien jumps out and fights you.
+- Q5: The saucers have a **tractor beam** that lifts you into the air. **Wiggle** (press left/right fast) to escape!
+- Q6: Don't escape in time and you get **pulled into the spaceship**: an alien room **full of aliens**!
+- Q7: To get out: **beat all the aliens**, then a **big red button** shows up. Press it and you drop back down.
+- Q8: Escaping the spaceship wins you an 👽 **alien baby** that goes to Cube Islands and joins your babies!
+- Q9: The alien baby **rides a mini flying saucer** and shoots **shrink rays** from the sky: bad guys get tiny and easy to beat.
+- Q10: In 2-player Cube Islands, **each player has their own hearts**. If one runs out, the other can **revive** them by standing next to them.
+
 ## Fixed (2026-11-01, bugs Ethan found)
 
 - The hero's hat (and fire glow) got left behind on the helipad when jumping into the rocket. Now they go into the rocket too.
@@ -150,9 +177,8 @@ Ethan's decisions (round 2, built 2026-11-01):
 ## Future updates (Ethan wants these later; don't forget!)
 
 - More worlds: underwater 🌊, a spooky castle 🏰, candy land 🍭.
-- Aliens 👽 as new bad guys in World 2.
 - More power-ups.
-- 2 PLAYERS TEAM in World 2 (3D), with a split screen.
+- 2 PLAYERS TEAM in World 2 (3D), with a split screen (Cube Islands has it now).
 - Grape Boss in Boss Rush (he's in the 3D world).
 - More stuff for Grape Boss / World 2.
 
