@@ -26,6 +26,10 @@ import {
 
 // ADVENTURE: a big 3D world to explore (see map.js for the layout). Unlike World 2's little planets,
 // "up" is always up here: the ground is a height map, and buildings, rocks and caves are boxes you can stand on.
+//
+// QuestWorld (src/quest/) extends this class to reuse the hero (moving, attacks, powers, getting hurt, camera).
+// A world like that overrides: build(), begin(), spawn, groundAt(), zoneAt(), zoneName(), keepInside(), onLava(),
+// updateWorld(dt), targets(), createHud() and respawn().
 
 const UP = new THREE.Vector3(0, 1, 0);
 const GRAVITY = 22;
@@ -113,6 +117,20 @@ export class AdventureWorld {
     this.effects = [];
 
     this.setUpRenderer();
+    this.build();
+    this.createPlayer();
+    this.createHud();
+    this.listen();
+
+    audio.setMuted(save.muted);
+    this.begin();
+    this.lastFrame = performance.now();
+    this.frame = requestAnimationFrame((time) => this.loop(time));
+  }
+
+  // ---------- What makes this world (a world that extends this class replaces these) ----------
+
+  build() {
     this.createLand();
     this.createCity();
     this.createSpace();
@@ -121,15 +139,48 @@ export class AdventureWorld {
     this.createDoor();
     this.createArena();
     this.createChests();
-    this.createPlayer();
-    this.createHud();
-    this.listen();
+  }
 
-    audio.setMuted(save.muted);
+  begin() {
     audio.playMusic('menu');
     this.hud.message(t('adv.title'), t('adv.intro'), 4000);
-    this.lastFrame = performance.now();
-    this.frame = requestAnimationFrame((time) => this.loop(time));
+  }
+
+  get spawn() {
+    return SPAWN;
+  }
+
+  groundAt(x, z) {
+    return groundHeight(x, z);
+  }
+
+  zoneAt(x, z) {
+    return zoneAt(x, z);
+  }
+
+  zoneName(zone) {
+    return t(`adv.${zone}`);
+  }
+
+  // Stay on the island (or inside the arena)
+  keepInside(p) {
+    if (this.inArena) {
+      const away = vec(p.pos.x - ARENA.x, 0, p.pos.z - ARENA.z);
+      if (away.length() > ARENA.radius - 1) {
+        away.setLength(ARENA.radius - 1);
+        p.pos.x = ARENA.x + away.x;
+        p.pos.z = ARENA.z + away.z;
+      }
+    } else {
+      p.pos.x = THREE.MathUtils.clamp(p.pos.x, -MAP_SIZE + 2, MAP_SIZE - 2);
+      p.pos.z = THREE.MathUtils.clamp(p.pos.z, -MAP_SIZE + 2, MAP_SIZE - 2);
+    }
+  }
+
+  updateWorld(dt) {
+    this.updateGuards(dt);
+    this.updateChestsAndDoor();
+    this.updateBoss(dt);
   }
 
   // ---------- Setup ----------
@@ -381,9 +432,9 @@ export class AdventureWorld {
   createPlayer() {
     this.palette = this.save.keys.includes('world3') ? this.save.palette ?? 0 : 0;
     this.player = {
-      pos: vec(SPAWN.x, groundHeight(SPAWN.x, SPAWN.z), SPAWN.z),
+      pos: vec(this.spawn.x, this.groundAt(this.spawn.x, this.spawn.z), this.spawn.z),
       vel: vec(0, 0, 0),
-      forward: vec(SPAWN.facing[0], 0, SPAWN.facing[1]),
+      forward: vec(this.spawn.facing[0], 0, this.spawn.facing[1]),
       onGround: true,
       airJumpsLeft: 0,
       hearts: this.settings.hearts,
@@ -396,7 +447,7 @@ export class AdventureWorld {
       mechaUsed: false,
       tongue: null,
     };
-    this.checkpoint = { x: SPAWN.x, z: SPAWN.z };
+    this.checkpoint = { x: this.spawn.x, z: this.spawn.z };
     this.buildHeroModel();
     this.mechaModel = heroModels.makeMecha();
     this.mechaModel.visible = false;
@@ -493,9 +544,7 @@ export class AdventureWorld {
     if (!this.won) {
       this.updatePlayer(dt);
       this.updatePowers();
-      this.updateGuards(dt);
-      this.updateChestsAndDoor();
-      this.updateBoss(dt);
+      this.updateWorld(dt);
     }
     this.updateShots(dt);
     this.updateEffects(dt);
@@ -511,7 +560,7 @@ export class AdventureWorld {
     const turn = (this.down('ArrowLeft', 'KeyA') ? 1 : 0) - (this.down('ArrowRight', 'KeyD') ? 1 : 0);
     p.forward.applyAxisAngle(UP, turn * TURN_SPEED * dt);
     const move = (this.down('ArrowUp', 'KeyW') ? 1 : 0) - (this.down('ArrowDown', 'KeyS') ? 1 : 0);
-    const zone = zoneAt(p.pos.x, p.pos.z);
+    const zone = this.zoneAt(p.pos.x, p.pos.z);
     const inSpace = zone === 'space';
     const bouncing = this.now < p.hurtAt + 300;
     const speed = RUN_SPEED * (this.active('shadow') ? SHADOW_SPEED : 1);
@@ -541,7 +590,7 @@ export class AdventureWorld {
     p.onGround = false;
     this.collide(previousY);
 
-    const ground = groundHeight(p.pos.x, p.pos.z);
+    const ground = this.groundAt(p.pos.x, p.pos.z);
     if (p.pos.y <= ground) {
       p.pos.y = ground;
       if (p.vel.y < 0) p.vel.y = 0;
@@ -549,18 +598,7 @@ export class AdventureWorld {
     }
     if (p.onGround) p.airJumpsLeft = this.character.doubleJump ? 1 : 0;
 
-    // Stay on the island (or inside the arena)
-    if (this.inArena) {
-      const away = vec(p.pos.x - ARENA.x, 0, p.pos.z - ARENA.z);
-      if (away.length() > ARENA.radius - 1) {
-        away.setLength(ARENA.radius - 1);
-        p.pos.x = ARENA.x + away.x;
-        p.pos.z = ARENA.z + away.z;
-      }
-    } else {
-      p.pos.x = THREE.MathUtils.clamp(p.pos.x, -MAP_SIZE + 2, MAP_SIZE - 2);
-      p.pos.z = THREE.MathUtils.clamp(p.pos.z, -MAP_SIZE + 2, MAP_SIZE - 2);
-    }
+    this.keepInside(p);
 
     if (this.onLava()) {
       this.hurt(p.pos.clone().add(p.forward));
@@ -572,7 +610,7 @@ export class AdventureWorld {
     }
 
     if (zone !== this.zone && zone !== 'arena') {
-      if (this.zone && zone !== 'grass') this.hud.message(t(`adv.${zone}`), '', 1800);
+      if (this.zone && zone !== 'grass') this.hud.message(this.zoneName(zone), '', 1800);
       this.zone = zone;
     }
 
@@ -814,12 +852,12 @@ export class AdventureWorld {
       shot.pos.addScaledVector(shot.vel, dt);
       shot.mesh.position.copy(shot.pos);
       if (shot.vel.lengthSq() > 0) shot.mesh.lookAt(shot.pos.clone().add(shot.vel));
-      if (shot.pos.y < groundHeight(shot.pos.x, shot.pos.z) - 0.2) shot.life = 0;
+      if (shot.pos.y < this.groundAt(shot.pos.x, shot.pos.z) - 0.2) shot.life = 0;
 
       if (shot.fromPlayer) {
         const target = this.targets().find((x) => x.point.distanceTo(shot.pos) < x.radius);
         if (target) {
-          target.hit(shot.damage);
+          target.hit(shot.damage, shot);
           shot.life = 0;
         }
       } else if (!this.won) {
@@ -1006,7 +1044,7 @@ export class AdventureWorld {
   respawn() {
     const p = this.player;
     if (this.inArena) this.leaveArena();
-    p.pos.set(this.checkpoint.x, groundHeight(this.checkpoint.x, this.checkpoint.z), this.checkpoint.z);
+    p.pos.set(this.checkpoint.x, this.groundAt(this.checkpoint.x, this.checkpoint.z), this.checkpoint.z);
     p.vel.set(0, 0, 0);
     p.safeUntil = this.now + this.settings.hurtSafeMs;
   }
@@ -1366,7 +1404,7 @@ export class AdventureWorld {
   updateCamera(dt) {
     const p = this.player;
     const wanted = p.pos.clone().addScaledVector(p.forward, -7).addScaledVector(UP, 3.5);
-    wanted.y = Math.max(wanted.y, groundHeight(wanted.x, wanted.z) + 1);
+    wanted.y = Math.max(wanted.y, this.groundAt(wanted.x, wanted.z) + 1);
     this.camera.position.lerp(wanted, 1 - Math.exp(-dt * 5));
     const lookAt = p.pos.clone().addScaledVector(UP, 1.2).addScaledVector(p.forward, 2);
     if (this.now < (this.shakeUntil ?? 0)) lookAt.add(new THREE.Vector3().randomDirection().multiplyScalar(0.3));

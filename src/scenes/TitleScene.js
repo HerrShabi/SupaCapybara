@@ -113,7 +113,7 @@ export class TitleScene extends Phaser.Scene {
 
   start(mode) {
     audio.play('click');
-    this.scene.start(mode.scene);
+    this.scene.start(mode.scene, {});
   }
 
   createLanguageButtons() {

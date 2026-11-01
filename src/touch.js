@@ -28,7 +28,7 @@ export function isTouchDevice() {
   return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 }
 
-function sendKey(type, code) {
+export function sendKey(type, code) {
   const { key, keyCode } = KEYS[code];
   const event = new KeyboardEvent(type, { key, code, bubbles: true, cancelable: true });
   // Phaser reads keyCode, which can't be set in the constructor.

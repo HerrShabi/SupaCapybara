@@ -232,7 +232,8 @@ export class MenuScene extends Phaser.Scene {
     if (this.save.world === 'rush' && this.secretsUnlocked) {
       this.scene.start('World1', { bossRush: true });
     } else {
-      this.scene.start(this.worldUnlocked(this.save.world) ? `World${this.save.world}` : 'World1');
+      // Pass {} so the level forgets old Boss Rush or team data (Phaser keeps the last data otherwise)
+      this.scene.start(this.worldUnlocked(this.save.world) ? `World${this.save.world}` : 'World1', {});
     }
   }
 

@@ -52,6 +52,9 @@ const WASHERS = [
   [2795, 100, 300, 460],
 ];
 const WASHER_SPEED = 60;
+// The secret portal to the Cube Islands floats above the second water tower. It glows when you get close.
+const PORTAL = { x: 3605, y: 270 };
+const PORTAL_GLOW_DISTANCE = 220;
 
 // Lightning bolts to collect: [x, y, howMany]. Each row is spaced 40px apart.
 const BOLTS = [
@@ -121,6 +124,7 @@ export class World1Scene extends SideScrollerScene {
     createHelicopterTextures(this);
     createRocketTextures(this);
     super.create(data);
+    this.createPortal();
     audio.startCity();
     this.events.once('shutdown', () => audio.stopCity());
     this.updateSky();
@@ -133,7 +137,60 @@ export class World1Scene extends SideScrollerScene {
 
   updateScenery() {
     this.updateWashers();
-    if (!this.won) this.updateSky();
+    if (!this.won) {
+      this.updateSky();
+      this.updatePortal();
+    }
+  }
+
+  // ---------- The secret portal (to the Cube Islands) ----------
+
+  createPortal() {
+    const g = this.make.graphics({ add: false });
+    const colors = [0x4a148c, 0x7b1fa2, 0xab47bc, 0xe1bee7];
+    colors.forEach((color, i) => {
+      g.fillStyle(color);
+      g.fillEllipse(40, 55, 80 - i * 18, 110 - i * 24);
+    });
+    g.generateTexture('portal', 80, 110);
+    g.destroy();
+    this.portal = this.add.image(PORTAL.x, PORTAL.y, 'portal').setAlpha(0.15);
+    this.tweens.add({ targets: this.portal, scaleX: 0.85, duration: 500, yoyo: true, repeat: -1 });
+  }
+
+  updatePortal() {
+    if (this.bossRush) return;
+    const near = Math.min(...this.players.map((player) => Phaser.Math.Distance.Between(player.x, player.y, PORTAL.x, PORTAL.y)));
+    this.portal.setAlpha(near < PORTAL_GLOW_DISTANCE ? 1 : 0.15);
+    const player = this.players.find((p) => Math.abs(p.x - PORTAL.x) < 34 && Math.abs(p.y - PORTAL.y) < 50);
+    if (player) this.enterPortal(player);
+  }
+
+  // The hero spins into the portal (hat, aura and all) and goes to the Cube Islands.
+  enterPortal(player) {
+    this.won = true; // stops the level
+    audio.play('forceField');
+    this.bigMessage(t('quest.portal'), '#e1bee7');
+    player.sprite.body.enable = false;
+    if (player.aura) {
+      this.tweens.killTweensOf(player.aura);
+      this.tweens.add({ targets: player.aura, scale: 0, alpha: 0, duration: 900 });
+    }
+    this.tweens.add({
+      targets: player.sprite,
+      x: PORTAL.x,
+      y: PORTAL.y,
+      scale: 0,
+      angle: 720,
+      duration: 900,
+      onUpdate: () => {
+        player.updateHat();
+        player.hatSprite?.setScale(1.5 * player.sprite.scaleY);
+        player.aura?.setPosition(player.x, player.y + 6);
+      },
+    });
+    this.time.delayedCall(1200, () => this.cameras.main.fadeOut(600, 0, 0, 0));
+    this.time.delayedCall(1900, () => this.scene.start('Quest', {}));
   }
 
   groundAt(x) {
@@ -368,17 +425,26 @@ export class World1Scene extends SideScrollerScene {
       onUpdate: followRocket,
       onComplete: () => {
         flame.setVisible(false);
-        // Jump into the rocket
-        this.player.sprite.body.enable = false;
-        this.player.sprite.setFlipX(this.player.x > x);
+        // Jump into the rocket (the hat and the aura come along)
+        const player = this.player;
+        player.sprite.body.enable = false;
+        player.sprite.setFlipX(player.x > x);
+        if (player.aura) {
+          this.tweens.killTweensOf(player.aura);
+          this.tweens.add({ targets: player.aura, scale: 0.6, alpha: 0, duration: 700 });
+        }
         this.tweens.add({
-          targets: this.player.sprite,
+          targets: player.sprite,
           x,
           y: landedY,
           scale: 0.6,
           alpha: 0,
           duration: 700,
           ease: 'Quad.easeIn',
+          onUpdate: () => {
+            player.updateHat();
+            player.aura?.setPosition(player.x, player.y + 6);
+          },
           onComplete: () => this.countdown(rocket, flame, followRocket),
         });
       },

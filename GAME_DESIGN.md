@@ -102,9 +102,27 @@ When you beat the Lava Dragon:
 2. **Credits** scroll up like a movie: "SuperCapybara, a game by ETHAN".
    The ending plays the first time only, but the **🎬 CREDITS button** on the title screen lets you watch it again anytime.
 3. You unlock **secret surprises**, all of these (the first time you beat the Lava Dragon):
-   - 🌟 A secret hero: **Golden Capybara**, free: golden lasers (double damage), double jump, a golden fire aura, and shadow form (C). A **SWITCH button (Q)** changes his attack: golden lasers → scratch → tongue → red moon.
+   - 🌟 A secret hero: **Golden Capybara**, free: golden lasers (double damage), double jump, a golden fire aura, and shadow form (C). A **SWITCH button (Q)** changes his attack: golden lasers ↔ scratch. (He used to have 4 attacks, but Ethan found him too strong, so now it's 2.)
    - 🥊 **BOSS RUSH** (in the world picker): Pizza Boss, then the Lava Dragon, with no rest. Your hearts carry over, and losing them all is GAME OVER. (Grape Boss is 3D, so he's not in it yet.)
    - 🎨 **Secret colors**: the 🎨 COLORS button in the menu switches every hero's suit and cape (ocean, jungle, night, candy, or normal).
+
+## Cube Islands (the secret "Pokémon Quest" world, in the game since 2026-11-01)
+
+Ethan's own idea: a 3D world that looks like **Pokémon Quest**, where everything is made of cubes.
+- **How to get there:** a **secret portal** in World 1, floating above the second water tower (near the end of the city). It's faint until you get close, then it glows.
+- **Base camp:** the **cooking pot** and 3 **launch pads** that send you on missions: ☀️ Sunny Beach, ❄️ Frosty Forest and 🐉 Dragon Island. Each island has a pad back to base. Every visit is a new mission, so the food and bad guys come back.
+- **Food:** find it on the islands, and blocky robot bad guys drop it when you beat them. 🍓 red berries, 🍄 blue mushrooms, 🌽 yellow corn.
+- **Cooking:** walk up to the pot with 3 food. The color you have the most of decides the baby (red berries → red baby).
+- **Babies:** **baby cats and baby capybaras**, made of cubes. The **color gives the power**: 🔥 red shoots fire (strong), ❄️ blue shoots ice (slows bad guys down), ⚡ yellow shoots lightning (fast). Up to 3 babies follow you and shoot by themselves; the rest wait at base camp.
+- **Fall in the sea:** SPLASH! You lose a heart and swim back.
+- **Boss: the Block Dragon.** He sleeps on Dragon Island next to 3 cages with the baby cats and capybaras he stole. Get close and he wakes up. He breathes fire, flies up and stomps down (watch for the red ring), and charges at you. Beat him and the cages open: the 3 babies join your team!
+
+## Fixed (2026-11-01, bugs Ethan found)
+
+- The hero's hat (and fire glow) got left behind on the helipad when jumping into the rocket. Now they go into the rocket too.
+- After Boss Rush, World 1 and World 3 kept starting at the boss. Now they start normally.
+- Golden Capybara was too strong: his SWITCH button now has 2 attacks instead of 4.
+- Game controllers (like the **ANBERNIC RG 477V**) now work in the menus and the 3D worlds too, not only in the 2D levels. Buttons: A jump/pick, B or X attack, Y power, L1 shield, R1 fly, L2 Mecha, R2 switch, SELECT back, press the stick for the Freeze Ray.
 
 ## Future updates (Ethan wants these later; don't forget!)
 

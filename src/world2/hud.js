@@ -66,6 +66,11 @@ export class Hud {
     this.el('crystals').textContent = `${this.itemIcon} ${count} / ${this.totalCrystals}`;
   }
 
+  // Any text in the collectibles corner (the Cube Islands show food and babies there).
+  setItems(text) {
+    this.el('crystals').textContent = text;
+  }
+
   setPower(text) {
     this.el('power').textContent = text;
   }

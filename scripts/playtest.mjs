@@ -16,8 +16,12 @@ process.on('exit', () => {
   } catch {}
 });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-await sleep(1500);
-const page = (await (await fetch('http://127.0.0.1:9333/json')).json()).find((t) => t.type === 'page');
+// Wait for Chrome to be ready (it can take a few seconds to start)
+let page;
+for (let tries = 0; !page && tries < 40; tries++) {
+  await sleep(500);
+  page = await fetch('http://127.0.0.1:9333/json').then((r) => r.json()).then((list) => list.find((t) => t.type === 'page')).catch(() => null);
+}
 const ws = new WebSocket(page.webSocketDebuggerUrl);
 await new Promise((r) => (ws.onopen = r));
 let id = 0; const pending = new Map(); const logs = [];

@@ -38,7 +38,7 @@ export const CHARACTERS = [
     // Secret: unlocked (for free) by beating the Lava Dragon. Has lots of powers at once.
     id: 'golden-capybara',
     attack: 'goldLaser',
-    attacks: ['goldLaser', 'scratch', 'tongue', 'moon'], // Q switches between them
+    attacks: ['goldLaser', 'scratch'], // Q switches between them
     doubleJump: true,
     fireAura: true,
     auraColor: 0xffd54f, // used in 3D; the 2D aura is the 'aura-gold' texture
