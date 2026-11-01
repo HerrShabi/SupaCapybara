@@ -29,7 +29,8 @@ import {
 //
 // QuestWorld (src/quest/) extends this class to reuse the hero (moving, attacks, powers, getting hurt, camera).
 // A world like that overrides: build(), begin(), spawn, groundAt(), zoneAt(), zoneName(), keepInside(), onLava(),
-// updateWorld(dt), targets(), createHud() and respawn().
+// updateWorld(dt), targets(), createHud() and respawn(). While `this.paused` is true (e.g. a menu is open),
+// the hero stands still and updatePaused() runs instead; ESC is then the menu's, not "leave the world".
 
 const UP = new THREE.Vector3(0, 1, 0);
 const GRAVITY = 22;
@@ -176,6 +177,8 @@ export class AdventureWorld {
       p.pos.z = THREE.MathUtils.clamp(p.pos.z, -MAP_SIZE + 2, MAP_SIZE - 2);
     }
   }
+
+  updatePaused() {}
 
   updateWorld(dt) {
     this.updateGuards(dt);
@@ -505,7 +508,7 @@ export class AdventureWorld {
     this.onKeyDown = (event) => {
       if (!this.keysDown.has(event.code)) this.keysPressed.add(event.code);
       this.keysDown.add(event.code);
-      if (event.code === 'Escape') this.exit();
+      if (event.code === 'Escape' && !this.paused) this.exit();
       if (event.code === 'KeyM') {
         this.save.muted = !this.save.muted;
         writeSave(this.save);
@@ -541,7 +544,9 @@ export class AdventureWorld {
     this.lastFrame = time;
     this.now = performance.now();
 
-    if (!this.won) {
+    if (this.paused) {
+      this.updatePaused(dt);
+    } else if (!this.won) {
       this.updatePlayer(dt);
       this.updatePowers();
       this.updateWorld(dt);
@@ -852,7 +857,7 @@ export class AdventureWorld {
       shot.pos.addScaledVector(shot.vel, dt);
       shot.mesh.position.copy(shot.pos);
       if (shot.vel.lengthSq() > 0) shot.mesh.lookAt(shot.pos.clone().add(shot.vel));
-      if (shot.pos.y < this.groundAt(shot.pos.x, shot.pos.z) - 0.2) shot.life = 0;
+      if (!shot.ghost && shot.pos.y < this.groundAt(shot.pos.x, shot.pos.z) - 0.2) shot.life = 0; // ghost shots fly through hills
 
       if (shot.fromPlayer) {
         const target = this.targets().find((x) => x.point.distanceTo(shot.pos) < x.radius);

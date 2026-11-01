@@ -117,6 +117,29 @@ Ethan's own idea: a 3D world that looks like **Pokémon Quest**, where everythin
 - **Fall in the sea:** SPLASH! You lose a heart and swim back.
 - **Boss: the Block Dragon.** He sleeps on Dragon Island next to 3 cages with the baby cats and capybaras he stole. Get close and he wakes up. He breathes fire, flies up and stomps down (watch for the red ring), and charges at you. Beat him and the cages open: the 3 babies join your team!
 
+### Cube Islands update (round 2, in the game)
+
+- 🍭 **Candy Island**: pink ground, giant lollipop trees, 🍬 candy (pink food), and bouncy 🐻 gummy bears.
+- **Each island has its own bad guys**: 🦀 crabs on Sunny Beach (they walk sideways), ☃️ snowmen in Frosty Forest (they throw snowballs), 🦎 fast baby lizards and 🐉 little flying dragons (they drop fireballs) on Dragon Island.
+- **7 baby colors**: 🔥 red fire, ❄️ blue ice (slows), ⚡ yellow lightning (fast), 🌿 green vines (bad guys can't move), 💗 pink heals you (a heart back now and then), 👻 purple ghost balls (fly through hills and trees, reach farther), 🌈 rainbow (super rare: heals AND every shot is the next power).
+- **Foods**: 🍓 red, 🍄 blue, 🌽 yellow, 🥝 kiwi = green, 🍬 candy = pink, 🍆 eggplant = purple. Kiwi and eggplant are sold in the 🏪 **food shop** at base camp (15 ⚡ each).
+- ⛺ **Team tent** at base camp: walk in to pick your 3 team babies.
+- ⭐ **Levels**: every bad guy beaten gives your team babies xp (the dragon gives 10). Higher levels hit harder (and pink heals more often). They stay babies forever!
+- 🐉 **Dragon rematches**: after the first win, the Block Dragon is back every time you visit Dragon Island. Each rematch has a 1 in 4 chance of dropping a 🌈 **rainbow egg**, which hatches a rainbow baby.
+- The portal stays secret: you always go through World 1.
+
+Ethan's decisions (round 2, built 2026-11-01):
+- Q1: The secret world keeps the name **Cube Islands** (Würfel-Inseln).
+- Q2: **4 new baby colors**, all of them: 💚 **green** shoots vines that trap bad guys (they can't move), 💗 **pink** heals you (hearts back), 💜 **purple** shoots ghost balls that fly through walls and trees, 🌈 **rainbow** is super rare and shoots ALL the powers.
+- Q3: You get a 🌈 **rainbow baby** from a **rainbow egg**: beat the Block Dragon **again** (he comes back for rematches), and there's only a **low chance** he drops it (1 in 4).
+- Q4: Ethan said "random", so the dice picked the foods: 🥝 **kiwi** = green, 🍬 **candy** = pink, 🍆 **eggplant** = purple.
+- Q5: Choose your 3 team babies on a **team screen**: you pick your 3 favorites.
+- Q6: Babies **level up** (beat bad guys → Level 1, 2, 3... and stronger) but **stay babies forever**, because babies are the cutest.
+- Q7: New bad guys: **one for each island** (🦀 crabs on Sunny Beach, ☃️ snowmen in Frosty Forest, 🦎 baby lizards on Dragon Island) AND the dragon's **helpers**: little flying dragons that drop fireballs.
+- Q8: A new 🍭 **Candy Island** where 🍬 **candy** (pink) grows. 🥝 **Kiwi** (green) and 🍆 **eggplant** (purple) are sold in a **food shop at base camp** for ⚡ bolts.
+- Q9: Candy Island's bad guys are bouncy 🐻 **gummy bears**.
+- Q10: The portal stays a secret: you **always go through World 1** to reach Cube Islands.
+
 ## Fixed (2026-11-01, bugs Ethan found)
 
 - The hero's hat (and fire glow) got left behind on the helipad when jumping into the rocket. Now they go into the rocket too.

@@ -17,20 +17,27 @@ export const BABY_COLORS = {
   red: { body: 0xff5a4f, shot: 0xff6d00 }, // fire
   blue: { body: 0x4fa8ff, shot: 0x80d8ff }, // ice
   yellow: { body: 0xffd54f, shot: 0xfff176 }, // lightning
+  green: { body: 0x66bb6a, shot: 0x2e7d32 }, // vines that trap
+  pink: { body: 0xff8fc8, shot: 0xff4081 }, // heals you
+  purple: { body: 0xab47bc, shot: 0xe1bee7 }, // ghost balls
+  rainbow: { body: 0xffffff, shot: 0xffffff }, // all the powers (each part a different color)
 };
+const RAINBOW = [0xff5252, 0xffa726, 0xffee58, 0x66bb6a, 0x42a5f5, 0xab47bc];
 
 // A baby cat or baby capybara. Returns { group, legs }.
 export function makeBaby(animal, color) {
-  const body = BABY_COLORS[color].body;
+  // Rainbow babies get a different color for every part
+  let part = 0;
+  const body = () => (color === 'rainbow' ? RAINBOW[part++ % RAINBOW.length] : BABY_COLORS[color].body);
   const group = new THREE.Group();
   const cat = animal === 'cat';
-  group.add(box(0.6, 0.45, 0.8, body, 0, 0.42, 0));
+  group.add(box(0.6, 0.45, 0.8, body(), 0, 0.42, 0));
   const head = new THREE.Group();
   head.position.set(0, 0.85, 0.35);
-  head.add(box(cat ? 0.6 : 0.65, 0.55, 0.55, body));
+  head.add(box(cat ? 0.6 : 0.65, 0.55, 0.55, body()));
   if (cat) {
-    head.add(box(0.16, 0.2, 0.1, body, -0.2, 0.36, 0));
-    head.add(box(0.16, 0.2, 0.1, body, 0.2, 0.36, 0));
+    head.add(box(0.16, 0.2, 0.1, body(), -0.2, 0.36, 0));
+    head.add(box(0.16, 0.2, 0.1, body(), 0.2, 0.36, 0));
     head.add(box(0.1, 0.1, 0.1, 0xff8fb1, -0.2, 0.34, 0.03));
     head.add(box(0.1, 0.1, 0.1, 0xff8fb1, 0.2, 0.34, 0.03));
   } else {
@@ -47,13 +54,13 @@ export function makeBaby(animal, color) {
   }
   group.add(head);
   if (cat) {
-    const tail = box(0.1, 0.1, 0.5, body, 0, 0.6, -0.55);
+    const tail = box(0.1, 0.1, 0.5, body(), 0, 0.6, -0.55);
     tail.rotation.x = -0.6;
     group.add(tail);
   }
   const legs = [-1, 1].flatMap((side) =>
     [-0.25, 0.25].map((z) => {
-      const leg = box(0.16, 0.25, 0.16, body, side * 0.18, 0.12, z);
+      const leg = box(0.16, 0.25, 0.16, body(), side * 0.18, 0.12, z);
       group.add(leg);
       return leg;
     }),
@@ -71,11 +78,35 @@ export function makeFood(color) {
     group.add(box(0.2, 0.35, 0.2, 0xfafafa, 0, 0.18, 0));
     group.add(box(0.6, 0.25, 0.6, 0x1e88e5, 0, 0.45, 0));
     group.add(box(0.12, 0.05, 0.12, 0xffffff, 0.15, 0.58, 0.1));
-  } else {
+  } else if (color === 'yellow') {
     group.add(box(0.3, 0.7, 0.3, 0xfdd835, 0, 0.4, 0));
     group.add(box(0.1, 0.5, 0.36, 0x7cb342, 0.18, 0.3, 0));
     group.add(box(0.1, 0.5, 0.36, 0x7cb342, -0.18, 0.3, 0));
+  } else if (color === 'green') {
+    // Kiwi: brown outside, green inside
+    group.add(box(0.5, 0.45, 0.5, 0x8d6e63, 0, 0.25, 0));
+    group.add(box(0.4, 0.36, 0.05, 0x9ccc65, 0, 0.25, 0.26));
+    group.add(box(0.1, 0.1, 0.06, 0xfffde7, 0, 0.25, 0.27));
+  } else if (color === 'pink') {
+    // Wrapped candy
+    group.add(box(0.5, 0.35, 0.35, 0xff4fa3, 0, 0.3, 0));
+    group.add(box(0.15, 0.3, 0.3, 0xffb3d9, 0.32, 0.3, 0));
+    group.add(box(0.15, 0.3, 0.3, 0xffb3d9, -0.32, 0.3, 0));
+  } else {
+    // Eggplant
+    group.add(box(0.36, 0.6, 0.36, 0x6a1b9a, 0, 0.35, 0));
+    group.add(box(0.28, 0.15, 0.28, 0x7b1fa2, 0, 0.05, 0));
+    group.add(box(0.3, 0.1, 0.3, 0x558b2f, 0, 0.7, 0));
+    group.add(box(0.08, 0.15, 0.08, 0x558b2f, 0, 0.8, 0));
   }
+  return group;
+}
+
+// The rainbow egg the Block Dragon sometimes drops (stripes of every color).
+export function makeEgg() {
+  const group = new THREE.Group();
+  const widths = [0.5, 0.7, 0.8, 0.8, 0.7, 0.5];
+  widths.forEach((w, i) => group.add(box(w, 0.18, w, RAINBOW[i], 0, 0.1 + i * 0.18, 0)));
   return group;
 }
 
@@ -213,4 +244,138 @@ export function makeCage() {
   }
   group.add(bars);
   return { group, bars };
+}
+
+// ---------- Island bad guys. Each returns { group, legs } (legs can be empty). ----------
+
+// Sunny Beach: a crab that scuttles sideways
+export function makeCrab() {
+  const group = new THREE.Group();
+  group.add(box(1.2, 0.45, 0.8, 0xff5722, 0, 0.5, 0));
+  for (const side of [-1, 1]) {
+    group.add(box(0.35, 0.3, 0.35, 0xff7043, side * 0.8, 0.65, 0.45)); // claws
+    group.add(box(0.08, 0.35, 0.08, 0xff5722, side * 0.2, 0.85, 0.25)); // eye stalks
+    group.add(box(0.14, 0.14, 0.14, 0x111111, side * 0.2, 1.05, 0.25));
+  }
+  const legs = [-1, 1].flatMap((side) =>
+    [-0.25, 0, 0.25].map((z) => {
+      const leg = box(0.4, 0.08, 0.08, 0xe64a19, side * 0.75, 0.3, z);
+      group.add(leg);
+      return leg;
+    }),
+  );
+  return { group, legs };
+}
+
+// Frosty Forest: a snowman who throws snowballs
+export function makeSnowman() {
+  const group = new THREE.Group();
+  group.add(box(1.2, 1, 1.2, 0xfafafa, 0, 0.5, 0));
+  group.add(box(0.9, 0.8, 0.9, 0xffffff, 0, 1.4, 0));
+  group.add(box(0.7, 0.6, 0.7, 0xfafafa, 0, 2.1, 0));
+  group.add(box(0.12, 0.12, 0.4, 0xff9800, 0, 2.1, 0.5)); // carrot nose
+  for (const side of [-1, 1]) {
+    group.add(box(0.1, 0.1, 0.05, 0x111111, side * 0.16, 2.25, 0.36));
+    const arm = box(0.8, 0.08, 0.08, 0x6d4c41, side * 0.8, 1.5, 0);
+    arm.rotation.z = side * 0.4;
+    group.add(arm);
+  }
+  group.add(box(0.8, 0.1, 0.8, 0x212121, 0, 2.45, 0)); // hat
+  group.add(box(0.5, 0.4, 0.5, 0x212121, 0, 2.7, 0));
+  return { group, legs: [] };
+}
+
+// Dragon Island: a fast baby lizard
+export function makeLizard() {
+  const group = new THREE.Group();
+  group.add(box(0.5, 0.35, 1.1, 0x9ccc65, 0, 0.35, 0));
+  group.add(box(0.45, 0.35, 0.45, 0x9ccc65, 0, 0.5, 0.7));
+  group.add(box(0.1, 0.1, 0.05, 0xd50000, -0.13, 0.58, 0.93));
+  group.add(box(0.1, 0.1, 0.05, 0xd50000, 0.13, 0.58, 0.93));
+  group.add(box(0.2, 0.15, 0.8, 0x7cb342, 0, 0.3, -0.9));
+  const legs = [-1, 1].flatMap((side) =>
+    [-0.3, 0.3].map((z) => {
+      const leg = box(0.15, 0.2, 0.15, 0x7cb342, side * 0.3, 0.1, z);
+      group.add(leg);
+      return leg;
+    }),
+  );
+  return { group, legs };
+}
+
+// Candy Island: a bouncy gummy bear (see-through, like real gummies)
+export function makeGummyBear(seed) {
+  const color = [0xff1744, 0x00e676, 0xffea00, 0xff9100][seed % 4];
+  const gummy = new THREE.MeshStandardMaterial({ color, flatShading: true, transparent: true, opacity: 0.8 });
+  const part = (w, h, d, x, y, z) => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), gummy);
+    mesh.position.set(x, y, z);
+    group.add(mesh);
+    return mesh;
+  };
+  const group = new THREE.Group();
+  part(0.9, 0.9, 0.7, 0, 0.6, 0);
+  part(0.7, 0.6, 0.6, 0, 1.35, 0);
+  part(0.2, 0.2, 0.15, -0.28, 1.72, 0);
+  part(0.2, 0.2, 0.15, 0.28, 1.72, 0);
+  group.add(box(0.09, 0.09, 0.05, 0x111111, -0.14, 1.42, 0.31));
+  group.add(box(0.09, 0.09, 0.05, 0x111111, 0.14, 1.42, 0.31));
+  const legs = [-0.25, 0.25].map((x) => part(0.25, 0.3, 0.3, x, 0.15, 0));
+  return { group, legs };
+}
+
+// The Block Dragon's helper: a little flying dragon that drops fireballs. Its wings are the "legs" (they flap).
+export function makeMiniDragon() {
+  const group = new THREE.Group();
+  const red = 0xd84315;
+  group.add(box(0.8, 0.6, 1.4, red, 0, 0, 0));
+  group.add(box(0.6, 0.5, 0.6, red, 0, 0.3, 0.9));
+  group.add(box(0.12, 0.12, 0.05, 0xffeb3b, -0.15, 0.4, 1.21));
+  group.add(box(0.12, 0.12, 0.05, 0xffeb3b, 0.15, 0.4, 1.21));
+  group.add(box(0.25, 0.25, 0.9, red, 0, 0, -1.1));
+  const legs = [-1, 1].map((side) => {
+    const wing = new THREE.Group();
+    wing.position.set(side * 0.4, 0.2, 0);
+    wing.add(box(1.2, 0.08, 0.9, 0xff8a65, side * 0.6, 0, 0));
+    group.add(wing);
+    return wing;
+  });
+  return { group, legs };
+}
+
+// Candy Island trees: giant lollipops
+export function makeLollipop(seed) {
+  const group = new THREE.Group();
+  group.add(box(0.25, 3, 0.25, 0xfafafa, 0, 1.5, 0));
+  const colors = [0xff4081, 0x7c4dff, 0x18ffff, 0xffd740];
+  group.add(box(2, 2, 0.4, colors[seed % 4], 0, 3.8, 0));
+  group.add(box(1.2, 1.2, 0.45, colors[(seed + 1) % 4], 0, 3.8, 0));
+  group.add(box(0.5, 0.5, 0.5, 0xffffff, 0, 3.8, 0));
+  return group;
+}
+
+// The food shop at base camp: a counter with a striped roof and crates of kiwis and eggplants.
+export function makeShop() {
+  const group = new THREE.Group();
+  group.add(box(3, 1.2, 1.4, 0x8d6e63, 0, 0.6, 0));
+  for (const x of [-1.4, 1.4]) group.add(box(0.15, 2.6, 0.15, 0x6d4c41, x, 1.3, -0.6));
+  for (let i = 0; i < 5; i++) group.add(box(0.62, 0.15, 1.8, i % 2 ? 0xffffff : 0xe53935, -1.24 + i * 0.62, 2.7, 0));
+  group.add(box(0.8, 0.4, 0.8, 0x6d4c41, -0.7, 1.4, 0));
+  group.add(box(0.8, 0.4, 0.8, 0x6d4c41, 0.7, 1.4, 0));
+  for (const x of [-0.85, -0.55]) group.add(box(0.25, 0.25, 0.25, 0x9ccc65, x, 1.7, 0)); // kiwis
+  for (const x of [0.55, 0.85]) group.add(box(0.2, 0.4, 0.2, 0x6a1b9a, x, 1.75, 0)); // eggplants
+  return group;
+}
+
+// The team tent at base camp: walk in to pick your 3 babies.
+export function makeTent() {
+  const group = new THREE.Group();
+  for (const side of [-1, 1]) {
+    const wall = box(0.15, 2.6, 3, 0x29b6f6, side * 0.9, 1.1, 0);
+    wall.rotation.z = side * 0.6;
+    group.add(wall);
+  }
+  group.add(box(0.15, 0.15, 3.1, 0xffd54f, 0, 2.2, 0));
+  group.add(box(0.8, 0.6, 0.05, 0xffd54f, 0, 0.9, -1.4)); // a little sign at the back
+  return group;
 }
