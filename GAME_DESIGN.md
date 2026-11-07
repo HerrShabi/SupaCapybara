@@ -314,7 +314,7 @@ Ethan's decisions (round 9, started 2026-11-07):
 ### Trips between the worlds (round 10, in the game)
 
 - After beating a world you go **straight into the next one** through a little mini game. You **can't fail**: a mistake costs 10 bolts, bolts on the way give 5. After you've played a trip once, **ESC (⏸ on iPad) skips it**.
-- 🌋 3 → ☁️ 4: 🎈 **Balloon ride**: steer ◀ ▶, shoot the storm clouds (X) for bolts, a zap costs bolts. The Cloud Kingdom comes down to meet you. (The first time you beat World 3, the credits play first.)
+- 🌋 3 → ☁️ 4: 🎈 **Balloon ride**: steer ◀ ▶, shoot the storm clouds (X) for bolts, a zap costs bolts. The Cloud Kingdom comes down to meet you. (World 3's win screen lists the secrets you unlocked, then the balloon ride starts right away. The YOU WIN credits now come after **World 8**, the last world, and the 🎬 CREDITS button appears after World 8.)
 - ☁️ 4 → 🌊 5: 🌈 **Rainbow slide**: jump the gaps between the rainbow pieces, then a big jump and SPLASH into the sea.
 - 🌊 5 → 🌴 6: 🏄 **Surf's up!**: on a surfboard, with a giant wave right behind you, jump rocks and logs until the jungle island.
 - 🌴 6 → 🏰 7: 🚂 **Mine cart**: jump the gaps and rocks, duck (▼) under wooden beams, and CRASH through the castle wall.

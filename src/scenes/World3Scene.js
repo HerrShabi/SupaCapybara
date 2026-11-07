@@ -555,16 +555,17 @@ export class World3Scene extends SideScrollerScene {
     this.hazards.clear(true, true);
   }
 
+  // The first time, the win screen says which secrets you just unlocked (Golden Capybara, Boss Rush, colors).
   winLines(firstTime) {
-    return firstTime ? [t('game.allWorldsDone')] : [];
+    return firstTime ? [t('ending.secrets'), `🌟 ${t('name.golden-capybara')}   🥊 ${t('menu.bossRush')}`, `🎨 ${t('ending.colors')}`] : [];
   }
 
-  // The first time: the ending (fireworks, credits, secrets), and then the balloon trip to World 4.
-  // After that, straight to the balloon trip.
+  // Straight on to the balloon trip to World 4 (the YOU WIN credits come after World 8, the last world).
   afterWin() {
-    this.time.delayedCall(1500, () => {
-      if (this.firstTime) this.scene.start('Ending', { next: 'trip', hero: this.character.id });
-      else afterWorld(this, 3, this.character.id);
-    });
+    if (this.firstTime && !this.save.owned.includes('golden-capybara')) {
+      this.save.owned.push('golden-capybara');
+      writeSave(this.save);
+    }
+    this.time.delayedCall(1500, () => afterWorld(this, 3, this.character.id));
   }
 }

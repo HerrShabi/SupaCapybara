@@ -26,10 +26,12 @@ export function startWorld(scene, number, hero) {
   else scene.scene.start(WORLD_SCENES[number], { world: number, heroes: [hero] });
 }
 
-// After beating world `from`: its trip (which then starts the next world), or the menu if there's none.
-export function afterWorld(scene, from, hero) {
+// After beating world `from`: its trip (which then starts the next world). After the last world: the YOU WIN
+// credits the first time (firstTime), otherwise the menu.
+export function afterWorld(scene, from, hero, firstTime = false) {
   const trip = TRIPS[from];
   if (trip) scene.scene.start(trip, { from, hero });
+  else if (from === WORLD_COUNT && firstTime) scene.scene.start('Ending', {});
   else scene.scene.start('Menu');
 }
 

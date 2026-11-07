@@ -137,6 +137,7 @@ const STRINGS = {
     'ending.thanks': 'Thanks for playing!',
     'ending.secrets': 'SECRETS UNLOCKED!',
     'ending.colors': 'Secret colors',
+    'ending.allWorlds': 'You beat all 8 worlds!',
     'menu.soundOff': '♪ OFF',
 
     'difficulty.easy': 'EASY',
@@ -202,7 +203,6 @@ const STRINGS = {
     'game.world3': 'WORLD 3',
     'game.lavaDragon': 'LAVA DRAGON',
     'game.lavaRising': 'LAVA! JUMP UP!',
-    'game.allWorldsDone': 'You beat all 3 worlds! More in the next update!',
     'game.jumpTwice': 'JUMP TWICE!',
     'game.invisible': 'INVISIBLE',
     'game.shield': 'SHIELD',
@@ -588,6 +588,7 @@ const STRINGS = {
     'ending.thanks': 'Danke fürs Spielen!',
     'ending.secrets': 'GEHEIMNISSE FREIGESCHALTET!',
     'ending.colors': 'Geheime Farben',
+    'ending.allWorlds': 'Du hast alle 8 Welten geschafft!',
     'menu.soundOff': '♪ AUS',
 
     'difficulty.easy': 'LEICHT',
@@ -649,7 +650,6 @@ const STRINGS = {
     'game.world3': 'WELT 3',
     'game.lavaDragon': 'LAVA-DRACHE',
     'game.lavaRising': 'LAVA! SPRING HOCH!',
-    'game.allWorldsDone': 'Du hast alle 3 Welten geschafft! Mehr im nächsten Update!',
     'game.jumpTwice': 'SPRING ZWEIMAL!',
     'game.invisible': 'UNSICHTBAR',
     'game.shield': 'SCHILD',

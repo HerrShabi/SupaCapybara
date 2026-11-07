@@ -184,7 +184,8 @@ export class StoryLevelScene extends SideScrollerScene {
     audio.play('key');
     this.time.delayedCall(400, () => audio.play('win'));
     const keyId = `world${this.worldNumber}`;
-    if (!this.save.keys.includes(keyId)) this.save.keys.push(keyId);
+    const firstTime = !this.save.keys.includes(keyId);
+    if (firstTime) this.save.keys.push(keyId);
     writeSave(this.save);
     const lines = [t('game.collected', { count: this.levelBolts })];
     if (this.place.friend) lines.unshift(t('story.friendFree', { name: t(`name.${this.place.friend}`) }));
@@ -195,7 +196,7 @@ export class StoryLevelScene extends SideScrollerScene {
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(10);
-    this.time.delayedCall(3800, () => afterWorld(this, this.worldNumber, this.heroes[0] ?? this.player.id));
+    this.time.delayedCall(3800, () => afterWorld(this, this.worldNumber, this.heroes[0] ?? this.player.id, firstTime));
   }
 
   win() {

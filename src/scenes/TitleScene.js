@@ -230,9 +230,9 @@ export class TitleScene extends Phaser.Scene {
     label.setScale(Math.min(1, 180 / label.width));
   }
 
-  // Watch the ending again (after you've beaten the Lava Dragon).
+  // Watch the YOU WIN credits again (after beating World 8, the last world of STORY).
   createCreditsButton() {
-    if (!this.save.keys.includes('world3')) return;
+    if (!this.save.keys.includes('world8')) return;
     this.add
       .rectangle(90, 510, 150, 34, 0x6a1b9a)
       .setStrokeStyle(3, 0xffd23f)

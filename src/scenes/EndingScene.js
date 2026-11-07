@@ -4,7 +4,6 @@ import { loadSave, writeSave } from '../save.js';
 import { t, setLanguage } from '../i18n.js';
 import { audio } from '../audio.js';
 import { createHeroTextures } from '../art/heroes.js';
-import { afterWorld } from '../trips/worlds.js';
 
 // After beating the Lava Dragon: fireworks, all the heroes dancing, the credits ("a game by ETHAN"),
 // and the secrets you just unlocked. Then back to the menu.
@@ -18,11 +17,8 @@ export class EndingScene extends Phaser.Scene {
   }
 
   // replay: watching again from the 🎬 CREDITS button on the title screen.
-  // next: 'trip' after the first World 3 win: the balloon trip to World 4 comes after the credits.
   create(data = {}) {
     this.replay = Boolean(data.replay);
-    this.next = data.next ?? null;
-    this.hero = data.hero;
     const save = loadSave();
     setLanguage(save.language);
     if (!save.owned.includes('golden-capybara')) save.owned.push('golden-capybara');
@@ -94,9 +90,10 @@ export class EndingScene extends Phaser.Scene {
       ...CHARACTERS.map((c) => [t(`name.${c.id}`), 22, '#ffffff']),
       ['', 20],
       [t('ending.bosses'), 22, '#ffd23f'],
-      [t('boss.world1'), 22, '#ffffff'],
-      [t('boss.world2'), 22, '#ffffff'],
-      [t('boss.world3'), 22, '#ffffff'],
+      ...[1, 2, 3, 4, 5, 6, 8].map((n) => {
+        const name = t(`boss.world${n}`);
+        return [name[0].toUpperCase() + name.slice(1), 22, '#ffffff'];
+      }),
       ['', 30],
       [t('ending.thanks'), 32, '#ffd23f'],
     ];
@@ -111,8 +108,9 @@ export class EndingScene extends Phaser.Scene {
     this.tweens.add({ targets: credits, y: -y, duration: CREDITS_MS, onComplete: () => this.showSecrets() });
   }
 
+  // (The secrets unlock at World 3; here at the very end, it's a big "you beat everything!")
   showSecrets() {
-    const lines = [t('ending.secrets'), '', `🌟 ${t('name.golden-capybara')}`, `🥊 ${t('menu.bossRush')}`, `🎨 ${t('ending.colors')}`];
+    const lines = [`🏆 ${t('ending.allWorlds')} 🏆`, '', t('ending.thanks')];
     this.add
       .text(480, 220, lines.join('\n'), { fontFamily: FONT, fontSize: '34px', color: '#ffd23f', align: 'center' })
       .setStroke('#000000', 8)
@@ -124,7 +122,6 @@ export class EndingScene extends Phaser.Scene {
   finish() {
     if (this.leaving) return;
     this.leaving = true;
-    if (this.next === 'trip') afterWorld(this, 3, this.hero);
-    else this.scene.start(this.replay ? 'Title' : 'Menu');
+    this.scene.start(this.replay ? 'Title' : 'Menu');
   }
 }
