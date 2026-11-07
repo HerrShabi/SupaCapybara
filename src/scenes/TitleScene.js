@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { goldify } from '../art/gold.js';
+import { pen } from '../art/doodle.js';
 import { loadSave, writeSave, resetSave } from '../save.js';
 import { t, setLanguage, getLanguage, LANGUAGES } from '../i18n.js';
 import { audio } from '../audio.js';
@@ -60,6 +61,7 @@ export class TitleScene extends Phaser.Scene {
     this.createCreditsButton();
     this.createOpeningButton();
     this.createKingRush();
+    this.createDrawingsDoor();
     this.createResetButton();
     this.createFlyerButton(flyer);
     this.createTipsButton();
@@ -239,6 +241,54 @@ export class TitleScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => this.scene.start('Ending', { replay: true }));
     this.add.text(90, 510, `🎬 ${t('menu.credits')}`, { fontFamily: FONT, fontSize: '15px', color: '#ffffff' }).setOrigin(0.5);
+  }
+
+  // THE DRAWINGS WORLD's door (open for everyone): a pencil draws it on the title screen, then you can go in.
+  createDrawingsDoor() {
+    const left = 836;
+    const right = 914;
+    const top = 300;
+    const bottom = 452;
+    const path = [[left, bottom], [left, top + 30]];
+    for (let i = 0; i <= 8; i++) {
+      const angle = Math.PI + (i / 8) * Math.PI;
+      path.push([(left + right) / 2 + Math.cos(angle) * (right - left) / 2, top + 30 + Math.sin(angle) * 30]);
+    }
+    path.push([right, top + 30], [right, bottom]);
+    const fill = this.add.graphics();
+    const lines = this.add.graphics();
+    const pencilIcon = this.add.text(left, bottom, '✏️', { fontSize: '30px' }).setOrigin(0.1, 0.9);
+    const progress = { k: 0 };
+    this.tweens.add({
+      targets: progress,
+      k: 1,
+      duration: 1800,
+      delay: 400,
+      onUpdate: () => {
+        const upTo = Math.floor(progress.k * (path.length - 1));
+        lines.clear();
+        pen(lines, path.slice(0, upTo + 1), { color: 0xffffff, width: 3 });
+        const [x, y] = path[upTo];
+        pencilIcon.setPosition(x, y);
+      },
+      onComplete: () => {
+        pencilIcon.destroy();
+        fill.fillStyle(0xfdfcf5, 0.9).fillRect(left + 2, top + 30, right - left - 4, bottom - top - 30);
+        fill.fillEllipse((left + right) / 2, top + 30, right - left - 4, 58);
+        fill.fillStyle(0x1a237e).fillCircle(right - 14, (top + bottom) / 2 + 20, 5);
+        pen(lines, [[left + 12, top + 60], [right - 12, top + 60]], { color: 0x90caf9, width: 1 });
+        pen(lines, [[left + 12, top + 90], [right - 12, top + 90]], { color: 0x90caf9, width: 1 });
+        this.add
+          .zone(left, top, right - left, bottom - top)
+          .setOrigin(0, 0)
+          .setInteractive({ useHandCursor: true })
+          .on('pointerdown', () => {
+            audio.play('click');
+            this.scene.start('Drawings', {});
+          });
+        this.add.text((left + right) / 2, bottom + 16, `📓 ${t('drawings.door')}`, { fontFamily: FONT, fontSize: '13px', color: '#ffffff' }).setStroke('#000000', 4).setOrigin(0.5);
+      },
+    });
   }
 
   // After beating THE BAD GUY KING: his gold trophy on display, and KING RUSH (the 3 dark copies and the King

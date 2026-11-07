@@ -339,6 +339,43 @@ Ethan's decisions (round 10, started 2026-11-07):
 - Q9: The trips play **every time** you beat a world, and you can **skip** one (ESC, or ⏸ on iPad) after you've played it once.
 - Q10: When a trip ends, you go **straight into the next world** (no menu in between).
 
+### The Drawings World (round 11, in the game)
+
+- On the **title screen**, a ✏️ pencil draws a **door** (bottom right). It's open for everyone from the start.
+- Inside: a **notebook page** (blue lines, red margin) with pen-scribble hills, puffy kid clouds, a smiley sun and stick trees, plus **school supplies** to jump on: rulers, erasers, giant pencils and paper clips. The heroes **float a little above the drawn ground** (Ethan's idea). SuperCapybara **stands upright**, like the clay model (head on top with the white snout, suit, legs, cape behind). Hats and shades are **drawn too** (pen and pencil) and sit on the drawn heads.
+- The heroes are **drawings shaped and colored like Ethan's clay models**; the sunglasses, blaster apple, robot and horned knight come from the "Bad guys" page, in pen style.
+- The end: **Pizza Boss and Grape Boss together** (one health bar for both). When one gets low, they **MERGE into the PIZZA-GRAPE MONSTER**: spinning **pizza boomerangs** that come back, and **grape bombs** that leave **sticky purple puddles** (you move slowly in them).
+- 🏆 The prize: the ✏️ **MAGIC PENCIL**, in every side-scrolling level: press **E** (✏️ on touch, the right stick on a controller). The game pauses and shows a dotted 💣: trace it with your finger or mouse (or hold SPACE). Then the bomb drops next to you and **explodes**: it beats the bad guys around it and hurts the boss, but **never hurts you**. Then it needs 20 seconds to recharge.
+
+
+A 2D world that looks exactly like Ethan's drawings (his idea from round 6).
+
+Ethan's decisions (round 11, started 2026-11-07):
+- Q1: Made from **the drawings already in `concept-art/`** (heroes, bad guys, bosses, power-ups).
+- Q2: It looks **like it's drawn on paper**: white notebook paper with lines, everything with wobbly blue pen outlines and colored-pencil coloring, just like Ethan's pages.
+- Q3: The level has **all the bad guys from the bad guys page** (sunglasses, the apple with blasters, the robot with the arm blaster, the horned knight with TNT) in pen style, and at the end a **double boss fight: Pizza Boss AND Grape Boss** together, in pen-and-pencil style.
+- Q4: The level is **doodle land** (pen-scribble hills, kid-style clouds, a smiley sun, stick-figure trees) **with school supplies to jump on** (rulers, erasers, giant pencils, paper clips).
+- Q5: The heroes **become drawings too** (wobbly pen outlines, pencil coloring), **but shaped and colored like Ethan's clay models** (`concept-art/clay-*.jpg`).
+- Q6: You get there from the **title screen**: a giant pencil draws a door, and it becomes a new button there.
+- Q7: The door is **open from the start**, so everyone (even friends who just installed the game) can play it right away.
+- Q8: Pizza Boss and Grape Boss fight together, and when one of them gets low on health they **merge into one giant PIZZA-GRAPE monster**!
+- Q9: The Pizza-Grape monster throws **spinning pizza slices like boomerangs** (they fly out and come back) AND drops **grape bombs** that splat into **sticky purple puddles** that slow you down.
+- Q10: The prize is the ✏️ **MAGIC PENCIL**: press it and the game **pauses** and shows you a picture (like a 💣 **bomb**) to **draw**. Trace it, and your drawing comes to life: the bomb **explodes** and blasts the bad guys, but **doesn't hurt you**.
+
+### More magic pencil drawings (round 12, in the game)
+
+- Press ✏️ (E): pick what to draw (tap it, or ◀ ▶ and SPACE), then trace its dots. All of them share the 20-second recharge.
+- 💣 **Bomb:** drops next to you and explodes (bad guys and bosses, never you).
+- 🌈 **Rainbow bridge:** a bridge from your feet forward for 10 seconds, even over a gap.
+- 🚀 **Rocket:** blasts you way up high.
+- 🌪️ **Tornado:** sweeps forward and blows away every bad guy it touches (and hits a boss once).
+
+
+Ethan's decisions (round 12, started 2026-11-07):
+- Q0: The magic pencil gets **more things to draw** (not only the 💣 bomb).
+- Q1: The new drawings: 🌈 **rainbow bridge** (a bridge over a gap), 🚀 **rocket** (fly up high), and 🌪️ **tornado** (blows all the bad guys away).
+- Q2: **You choose** what to draw: press ✏️, 4 pictures pop up (💣🌈🚀🌪️), pick one, then draw it.
+
 ## Fixed (2026-11-01, bugs Ethan found)
 
 - The hero's hat (and fire glow) got left behind on the helipad when jumping into the rocket. Now they go into the rocket too.

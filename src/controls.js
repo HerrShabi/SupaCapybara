@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 
 // Who controls a hero: which keys, and which game controller.
-// Actions: left, right, up, down, jump, attack, special (C: invisible/shadow), shield, fly, mecha, swap (Golden Capybara's switch), freeze.
+// Actions: left, right, up, down, jump, attack, special (C: invisible/shadow), shield, fly, mecha, swap (Golden Capybara's switch), freeze,
+// pencil (the magic pencil from the Drawings World).
 //
 // solo: one player. p1 / p2: two players on one keyboard (left side and right side).
 // Touch buttons (touch.js) press these same keys, so they work too.
@@ -20,8 +21,9 @@ export const SCHEMES = {
     mecha: ['R'],
     swap: ['Q'],
     freeze: ['Z'],
+    pencil: ['E'],
   },
-  p1: { left: ['A'], right: ['D'], up: ['W'], down: ['S'], jump: ['W'], attack: ['F'], special: ['G'], shield: [], fly: [], mecha: [], swap: ['T'], freeze: [] },
+  p1: { left: ['A'], right: ['D'], up: ['W'], down: ['S'], jump: ['W'], attack: ['F'], special: ['G'], shield: [], fly: [], mecha: [], swap: ['T'], freeze: [], pencil: [] },
   p2: {
     left: ['LEFT'],
     right: ['RIGHT'],
@@ -35,6 +37,7 @@ export const SCHEMES = {
     mecha: [],
     swap: ['BACKSPACE'],
     freeze: [],
+    pencil: [],
   },
 };
 
@@ -52,6 +55,7 @@ const PAD = {
   mecha: (pad) => pad.L2 > 0.5,
   swap: (pad) => pad.R2 > 0.5,
   freeze: (pad) => pad.B && pad.Y,
+  pencil: (pad) => Boolean(pad.buttons?.[11]?.pressed), // press the right stick
 };
 
 export class Controls {

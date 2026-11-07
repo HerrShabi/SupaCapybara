@@ -14,6 +14,7 @@ const KEYS = {
   KeyR: { key: 'r', keyCode: 82 },
   KeyQ: { key: 'q', keyCode: 81 },
   KeyZ: { key: 'z', keyCode: 90 },
+  KeyE: { key: 'e', keyCode: 69 },
   Escape: { key: 'Escape', keyCode: 27 },
   // Two players: player 1 uses A D W F G, player 2 uses the arrows, ENTER and SHIFT (see controls.js)
   KeyA: { key: 'a', keyCode: 65 },
@@ -76,6 +77,7 @@ export function showTouchControls(container, buttons, labels) {
     buttons.mecha && ['KeyR', '🤖'],
     buttons.swap && ['KeyQ', '🔄'],
     buttons.freeze && ['KeyZ', '❄️'],
+    buttons.pencil && ['KeyE', '✏️'],
   ].filter(Boolean);
   powers.forEach(([code, emoji], i) => add(code, emoji, { right: `${20 + i * 72}px`, bottom: '140px', ...size(62), fontSize: '26px' }));
 

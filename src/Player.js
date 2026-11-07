@@ -56,8 +56,10 @@ const FREEZE_WAIT_MS = 30000;
 export class Player {
   // powerUps: ids of the power-ups you bought in the shop. look: texture prefix from heroKey() (for secret colors).
   // scheme / padIndex: which keys and game controller (see controls.js); two players use 'p1' and 'p2'.
-  // hat: the hat this hero wears (from save.wearing), or nothing.
-  constructor(scene, character, x, y, { powerUps = [], look = character.id, scheme = 'solo', padIndex = 0, hat = null } = {}) {
+  // hat: the hat this hero wears (from save.wearing), or nothing. hatStyle: a world's own hat pictures and head
+  // positions ({ prefix: texture key prefix, anchor(heroId, hat, scale) }), like the Drawings World's drawn hats.
+  constructor(scene, character, x, y, { powerUps = [], look = character.id, scheme = 'solo', padIndex = 0, hat = null, hatStyle = null } = {}) {
+    this.hatStyle = hatStyle;
     this.scene = scene;
     this.character = character;
     this.id = character.id;
@@ -102,7 +104,7 @@ export class Player {
     if (hat) {
       createHatTextures(scene);
       this.hat = hat;
-      this.hatSprite = scene.add.image(x, y, `hat-${hat}`).setScale(1.5).setDepth(3).setOrigin(0.5, hat === 'shades' ? 0.5 : 1);
+      this.hatSprite = scene.add.image(x, y, `${this.hatStyle?.prefix ?? 'hat-'}${hat}`).setScale(1.5).setDepth(3).setOrigin(0.5, hat === 'shades' ? 0.5 : 1);
     }
 
     if (character.fireAura) {
@@ -292,7 +294,7 @@ export class Player {
   // The hat sits on the hero's head (no hat in the Mecha suit).
   updateHat() {
     if (!this.hatSprite) return;
-    const anchor = hatAnchor(this.id, this.hat, this.sprite.scaleX);
+    const anchor = (this.hatStyle?.anchor ?? hatAnchor)(this.id, this.hat, this.sprite.scaleX);
     // Turn the hat with the hero (only the win dances tip the hero over)
     const turn = this.sprite.rotation;
     const ax = anchor.x * this.facing;
@@ -555,7 +557,7 @@ export class Player {
     this.hat = hat;
     if (hat) {
       createHatTextures(this.scene);
-      this.hatSprite = this.scene.add.image(this.x, this.y, `hat-${hat}`).setScale(1.5).setDepth(3).setOrigin(0.5, hat === 'shades' ? 0.5 : 1);
+      this.hatSprite = this.scene.add.image(this.x, this.y, `${this.hatStyle?.prefix ?? 'hat-'}${hat}`).setScale(1.5).setDepth(3).setOrigin(0.5, hat === 'shades' ? 0.5 : 1);
     }
     this.restoreLook();
     this.updateHat();

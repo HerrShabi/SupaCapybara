@@ -13,6 +13,7 @@ import { createSunglassesTexture, createAppleTexture, createRobotTexture, create
 import { createItemTextures } from '../art/items.js';
 import { tipWanted, markTipSeen, tipText, TIP_MIN_MS } from '../tips.js';
 import { drawComicBubble } from '../comicBubble.js';
+import { MagicPencil } from '../magicPencil.js';
 
 // Everything the side-scrolling worlds (1 and 3) share: the hero, hearts, bolts, bad guys,
 // getting hurt, the boss health bar, the key and winning.
@@ -95,10 +96,11 @@ export class SideScrollerScene extends Phaser.Scene {
       (id, i) =>
         new Player(this, getCharacter(id), start.x + i * 60, start.y, {
           powerUps: this.powerUps,
-          look: heroKey(id, this.palette),
+          look: this.heroLook?.(id) ?? heroKey(id, this.palette), // (a world can give heroes its own look, like the Drawings World)
           scheme: this.team ? `p${i + 1}` : 'solo',
           padIndex: i,
           hat: this.save.wearing?.[id] ?? null,
+          hatStyle: this.hatStyle ?? null, // (a world's own hats, like the Drawings World)
         }),
     );
     this.player = this.players[0];
@@ -136,11 +138,15 @@ export class SideScrollerScene extends Phaser.Scene {
     audio.setMuted(this.save.muted);
     audio.playMusic(this.level.music);
 
+    // The magic pencil (won in the Drawings World): E / ✏️ pauses the game to draw a bomb
+    this.magicPencil = this.save.magicPencil && !this.team ? new MagicPencil(this) : null;
+    this.events.once('shutdown', () => this.magicPencil?.destroy());
+
     if (this.save.touch) {
       const container = this.game.canvas.parentElement;
       const touch = this.team
         ? showTwoPlayerTouch(container)
-        : showTouchControls(container, { ...touchButtonsFor(this.character, this.powerUps, false), ...this.extraTouchButtons }, { jump: t('touch.jump') });
+        : showTouchControls(container, { ...touchButtonsFor(this.character, this.powerUps, false), ...this.extraTouchButtons, pencil: Boolean(this.magicPencil) }, { jump: t('touch.jump') });
       this.events.once('shutdown', () => touch.destroy());
     }
 
@@ -835,6 +841,10 @@ export class SideScrollerScene extends Phaser.Scene {
       this.updateTip();
       return;
     }
+    if (this.magicPencil?.drawing) {
+      this.magicPencil.update();
+      return;
+    }
     this.updateScenery(time, delta);
     if (this.won) return;
     if (this.cutscene) {
@@ -848,7 +858,9 @@ export class SideScrollerScene extends Phaser.Scene {
     }
 
     for (const player of this.players) player.update();
-    this.powerText.setText(this.team ? '' : this.player.powerStatus);
+    this.magicPencil?.afterPlayers();
+    if (this.magicPencil && this.player.controls.justPressed('pencil')) this.magicPencil.open();
+    this.powerText.setText(this.team ? '' : [this.player.powerStatus, this.magicPencil?.status].filter(Boolean).join('     '));
     if (this.team) this.followTeam();
 
     // Fell down a hole: lose a heart and go back (with two players, next to the other one).
@@ -874,6 +886,15 @@ export class SideScrollerScene extends Phaser.Scene {
       this.updateBoss(time, delta);
     }
     this.checkTips();
+  }
+
+  // ---------- A blast (the magic pencil's bomb): beats bad guys and hurts the boss around (x, y), never you ----------
+
+  blastAt(x, y, radius, damage) {
+    for (const badGuy of this.badGuys.getChildren()) {
+      if (badGuy.body?.enable && Phaser.Math.Distance.Between(x, y, badGuy.x, badGuy.y) < radius) this.defeat(badGuy);
+    }
+    if (this.bossHittable() && Phaser.Math.Distance.Between(x, y, this.boss.x, this.boss.y) < radius + 80) this.hitBoss(damage);
   }
 
   // ---------- Freezing the game (for tips, or a level's own pop-ups like the jungle quiz) ----------
