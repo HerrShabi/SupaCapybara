@@ -45,6 +45,11 @@ const game = new Phaser.Game({
 const READS_GAMEPAD = ['World1', 'World3', 'Training', 'Battle', 'StoryCloud', 'StoryUnderwater', 'StoryJungle', 'StoryCastle', 'StoryKing', 'TripBalloon', 'TripRainbow', 'TripSurf', 'TripMine', 'TripStairs'];
 startGamepadKeys(() => game.scene.getScenes(true).some((scene) => READS_GAMEPAD.includes(scene.scene.key) || scene.readsGamepad));
 
+// Offline play: the built game registers the service worker that vite.config.js writes (not while developing).
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`));
+}
+
 // Lets automated tests reach into the game while developing.
 if (import.meta.env.DEV) {
   window.game = game;
