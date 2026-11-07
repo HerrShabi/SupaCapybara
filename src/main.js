@@ -46,8 +46,24 @@ const READS_GAMEPAD = ['World1', 'World3', 'Training', 'Battle', 'StoryCloud', '
 startGamepadKeys(() => game.scene.getScenes(true).some((scene) => READS_GAMEPAD.includes(scene.scene.key) || scene.readsGamepad));
 
 // Offline play: the built game registers the service worker that vite.config.js writes (not while developing).
+// When a new version has been published, the new service worker takes over and the game reloads once, so
+// phones and tablets show the update right away (instead of only the next time the app is opened).
+// The app also checks for a new version whenever it comes back to the front.
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`));
+  const hadOldVersion = Boolean(navigator.serviceWorker.controller);
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadOldVersion || reloading) return; // the very first install: nothing to refresh
+    reloading = true;
+    window.location.reload();
+  });
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).then((registration) => {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') registration.update();
+      });
+    });
+  });
 }
 
 // Lets automated tests reach into the game while developing.
