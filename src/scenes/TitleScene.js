@@ -56,6 +56,7 @@ export class TitleScene extends Phaser.Scene {
     this.createSoundButton();
     this.createTouchButton();
     this.createCreditsButton();
+    this.createOpeningButton();
     this.createResetButton();
     this.createFlyerButton(flyer);
     this.createTipsButton();
@@ -235,6 +236,18 @@ export class TitleScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => this.scene.start('Ending', { replay: true }));
     this.add.text(90, 510, `🎬 ${t('menu.credits')}`, { fontFamily: FONT, fontSize: '15px', color: '#ffffff' }).setOrigin(0.5);
+  }
+
+  // Watch THE BAD GUY KING's opening movie again (after you've seen it once).
+  createOpeningButton() {
+    if (!this.save.story?.introSeen) return;
+    this.add
+      .rectangle(250, 510, 150, 34, 0xc62828)
+      .setStrokeStyle(3, 0xffd23f)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => this.scene.start('StoryIntro', { replay: true }));
+    const label = this.add.text(250, 510, `🎬 ${t('menu.opening')}`, { fontFamily: FONT, fontSize: '15px', color: '#ffffff' }).setOrigin(0.5);
+    label.setScale(Math.min(1, 140 / label.width));
   }
 
   // Start the whole game over. The first click asks "are you sure?", the second one resets.

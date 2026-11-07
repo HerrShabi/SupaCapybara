@@ -12,6 +12,7 @@ import { storyProgress } from './story.js';
 // A sunny day with all the heroes. The crocodile Bad Guy King flies in on his throne and zaps everyone
 // into gold trophies, except SuperCapybara, who jumps out of the way. He flies off with the trophies,
 // and SuperCapybara promises to save them all. Then the story map starts.
+// Started with { replay: true } (the 🎬 OPENING button on the title screen), it goes back to the title screen.
 
 const GROUND = 440;
 // Who stands in a row (x), and who gets turned into a trophy
@@ -30,7 +31,8 @@ export class StoryIntroScene extends Phaser.Scene {
     super('StoryIntro');
   }
 
-  create() {
+  create(data = {}) {
+    this.replay = Boolean(data.replay);
     this.save = loadSave();
     setLanguage(this.save.language);
     audio.setMuted(this.save.muted);
@@ -202,6 +204,6 @@ export class StoryIntroScene extends Phaser.Scene {
     storyProgress(this.save).introSeen = true;
     writeSave(this.save);
     this.cameras.main.fadeOut(400, 0, 0, 0);
-    this.time.delayedCall(450, () => this.scene.start('Story'));
+    this.time.delayedCall(450, () => this.scene.start(this.replay ? 'Title' : 'Story'));
   }
 }

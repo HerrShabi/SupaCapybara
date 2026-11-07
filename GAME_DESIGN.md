@@ -214,6 +214,7 @@ Ethan's decisions (round 5, started 2026-11-07):
 - ☁️ **Cloud Kingdom** (built): jump across fluffy clouds (fall and you lose a heart). At the end, **Dark Supa Cat** (an evil robot copy, glowing red) guards the real Supa Cat, who's a gold trophy. Beat the copy, the trophy breaks, and **Supa Cat joins your team**. A gold star floats over places you've won.
 - 🌊 Underwater City and 🌴 Jungle: on the map, "coming soon".
 - 🎬 **Opening movie** (the first time you start the story; SPACE skips): a sunny day with all the heroes, then the **Bad Guy King** flies in on his throne, laughs, and zaps everyone into gold trophies, except SuperCapybara, who jumps out of the way. He flies off with the trophies, and SuperCapybara promises to save them all.
+- After you've seen it once, a red **🎬 OPENING** button on the title screen (next to 🎬 CREDITS) plays it again.
 - Not built yet: fights against the Bad Guy King, babies as sidekicks.
 
 
