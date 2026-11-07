@@ -1,6 +1,6 @@
 // Plays the game in headless Chrome with real key presses (needs `npm run dev` running).
 // Usage: node scripts/playtest.mjs '[["eval","S.player.setPosition(3700, 380), 1"],["hold","right",1000],["down","x"],["wait",500],["up","x"],["shot","name"]]'
-// Steps: touchdown <x> <y> | touchup | hold <key> <ms> | down <key> | up <key> | wait <ms> | click <x> <y> (game coordinates) | shot <name> (saved to /tmp/supercapybara-<name>.png)
+// Steps: touchdown <x> <y> | touchmove <x> <y> | touchup | hold <key> <ms> | down <key> | up <key> | wait <ms> | click <x> <y> (game coordinates) | shot <name> (saved to /tmp/supercapybara-<name>.png)
 //        eval <js> where "S." means the World1 scene and "M." the Menu scene. Keys: right, left, up, down, enter, esc, shift, space, or any single letter (x, c, v...).
 //        The game starts on the Title screen (ENTER there goes to the Menu). Saved progress stays between runs; eval "localStorage.clear()" to reset it.
 
@@ -46,6 +46,7 @@ for (const step of JSON.parse(process.argv[2])) {
   // touchdown x y / touchup: a finger on the page (page pixels, like the screenshots).
   if (cmd === 'touchdown') await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: a, y: b }] });
   if (cmd === 'touchup') await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  if (cmd === 'touchmove') await send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: a, y: b }] });
   if (cmd === 'click') {
     // a, b are game coordinates (960x540); convert to where the canvas is on the page.
     const [x, y] = await evalJs(`(() => { const r = game.canvas.getBoundingClientRect(); return [r.left + ${a} * r.width / 960, r.top + ${b} * r.height / 540]; })()`);

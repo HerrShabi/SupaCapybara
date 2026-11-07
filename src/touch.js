@@ -43,17 +43,27 @@ const STYLE = `
     border: 3px solid rgba(255,255,255,0.8); background: rgba(0,0,0,0.35); color: #fff;
     font: 22px 'Arial Black', Arial, sans-serif; text-shadow: 0 0 4px #000; padding: 0; -webkit-tap-highlight-color: transparent; }
   .touch button.held { background: rgba(255,210,63,0.6); }
+  .touch .stick-zone { position: absolute; pointer-events: auto; touch-action: none; -webkit-tap-highlight-color: transparent; }
+  .touch .stick-base { position: absolute; left: 50%; top: 50%; width: 130px; height: 130px; margin: -65px 0 0 -65px; border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.6); background: rgba(0,0,0,0.25); pointer-events: none; }
+  .touch .stick-base.active { background: rgba(0,0,0,0.4); border-color: rgba(255,210,63,0.9); }
+  .touch .stick-knob { position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; border-radius: 50%;
+    background: rgba(255,255,255,0.8); transform: translate(-50%, -50%); }
 `;
+
+const STICK_REACH = 55; // how far (px) the knob moves from the middle
+const STICK_DEAD = 14; // a little wiggle in the middle does nothing
+const STICK_SLANT = 0.38; // pushing up to ~67° away from straight left/right still counts as left/right (so diagonals press both)
 
 // buttons: { left, right, up, down, attack, invisible, shield, fly } — which ones to show. `attack` is the emoji on the X button.
 export function showTouchControls(container, buttons, labels) {
-  const { root, add, size } = makeRoot(container);
+  const { root, add, addJoystick, size } = makeRoot(container);
 
-  // Left thumb: arrows
-  if (buttons.left) add('ArrowLeft', '◀', { left: '16px', bottom: '70px', ...size(76) });
-  if (buttons.right) add('ArrowRight', '▶', { left: '176px', bottom: '70px', ...size(76) });
-  if (buttons.up) add('ArrowUp', '▲', { left: '96px', bottom: '146px', ...size(76) });
-  if (buttons.down) add('ArrowDown', '▼', { left: '96px', bottom: '16px', ...size(68) });
+  // Left thumb: a joystick (up and down only where the level uses them, so pushing up doesn't jump in 2D)
+  addJoystick(
+    { left: buttons.left && 'ArrowLeft', right: buttons.right && 'ArrowRight', up: buttons.up && 'ArrowUp', down: buttons.down && 'ArrowDown' },
+    { left: '0px', bottom: '0px', width: '270px', height: '250px' },
+  );
 
   // Right thumb: jump and attack, with powers above them
   add('Space', labels.jump, { right: '20px', bottom: '24px', ...size(96), fontSize: '18px' });
@@ -76,14 +86,14 @@ export function showTouchControls(container, buttons, labels) {
 
 // 2 PLAYERS on one iPad: each player gets their own buttons on their side of the screen.
 export function showTwoPlayerTouch(container) {
-  const { root, add, size } = makeRoot(container);
+  const { root, add, addJoystick, size } = makeRoot(container);
+  // Each side: a joystick (left/right) by the edge, and jump, attack and power buttons next to it
   const side = (keys, edge, color) => {
     const at = (offset) => ({ [edge]: `${offset}px` });
-    add(keys.left, '◀', { ...at(12), bottom: '86px', ...size(62), borderColor: color });
-    add(keys.right, '▶', { ...at(84), bottom: '86px', ...size(62), borderColor: color });
-    add(keys.jump, '⬆', { ...at(48), bottom: '158px', ...size(62), borderColor: color });
-    add(keys.attack, '💥', { ...at(12), bottom: '14px', ...size(62), borderColor: color, fontSize: '26px' });
-    add(keys.special, '✨', { ...at(84), bottom: '14px', ...size(62), borderColor: color, fontSize: '26px' });
+    addJoystick({ left: keys.left, right: keys.right }, { ...at(0), bottom: '0px', width: '170px', height: '190px' });
+    add(keys.jump, '⬆', { ...at(176), bottom: '96px', ...size(62), borderColor: color });
+    add(keys.attack, '💥', { ...at(176), bottom: '20px', ...size(62), borderColor: color, fontSize: '26px' });
+    add(keys.special, '✨', { ...at(246), bottom: '58px', ...size(56), borderColor: color, fontSize: '24px' });
   };
   side({ left: 'KeyA', right: 'KeyD', jump: 'KeyW', attack: 'KeyF', special: 'KeyG' }, 'left', '#ffd23f');
   side({ left: 'ArrowLeft', right: 'ArrowRight', jump: 'ArrowUp', attack: 'Enter', special: 'ShiftLeft' }, 'right', '#4fc3f7');
@@ -124,8 +134,80 @@ function makeRoot(container) {
     root.appendChild(button);
   };
 
+  // A floating joystick: put your thumb down anywhere in the zone and the stick appears right there; then slide.
+  // It holds the arrow keys for the directions you push (keys: { left, right, up, down }, any can be missing).
+  const addJoystick = (keys, style) => {
+    const zone = document.createElement('div');
+    zone.className = 'stick-zone';
+    Object.assign(zone.style, style);
+    const base = document.createElement('div');
+    base.className = 'stick-base';
+    const knob = document.createElement('div');
+    knob.className = 'stick-knob';
+    base.appendChild(knob);
+    zone.appendChild(base);
+    root.appendChild(zone);
+
+    const pressed = new Set();
+    const hold = (code, on) => {
+      if (!code || on === pressed.has(code)) return;
+      if (on) pressed.add(code);
+      else pressed.delete(code);
+      sendKey(on ? 'keydown' : 'keyup', code);
+    };
+    let pointer = null;
+    let center = { x: 0, y: 0 };
+    const steer = (x, y) => {
+      let dx = x - center.x;
+      let dy = y - center.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance > STICK_REACH) {
+        dx = (dx / distance) * STICK_REACH;
+        dy = (dy / distance) * STICK_REACH;
+      }
+      knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+      const pushing = distance > STICK_DEAD;
+      const sideways = pushing && Math.abs(dx) / Math.max(distance, 1) > STICK_SLANT;
+      const upDown = pushing && Math.abs(dy) / Math.max(distance, 1) > STICK_SLANT;
+      hold(keys.left, sideways && dx < 0);
+      hold(keys.right, sideways && dx > 0);
+      hold(keys.up, upDown && dy < 0);
+      hold(keys.down, upDown && dy > 0);
+    };
+    const letGo = (event) => {
+      if (event.pointerId !== pointer) return;
+      pointer = null;
+      for (const code of [...pressed]) hold(code, false);
+      base.classList.remove('active');
+      base.style.left = '50%';
+      base.style.top = '50%';
+      knob.style.transform = 'translate(-50%, -50%)';
+    };
+    zone.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      if (pointer !== null) return;
+      pointer = event.pointerId;
+      zone.setPointerCapture?.(pointer);
+      const rect = zone.getBoundingClientRect();
+      center = { x: event.clientX, y: event.clientY };
+      base.style.left = `${center.x - rect.left}px`;
+      base.style.top = `${center.y - rect.top}px`;
+      base.classList.add('active');
+      steer(event.clientX, event.clientY);
+    });
+    zone.addEventListener('pointermove', (event) => {
+      if (event.pointerId !== pointer) return;
+      event.preventDefault();
+      steer(event.clientX, event.clientY);
+    });
+    zone.addEventListener('pointerup', letGo);
+    zone.addEventListener('pointercancel', letGo);
+    zone.addEventListener('lostpointercapture', letGo);
+    zone.addEventListener('contextmenu', (event) => event.preventDefault());
+  };
+
   const size = (px) => ({ width: `${px}px`, height: `${px}px` });
-  return { root, add, size };
+  return { root, add, addJoystick, size };
 }
 
 // Which buttons a hero needs. `threeD` adds up/down (World 2 walks forward and back).
