@@ -9,6 +9,8 @@ import { createBoltTexture } from '../art/bolt.js';
 import { createEffectTextures } from '../art/effects.js';
 import { createHatTextures, hatAnchor } from '../art/hats.js';
 import { startWorld, markTripSeen } from './worlds.js';
+import { drawingMode, applySketch } from '../sketch.js';
+import { createDoodleHeroTextures, createDoodleHatTextures, doodleHeroKey, doodleHatAnchor, DOODLE_HAT_PREFIX } from '../art/doodle.js';
 
 // What every trip between worlds shares (see worlds.js): the hero, the controls (keys, controller, touch),
 // the bolts you win or lose, the progress bar, skipping (ESC / ⏸ once you've seen it) and going on to the
@@ -42,13 +44,21 @@ export class TripScene extends Phaser.Scene {
     createHeroTextures(this, this.palette);
     createBoltTexture(this);
     createEffectTextures(this);
-    this.look = heroKey(this.heroId, this.palette);
+    // DRAWING MODE: the drawn hero (and hat), and the notebook look
+    this.sketched = drawingMode(this.save);
+    if (this.sketched) {
+      createDoodleHeroTextures(this);
+      createDoodleHatTextures(this);
+    }
+    this.look = this.sketched ? doodleHeroKey(this.heroId) : heroKey(this.heroId, this.palette);
     this.tripBolts = 0;
     this.done = false;
     this.seenBefore = (this.save.tripsSeen ?? []).includes(this.from);
     this.controls = new Controls(this, 'solo', 0);
 
     this.buildTrip();
+    this.cameras.main.resetPostPipeline();
+    if (this.sketched) applySketch(this);
     this.createHud();
     this.input.keyboard.on('keydown-ESC', () => this.skip());
     this.input.keyboard.on('keydown-M', () => {
@@ -67,7 +77,7 @@ export class TripScene extends Phaser.Scene {
     const hat = this.save.wearing?.[this.heroId];
     if (!hat) return;
     createHatTextures(this);
-    this.hatSprite = this.add.image(0, 0, `hat-${hat}`).setScale(sprite.scaleX).setOrigin(0.5, hat === 'shades' ? 0.5 : 1).setDepth(sprite.depth + 0.1);
+    this.hatSprite = this.add.image(0, 0, `${this.sketched ? DOODLE_HAT_PREFIX : 'hat-'}${hat}`).setScale(sprite.scaleX).setOrigin(0.5, hat === 'shades' ? 0.5 : 1).setDepth(sprite.depth + 0.1);
     this.hatOf = sprite;
     this.hatId = hat;
   }
@@ -75,7 +85,7 @@ export class TripScene extends Phaser.Scene {
   updateHat() {
     if (!this.hatSprite) return;
     const sprite = this.hatOf;
-    const anchor = hatAnchor(this.heroId, this.hatId, sprite.scaleX);
+    const anchor = (this.sketched ? doodleHatAnchor : hatAnchor)(this.heroId, this.hatId, sprite.scaleX);
     const facing = sprite.flipX ? -1 : 1;
     this.hatSprite.setPosition(sprite.x + anchor.x * facing, sprite.y + anchor.y * (sprite.scaleY / sprite.scaleX)).setFlipX(sprite.flipX).setVisible(sprite.visible);
   }

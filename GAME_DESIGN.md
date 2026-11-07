@@ -376,6 +376,12 @@ Ethan's decisions (round 12, started 2026-11-07):
 - Q1: The new drawings: 🌈 **rainbow bridge** (a bridge over a gap), 🚀 **rocket** (fly up high), and 🌪️ **tornado** (blows all the bad guys away).
 - Q2: **You choose** what to draw: press ✏️, 4 pictures pop up (💣🌈🚀🌪️), pick one, then draw it.
 
+### ✏️ Drawing mode (2026-11-07, Raz's idea for Ethan, in the game)
+
+- A **✏️ DRAWING: ON/OFF** switch in the STORY menu (bottom row). When it's on, **every STORY world and trip looks drawn in the notebook**, like the Drawings World: white paper with blue notebook lines and the red margin, light colored-pencil coloring with strokes, and blue pen outlines. World 2 (3D space) too.
+- The heroes and their hats become the **drawn ones from the Drawings World** (SuperCapybara upright, like the clay model).
+- The screen display (hearts, bolts, messages) stays clean and easy to read.
+
 ## Fixed (2026-11-01, bugs Ethan found)
 
 - The hero's hat (and fire glow) got left behind on the helipad when jumping into the rocket. Now they go into the rocket too.

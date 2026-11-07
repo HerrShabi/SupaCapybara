@@ -6,6 +6,7 @@ import { getDifficulty, BAD_GUY_REWARD, BOSS_REWARD } from '../difficulty.js';
 import { writeSave, addBaby } from '../save.js';
 import { Hud } from './hud.js';
 import { tipWanted, markTipSeen, tipText, TIP_MIN_MS } from '../tips.js';
+import { drawingMode, ThreeSketch } from '../sketch.js';
 import { PLANETS, START_PLANET, FORCE_FIELD_RADIUS, JUMPS, BOLT_RINGS, BAD_GUYS, SAUCERS, SHIP } from './level.js';
 import * as models from './models.js';
 
@@ -440,7 +441,7 @@ export class SpaceWorld {
     if (this.tip) {
       this.updateTip(dt);
       this.keysPressed.clear();
-      this.renderer.render(this.scene, this.camera);
+      this.draw();
       this.frame = requestAnimationFrame((next) => this.loop(next));
       return;
     }
@@ -463,8 +464,18 @@ export class SpaceWorld {
     if (!this.trip) this.updateCamera(dt);
 
     this.keysPressed.clear();
-    this.renderer.render(this.scene, this.camera);
+    this.draw();
     this.frame = requestAnimationFrame((next) => this.loop(next));
+  }
+
+  // DRAWING MODE (save.drawingMode): the 3D world drawn like a notebook sketch (see src/sketch.js)
+  draw() {
+    if (drawingMode(this.save)) {
+      this.sketch ??= new ThreeSketch(this.renderer);
+      this.sketch.render(this.scene, this.camera);
+    } else {
+      this.renderer.render(this.scene, this.camera);
+    }
   }
 
   updatePlayer(dt) {
@@ -1790,6 +1801,7 @@ export class SpaceWorld {
     this.hud.destroy();
     this.curtain?.remove();
     this.tip?.bubble.remove();
+    this.sketch?.dispose();
     this.tip?.finger.remove();
     this.renderer.dispose();
     this.renderer.domElement.remove();

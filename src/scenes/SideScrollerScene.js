@@ -14,6 +14,7 @@ import { createItemTextures } from '../art/items.js';
 import { tipWanted, markTipSeen, tipText, TIP_MIN_MS } from '../tips.js';
 import { drawComicBubble } from '../comicBubble.js';
 import { MagicPencil } from '../magicPencil.js';
+import { drawingMode, applySketch, useDrawnHeroes } from '../sketch.js';
 
 // Everything the side-scrolling worlds (1 and 3) share: the hero, hearts, bolts, bad guys,
 // getting hurt, the boss health bar, the key and winning.
@@ -60,6 +61,14 @@ export class SideScrollerScene extends Phaser.Scene {
     this.bossRush = Boolean(data.bossRush);
     this.team = data.team ?? null;
     this.save = loadSave();
+    // DRAWING MODE (the STORY menu's ✏️ switch): drawn heroes and hats, and the notebook look on the camera.
+    // (The Drawings World is drawn already: it sets drawnWorld and its own heroLook / hatStyle.)
+    this.sketched = !this.drawnWorld && drawingMode(this.save) && !data.team;
+    if (!this.drawnWorld) {
+      this.heroLook = null;
+      this.hatStyle = null;
+      if (this.sketched) useDrawnHeroes(this);
+    }
     // Secret colors only count once they're unlocked (by beating World 3)
     this.palette = this.save.keys.includes('world3') ? this.save.palette ?? 0 : 0;
     createHeroTextures(this, this.palette);
@@ -126,6 +135,8 @@ export class SideScrollerScene extends Phaser.Scene {
     // With two players, the camera follows the point between them.
     this.cameraTarget = this.team ? this.add.zone(start.x, start.y, 1, 1) : this.player.sprite;
     this.cameras.main.startFollow(this.cameraTarget, true, 0.1, 0.1);
+    this.cameras.main.resetPostPipeline();
+    if (this.sketched) applySketch(this);
     if (this.team) {
       this.playerTags = this.players.map((player, i) =>
         this.add.text(0, 0, `P${i + 1}`, { fontFamily: 'Arial Black, Arial', fontSize: '16px', color: i ? '#4fc3f7' : '#ffd23f' }).setStroke('#000000', 4).setOrigin(0.5).setDepth(6),

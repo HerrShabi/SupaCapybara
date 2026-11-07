@@ -68,7 +68,7 @@ export class StoryLevelScene extends SideScrollerScene {
     this.heroIndex = (this.heroIndex + 1) % this.heroes.length;
     const id = this.heroes[this.heroIndex];
     this.character = getCharacter(id);
-    this.player.setCharacter(this.character, heroKey(id, this.palette), this.save.wearing?.[id] ?? null);
+    this.player.setCharacter(this.character, this.heroLook?.(id) ?? heroKey(id, this.palette), this.save.wearing?.[id] ?? null);
     audio.play('doubleJump');
     const puff = this.add.circle(this.player.x, this.player.y, 30, 0xffffff, 0.9).setDepth(4);
     this.tweens.add({ targets: puff, scale: 2.2, alpha: 0, duration: 350, onComplete: () => puff.destroy() });

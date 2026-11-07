@@ -89,6 +89,7 @@ export class MenuScene extends Phaser.Scene {
     this.createTouchButton();
     this.createColorsButton();
     this.createWardrobeButton();
+    this.createDrawingModeButton();
     addBackButton(this, RIGHT + RIGHT_WIDTH - 60, 506, () => this.scene.start('Title'));
     this.createShop();
     this.createKeys();
@@ -361,6 +362,24 @@ export class MenuScene extends Phaser.Scene {
         this.openWardrobe();
       });
     const label = this.add.text(x, 506, `🎩 ${t('menu.wardrobe')}`, { fontFamily: FONT, fontSize: '13px', color: '#ffffff' }).setOrigin(0.5);
+    label.setScale(Math.min(1, 130 / label.width));
+  }
+
+  // ✏️ DRAWING MODE: every world looks drawn in Ethan's notebook (see src/sketch.js)
+  createDrawingModeButton() {
+    const x = this.secretsUnlocked ? 536 : 386;
+    const on = Boolean(this.save.drawingMode);
+    this.add
+      .rectangle(x, 506, 140, 28, on ? 0x1a237e : 0x2c2c54)
+      .setStrokeStyle(3, on ? 0xffd23f : 0x555588)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        this.save.drawingMode = !on;
+        writeSave(this.save);
+        audio.play('click');
+        this.scene.restart();
+      });
+    const label = this.add.text(x, 506, `✏️ ${t(on ? 'menu.drawingOn' : 'menu.drawingOff')}`, { fontFamily: FONT, fontSize: '13px', color: '#ffffff' }).setOrigin(0.5);
     label.setScale(Math.min(1, 130 / label.width));
   }
 

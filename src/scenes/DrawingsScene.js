@@ -94,6 +94,7 @@ export class DrawingsScene extends SideScrollerScene {
   }
 
   create(data = {}) {
+    this.drawnWorld = true; // (already drawn: DRAWING MODE leaves it alone)
     createDoodleHeroTextures(this);
     createDoodleBadGuyTextures(this);
     createDoodleBossTextures(this);

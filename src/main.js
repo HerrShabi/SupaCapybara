@@ -20,6 +20,7 @@ import { World2Scene } from './world2/World2Scene.js';
 import { World3Scene } from './scenes/World3Scene.js';
 import { EndingScene } from './scenes/EndingScene.js';
 import { DrawingsScene } from './scenes/DrawingsScene.js';
+import { SketchPipeline } from './sketch.js';
 import { audio } from './audio.js';
 import { startGamepadKeys } from './gamepadKeys.js';
 
@@ -30,6 +31,7 @@ const game = new Phaser.Game({
   height: 540,
   backgroundColor: '#8fd3ff',
   input: { gamepad: true }, // game controllers
+  pipeline: { SketchFX: SketchPipeline }, // DRAWING MODE's notebook look (src/sketch.js)
   physics: {
     default: 'arcade',
     arcade: { gravity: { y: 1400 } },
