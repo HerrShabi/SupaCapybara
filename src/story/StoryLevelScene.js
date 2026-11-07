@@ -7,7 +7,7 @@ import { SideScrollerScene } from '../scenes/SideScrollerScene.js';
 import { heroKey } from '../art/heroes.js';
 import { touchButtonsFor } from '../touch.js';
 import { drawComicBubble } from '../comicBubble.js';
-import { loadSave } from '../save.js';
+import { loadSave, writeSave } from '../save.js';
 import { STORY_START_HERO, freeFriend } from './story.js';
 
 // What every THE BAD GUY KING place shares (each place extends this, like StoryCloudScene):
@@ -17,6 +17,9 @@ import { STORY_START_HERO, freeFriend } from './story.js';
 // - Beat it, and after the win dance the trophy breaks (instead of a key), the friend joins your team,
 //   and you go back to the story map.
 // A place passes its layout to super() like any side-scroller, plus `place` (from PLACES) and `trophy` {x, y}.
+//
+// The places are also Worlds 4-8 of STORY (the menu starts them with { world: number, heroes: [your hero] }).
+// Then winning gives that world's key (like Worlds 1-3) and goes back to the menu: winWorld().
 
 const COPY_TINT = 0x4a4a6a;
 const MINI_BOSS_HP = 0.6; // a mini boss has less health than a world boss
@@ -29,6 +32,7 @@ export class StoryLevelScene extends SideScrollerScene {
   }
 
   create(data = {}) {
+    this.worldNumber = data.world ?? null;
     this.heroes = data.heroes?.length ? data.heroes : [STORY_START_HERO];
     this.heroIndex = 0;
     // Touch buttons for both heroes' powers, plus 🔄 to switch
@@ -38,6 +42,7 @@ export class StoryLevelScene extends SideScrollerScene {
     if (this.heroes.length > 1) this.extraTouchButtons.swap = true;
     super.create({ ...data, hero: this.heroes[0] });
     this.settings = { ...this.settings, bossHp: Math.ceil(this.settings.bossHp * MINI_BOSS_HP) };
+    if (this.worldNumber) this.exitScene = 'Menu';
 
     if (this.heroes.length > 1) {
       this.switchText = this.add
@@ -170,8 +175,31 @@ export class StoryLevelScene extends SideScrollerScene {
     });
   }
 
+  // Played as World 4-8: the world's key, then back to the menu (the story's progress isn't touched).
+  winWorld() {
+    this.won = true;
+    for (const player of this.players) player.sprite.setVelocity(0, 0);
+    for (const part of this.thanks ?? []) part.destroy();
+    audio.play('key');
+    this.time.delayedCall(400, () => audio.play('win'));
+    const keyId = `world${this.worldNumber}`;
+    if (!this.save.keys.includes(keyId)) this.save.keys.push(keyId);
+    writeSave(this.save);
+    const lines = [t('game.collected', { count: this.levelBolts })];
+    if (this.place.friend) lines.unshift(t('story.friendFree', { name: t(`name.${this.place.friend}`) }));
+    this.bigMessage(t('game.gotKey')).setScale(0.85);
+    this.add
+      .text(480, 290, lines.join('\n'), { fontFamily: 'Arial Black, Arial', fontSize: '26px', color: '#ffffff', align: 'center' })
+      .setStroke('#000000', 6)
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(10);
+    this.time.delayedCall(3800, () => this.scene.start('Menu'));
+  }
+
   win() {
     if (this.won) return;
+    if (this.worldNumber) return this.winWorld();
     this.won = true;
     for (const player of this.players) player.sprite.setVelocity(0, 0);
     for (const part of this.thanks ?? []) part.destroy();

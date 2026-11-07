@@ -52,7 +52,8 @@ export const CHARACTERS = [
 export const STARTING_CHARACTERS = ['supa-capybara', 'supa-cat', 'supa-chameleon'];
 
 // Which boss gives which key. Boss names are in i18n.js as 'boss.<key id>'.
-export const KEYS = [{ id: 'world1' }, { id: 'world2' }, { id: 'world3' }];
+// Worlds 4-8 are THE BAD GUY KING's places, played one after another (see WORLD_SCENES in MenuScene).
+export const KEYS = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ id: `world${n}` }));
 
 // ready: it works and can be bought. The others are still being decided with Ethan.
 // needs: another power-up you must own before you can buy this one.

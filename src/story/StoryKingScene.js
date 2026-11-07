@@ -365,6 +365,7 @@ export class StoryKingScene extends StoryLevelScene {
   }
 
   finish() {
+    if (this.worldNumber) return this.winWorld(); // World 8
     if (this.rush) {
       const message = this.bigMessage(t('story.kingRushDone'), '#b9f6ca').setScale(0.7);
       this.time.delayedCall(3000, () => {

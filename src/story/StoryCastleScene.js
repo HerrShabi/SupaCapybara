@@ -365,6 +365,7 @@ export class StoryCastleScene extends StoryLevelScene {
 
   // After the last copy (and the win dance): on to the throne room!
   dropKey() {
+    if (this.worldNumber) return this.winWorld(); // World 7: the key, and the throne room is World 8
     const message = this.bigMessage(t('story.toThrone'), '#ffd23f').setScale(0.75);
     audio.play('key');
     this.time.delayedCall(2500, () => {

@@ -304,6 +304,13 @@ Ethan's decisions (round 9, started 2026-11-07):
 - Q9: When you beat him, his **own zapper backfires and turns him into a trophy**! Then a **happy ending movie**: the castle crumbles, and all your friends celebrate with a big party and fireworks 🎆 (the King trophy goes on display in the city).
 - Q10: The prize for beating the story: a 👑 **golden champion crown** hat for the wardrobe (only story champions get it), the **Bad Guy King trophy** shown in the menu, and a new **KING RUSH** mode: fight all the dark copies and the King again, as hard as possible.
 
+### Worlds 4 to 8 in STORY (2026-11-07, in the game)
+
+- Ethan's idea: THE BAD GUY KING's places are also the next worlds of the normal platform game (STORY → character select).
+- **World 4** ☁️ Cloud Kingdom, **World 5** 🌊 Underwater City, **World 6** 🌴 Jungle, **World 7** 🏰 The King's Castle (with the rematch), **World 8** 👑 Throne Room.
+- They unlock **like Worlds 1 to 3**: beat a world to get its key and open the next one. You play with the hero you picked. Winning gives the key and goes back to the menu (it doesn't change your progress in THE BAD GUY KING).
+- The menu's world buttons are now a small grid (1 to 8, plus 🥊 Boss Rush), the PLAY button shows the world's name, and the KEYS box has 8 keys.
+
 ## Fixed (2026-11-01, bugs Ethan found)
 
 - The hero's hat (and fire glow) got left behind on the helipad when jumping into the rocket. Now they go into the rocket too.

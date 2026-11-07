@@ -12,6 +12,10 @@ import { createItemTextures } from '../art/items.js';
 
 // Character select. The shop is at the bottom right, with the boss keys right under it.
 
+// Worlds 4 to 8 are THE BAD GUY KING's places as normal levels (src/story/), unlocked one after another.
+const WORLD_SCENES = { 4: 'StoryCloud', 5: 'StoryUnderwater', 6: 'StoryJungle', 7: 'StoryCastle', 8: 'StoryKing' };
+const WORLD_COUNT = 8;
+
 const FONT = 'Arial Black, Arial';
 const CARD_HEIGHT = 200;
 const CARD_GAP = 12;
@@ -205,9 +209,14 @@ export class MenuScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => this.play());
     this.playLabel = this.add
-      .text(332, 400, '', { fontFamily: FONT, fontSize: '26px', color: '#ffffff' })
+      .text(332, 392, '', { fontFamily: FONT, fontSize: '26px', color: '#ffffff' })
       .setStroke('#000000', 5)
       .setOrigin(0.5);
+    const where = this.add
+      .text(332, 421, this.worldLabel(), { fontFamily: FONT, fontSize: '14px', color: '#b9f6ca' })
+      .setStroke('#000000', 4)
+      .setOrigin(0.5);
+    where.setScale(Math.min(1, 296 / where.width));
     const help = this.add
       .text(270, 462, `${t('menu.choose')}\n${t('menu.controls')}`, {
         fontFamily: 'Arial',
@@ -234,37 +243,38 @@ export class MenuScene extends Phaser.Scene {
       this.scene.start('World1', { bossRush: true });
     } else {
       // Pass {} so the level forgets old Boss Rush or team data (Phaser keeps the last data otherwise)
-      this.scene.start(this.worldUnlocked(this.save.world) ? `World${this.save.world}` : 'World1', {});
+      const world = this.worldUnlocked(this.save.world) ? this.save.world : 1;
+      if (WORLD_SCENES[world]) this.scene.start(WORLD_SCENES[world], { world, heroes: [character.id] });
+      else this.scene.start(`World${world}`, {});
     }
   }
 
   // ---------- Level picker (left of PLAY) and touch buttons on/off (bottom left) ----------
 
   // Each world opens with the key from the boss of the world before it.
-  // number is 1, 2, 3 or 'rush' (Boss Rush, a secret).
+  // number is 1 to 8, or 'rush' (Boss Rush, a secret).
   worldUnlocked(number) {
     if (number === 'rush') return this.secretsUnlocked;
     return number === 1 || this.save.keys.includes(`world${number - 1}`);
   }
 
+  // A grid of world numbers (3 across), plus 🥊 Boss Rush once it's unlocked.
   createWorldButtons() {
-    const worlds = this.secretsUnlocked ? [1, 2, 3, 'rush'] : [1, 2, 3];
-    const spacing = worlds.length > 3 ? 26 : 30;
+    const worlds = Array.from({ length: WORLD_COUNT }, (_, i) => i + 1);
+    if (this.secretsUnlocked) worlds.push('rush');
     worlds.forEach((number, i) => {
-      const y = (worlds.length > 3 ? 361 : 370) + i * spacing;
+      const x = 38 + (i % 3) * 48;
+      const y = 360 + Math.floor(i / 3) * 29;
       const unlocked = this.worldUnlocked(number);
       const selected = number === this.save.world && unlocked;
       this.add
-        .rectangle(86, y, 140, spacing - 4, selected ? (number === 'rush' ? 0xc62828 : 0x1565c0) : 0x2c2c54)
+        .rectangle(x, y, 44, 25, selected ? (number === 'rush' ? 0xc62828 : 0x1565c0) : 0x2c2c54)
         .setStrokeStyle(3, selected ? 0xffd23f : 0x555588)
         .setAlpha(unlocked ? 1 : 0.5)
         .setInteractive({ useHandCursor: true })
         .on('pointerdown', () => this.chooseWorld(number));
-      this.add
-        .text(unlocked ? 86 : 78, y, number === 'rush' ? `🥊 ${t('menu.bossRush')}` : t('menu.world', { number }), { fontFamily: FONT, fontSize: '15px', color: '#ffffff' })
-        .setOrigin(0.5)
-        .setAlpha(unlocked ? 1 : 0.5);
-      if (!unlocked) this.add.image(140, y, 'lock').setScale(0.6);
+      if (!unlocked) this.add.image(x, y, 'lock').setScale(0.5).setAlpha(0.8);
+      else this.add.text(x, y, number === 'rush' ? '🥊' : String(number), { fontFamily: FONT, fontSize: '16px', color: '#ffffff' }).setOrigin(0.5);
     });
   }
 
@@ -279,6 +289,13 @@ export class MenuScene extends Phaser.Scene {
     writeSave(this.save);
     audio.play('click');
     this.scene.restart();
+  }
+
+  // The PLAY button says which world, e.g. "WORLD 4: CLOUD KINGDOM"
+  worldLabel() {
+    const world = this.save.world;
+    if (world === 'rush') return t('menu.bossRush');
+    return WORLD_SCENES[world] ? `${t('menu.world', { number: world })}: ${t(`world.name${world}`)}` : t('menu.world', { number: world ?? 1 });
   }
 
   // Secret colors (after beating the Lava Dragon): cycles every hero's suit and cape colors.
@@ -548,8 +565,8 @@ export class MenuScene extends Phaser.Scene {
     this.add.text(left + 14, top + 28, t('menu.keys'), { fontFamily: FONT, fontSize: '20px', color: '#ffffff' }).setOrigin(0, 0.5);
 
     KEYS.forEach((key, i) => {
-      const x = left + 180 + i * 80;
-      const icon = this.add.image(x, top + 28, 'key');
+      const x = left + 125 + i * 35;
+      const icon = this.add.image(x, top + 28, 'key').setScale(0.55).setAngle(-60);
       if (!this.save.keys.includes(key.id)) icon.setAlpha(0.2);
     });
   }
