@@ -12,6 +12,7 @@ import { createBoltTexture } from '../art/bolt.js';
 import { createSunglassesTexture, createAppleTexture, createRobotTexture, createFireBadGuyTextures } from '../art/badGuys.js';
 import { createItemTextures } from '../art/items.js';
 import { tipWanted, markTipSeen, tipText, TIP_MIN_MS } from '../tips.js';
+import { drawComicBubble } from '../comicBubble.js';
 
 // Everything the side-scrolling worlds (1 and 3) share: the hero, hearts, bolts, bad guys,
 // getting hurt, the boss health bar, the key and winning.
@@ -136,7 +137,7 @@ export class SideScrollerScene extends Phaser.Scene {
       const container = this.game.canvas.parentElement;
       const touch = this.team
         ? showTwoPlayerTouch(container)
-        : showTouchControls(container, touchButtonsFor(this.character, this.powerUps, false), { jump: t('touch.jump') });
+        : showTouchControls(container, { ...touchButtonsFor(this.character, this.powerUps, false), ...this.extraTouchButtons }, { jump: t('touch.jump') });
       this.events.once('shutdown', () => touch.destroy());
     }
 
@@ -171,7 +172,7 @@ export class SideScrollerScene extends Phaser.Scene {
     const attack = t(`game.attack.${this.character.attack}`);
     const soloHint = this.character.doubleJump ? `${attack}   ${t('game.jumpTwice')}` : attack;
     const hint = this.team ? t('game.teamKeys') : soloHint;
-    this.add
+    this.hintText = this.add
       .text(480, 30, hint, { fontFamily: 'Arial Black, Arial', fontSize: '18px', color: '#ffffff' })
       .setStroke('#000000', 4)
       .setOrigin(0.5)
@@ -913,45 +914,11 @@ export class SideScrollerScene extends Phaser.Scene {
         // Pointing at the thing
         const finger = this.add.text(spot.x - side * 44, spot.y + 4, '👉', { fontSize: '28px' }).setOrigin(0.5).setDepth(13).setScale(side < 0 ? 1 : -1, 1);
         this.tweens.add({ targets: finger, x: finger.x - side * 10, duration: 250, yoyo: true, repeat: -1 });
-        tip.parts.push(finger, ...this.drawBubble(tipText(this.save, id), spot, view, side));
+        tip.parts.push(finger, ...drawComicBubble(this, tipText(this.save, id), spot, view, side, t('tip.gotIt')));
         tip.shownAt = performance.now();
         audio.play('click');
       },
     });
-  }
-
-  // A comic book speech bubble: white, thick black outline, a pointy tail down to Baby Capybara's head.
-  // side: which side of the thing he's on; the bubble sticks out that way so it doesn't cover the thing.
-  drawBubble(text, spot, view, side) {
-    const words = this.add
-      .text(0, 0, text, { fontFamily: 'Comic Sans MS, Chalkboard SE, Arial Black, Arial', fontSize: '19px', color: '#000000', align: 'center', wordWrap: { width: 300 } })
-      .setOrigin(0.5, 0)
-      .setDepth(14);
-    const hint = this.add.text(0, 0, t('tip.gotIt'), { fontFamily: 'Arial Black, Arial', fontSize: '13px', color: '#666666' }).setOrigin(0.5, 0).setDepth(14);
-    const width = Math.max(words.width, hint.width) + 36;
-    const height = words.height + hint.height + 30;
-    const centerX = Phaser.Math.Clamp(spot.x + side * (width / 2 - 50), view.x + width / 2 + 10, view.right - width / 2 - 10);
-    const head = { x: spot.x, y: spot.y - 26 };
-    let top = head.y - 40 - height;
-    let tailBase = top + height;
-    if (top < view.y + 8) {
-      // No room above: the bubble goes under him, tail pointing up
-      top = spot.y + 60;
-      tailBase = top;
-      head.y = spot.y + 26;
-    }
-    words.setPosition(centerX, top + 12);
-    hint.setPosition(centerX, top + 18 + words.height);
-
-    const g = this.add.graphics().setDepth(13);
-    const tailX = Phaser.Math.Clamp(head.x, centerX - width / 2 + 24, centerX + width / 2 - 24);
-    g.fillStyle(0xffffff).lineStyle(4, 0x000000);
-    g.fillTriangle(tailX - 14, tailBase, tailX + 14, tailBase, head.x, head.y);
-    g.strokeTriangle(tailX - 14, tailBase, tailX + 14, tailBase, head.x, head.y);
-    g.fillRoundedRect(centerX - width / 2, top, width, height, 18);
-    g.strokeRoundedRect(centerX - width / 2, top, width, height, 18);
-    g.fillRect(tailX - 11, tailBase - 4, 22, 8); // join the tail to the bubble (hide the outline there)
-    return [g, words, hint];
   }
 
   updateTip() {

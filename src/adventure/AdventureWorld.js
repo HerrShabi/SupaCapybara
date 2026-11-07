@@ -125,13 +125,14 @@ const ZONE_COLORS = { grass: 0x5aa83c, city: 0x6b6b6b, space: 0x9e9e9e, volcano:
 
 export class AdventureWorld {
   // team: { heroes: [hero1, hero2] } for two players (only worlds that support it, like QuestWorld, use it).
-  constructor({ container, save, onExit, team = null }) {
+  // hero: play as this hero instead of the one picked in character select (the story map always starts as SuperCapybara).
+  constructor({ container, save, onExit, team = null, hero = null }) {
     this.container = container;
     this.twoPlayers = team;
     this.save = save;
     this.onExit = onExit;
     save.adventure ??= { opened: [], superBossBeaten: false };
-    this.character = getCharacter(save.selected);
+    this.character = getCharacter(hero ?? save.selected);
     this.settings = getDifficulty(save.difficulty);
     this.powerUps = save.powerUps;
     this.keysDown = new Set();

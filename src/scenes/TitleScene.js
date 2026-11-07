@@ -10,11 +10,13 @@ import { drawSkyline, drawBuilding } from '../art/city.js';
 
 // The first screen: SuperCapybara flying over the night city, and the game modes.
 // STORY goes to character select (MenuScene) for the 3 worlds, ADVENTURE to the big 3D map (AdventureScene),
-// TRAINING to TrainingScene, 2 PLAYERS to TwoPlayerScene. ADVENTURE uses the hero picked in character select.
+// TRAINING to TrainingScene, 2 PLAYERS to TwoPlayerScene, THE BAD GUY KING to the story map (src/story/).
+// ADVENTURE uses the hero picked in character select.
 
 const FONT = 'Arial Black, Arial';
 const MODES = [
   { key: 'menu.story', scene: 'Menu', color: 0x2e7d32 },
+  { key: 'menu.badGuyKing', scene: 'Story', color: 0xc62828 },
   { key: 'menu.adventure', scene: 'Adventure', color: 0x6a1b9a },
   { key: 'menu.training', scene: 'Training', color: 0x1565c0 },
   { key: 'menu.twoPlayers', scene: 'TwoPlayer', color: 0xef6c00 },
@@ -112,14 +114,15 @@ export class TitleScene extends Phaser.Scene {
   }
 
   createModeButton(mode, i) {
-    const y = 262 + i * 60;
+    const y = 250 + i * 50;
     const button = this.add
-      .rectangle(480, y, 320, 50, mode.color)
+      .rectangle(480, y, 320, 42, mode.color)
       .setStrokeStyle(4, 0xffffff)
       .setInteractive({ useHandCursor: true })
       .on('pointerover', () => this.select(i))
       .on('pointerdown', () => this.start(mode));
-    this.add.text(480, y, t(mode.key), { fontFamily: FONT, fontSize: '26px', color: '#ffffff' }).setStroke('#000000', 6).setOrigin(0.5);
+    const label = this.add.text(480, y, t(mode.key), { fontFamily: FONT, fontSize: '24px', color: '#ffffff' }).setStroke('#000000', 6).setOrigin(0.5);
+    label.setScale(Math.min(1, 300 / label.width));
     return button;
   }
 

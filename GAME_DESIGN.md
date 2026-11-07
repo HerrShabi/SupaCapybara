@@ -207,6 +207,30 @@ Ethan's decisions (round 5, started 2026-11-07):
 - Q9: **The player chooses** how Baby Capybara talks: 😄 **super excited**, 🤓 **smart little professor** or 👶 **baby talk**. 
 - Q10: You can **choose which hero flies across the title screen** (it's always SuperCapybara now). It keeps flying like it does now.
 
+### Story mode: THE BAD GUY KING (round 6, first part in the game)
+
+- On the title screen: **👑 THE BAD GUY KING**. You start alone as SuperCapybara on a **big 3D map** (the city, space launch pad and volcano from ADVENTURE, plus the new places in the south).
+- Walk onto a place's **glowing pad** to play it. With 2 or more heroes on your team, you first **pick 2 heroes**; in the level, **Q** switches between them (🔄 on touch, R2 on a controller).
+- ☁️ **Cloud Kingdom** (built): jump across fluffy clouds (fall and you lose a heart). At the end, **Dark Supa Cat** (an evil robot copy, glowing red) guards the real Supa Cat, who's a gold trophy. Beat the copy, the trophy breaks, and **Supa Cat joins your team**. A gold star floats over places you've won.
+- 🌊 Underwater City and 🌴 Jungle: on the map, "coming soon".
+- 🎬 **Opening movie** (the first time you start the story; SPACE skips): a sunny day with all the heroes, then the **Bad Guy King** flies in on his throne, laughs, and zaps everyone into gold trophies, except SuperCapybara, who jumps out of the way. He flies off with the trophies, and SuperCapybara promises to save them all.
+- Not built yet: fights against the Bad Guy King, babies as sidekicks.
+
+
+Ethan's idea: a big story mode inspired by the adventure mode in Super Smash Bros, with our own story, villain and levels.
+
+Ethan's decisions (round 6, started 2026-11-07):
+- Q1: The villain is the 👑 **Bad Guy King**, a brand new bad guy. He builds a giant machine that **turns heroes into trophies**. You save your friends one by one, and each friend you save **joins your team**.
+- Q2: The Bad Guy King is a 🐊 **crocodile king** in shiny black armor, sitting on a **flying throne** with laser cannons.
+- Q3: You **travel to the levels on a 3D map** (walking around in 3D), and the **levels themselves are side-scrollers**, like World 1 and World 3.
+- Q4: The 3D map is **the whole SupaCapybara world**: the city, a space launch pad, the volcano, and new places, all on one big map.
+- Q5: The new places are ☁️ **cloud kingdom**, 🌊 **underwater city** and 🌴 **jungle**.
+- Q6: The King turns **both** the heroes AND the babies (Baby Capybara and the Cube Islands babies) into trophies. You start alone as SuperCapybara. Saved heroes **join your team**, and saved babies help you as **sidekicks**.
+- Q7: **Before each level, pick 2 heroes** from your saved team. In the level, you **switch** between those 2.
+- Q8: Each trophy is guarded by a **mini boss**. Beat the mini boss, and the trophy breaks open and your friend is free.
+- Q9: The mini bosses are **evil robot copies** of the heroes you're saving (made by the King's machine). Beat the dark copy of a hero to free the real one.
+- Q10: Build first: **the 3D map + the first level** (☁️ cloud kingdom, beat **Dark Supa Cat** to save the real Supa Cat), and **if possible** the Bad Guy King's intro movie and a first fight against him.
+
 ## Fixed (2026-11-01, bugs Ethan found)
 
 - The hero's hat (and fire glow) got left behind on the helipad when jumping into the rocket. Now they go into the rocket too.
@@ -218,6 +242,7 @@ Ethan's decisions (round 5, started 2026-11-07):
 
 - More worlds: underwater 🌊, a spooky castle 🏰, candy land 🍭.
 - More power-ups.
+- A world that looks **exactly like Ethan's drawings** (the `concept-art/` style). Do it **after** the story mode (Ethan, 2026-11-07).
 - A big new **story mode** with levels, cutscenes and lots of heroes teaming up, inspired by the adventure mode in Super Smash Bros (Ethan's idea, 2026-11-07). Our own story and bad guys, not a copy.
 - 2 PLAYERS TEAM in World 2 (3D), with a split screen (Cube Islands has it now).
 - Grape Boss in Boss Rush (he's in the 3D world).

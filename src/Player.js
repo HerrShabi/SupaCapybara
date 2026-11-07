@@ -520,6 +520,41 @@ export class Player {
     this.sprite.body.setAllowGravity(true);
   }
 
+  // ---------- Story mode: switch to the other hero on your team (Q) ----------
+
+  // Become another hero right where you are: new look, attacks, powers, hat and aura. Power-ups stay.
+  setCharacter(character, look, hat = null) {
+    if (this.mecha) this.endMecha();
+    if (this.invisible) this.becomeVisible();
+    if (this.shadow) this.endShadow();
+    this.tongue = null;
+    this.tongueGraphics.clear();
+    this.character = character;
+    this.id = character.id;
+    this.look = look;
+    this.attackIndex = 0;
+    this.sprite.anims.stop();
+    this.sprite.setTexture(`${look}-idle`);
+    if (this.aura) {
+      this.scene.tweens.killTweensOf(this.aura);
+      this.aura.destroy();
+      this.aura = null;
+    }
+    if (character.fireAura) {
+      this.aura = this.scene.add.image(this.x, this.y, character.auraTexture ?? 'aura').setDepth(1);
+      this.scene.tweens.add({ targets: this.aura, scale: 1.12, alpha: 0.7, duration: 300, yoyo: true, repeat: -1 });
+    }
+    this.hatSprite?.destroy();
+    this.hatSprite = null;
+    this.hat = hat;
+    if (hat) {
+      createHatTextures(this.scene);
+      this.hatSprite = this.scene.add.image(this.x, this.y, `hat-${hat}`).setScale(1.5).setDepth(3).setOrigin(0.5, hat === 'shades' ? 0.5 : 1);
+    }
+    this.restoreLook();
+    this.updateHat();
+  }
+
   // ---------- Win dances (after beating a boss, see DANCES in characters.js) ----------
 
   // Starts the dance and returns how long it takes (ms). While dancing, the scene calls updateDance() instead of update().
