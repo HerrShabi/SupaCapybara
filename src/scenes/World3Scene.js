@@ -5,6 +5,7 @@ import { SideScrollerScene, VIEW_WIDTH, VIEW_HEIGHT } from './SideScrollerScene.
 import { drawRock, drawLedge, drawVolcano, createVolcanoTextures, LAVA, LAVA_BRIGHT } from '../art/volcano.js';
 import { createRocketTextures } from '../art/city.js';
 import { writeSave } from '../save.js';
+import { afterWorld } from '../trips/worlds.js';
 
 // World 3: the volcano. Jump across rocks over lava while rocks fall from the sky.
 // The last screen is the Lava Dragon's lair: it breathes fire, drops lava rocks, and makes the lava rise.
@@ -558,8 +559,12 @@ export class World3Scene extends SideScrollerScene {
     return firstTime ? [t('game.allWorldsDone')] : [];
   }
 
-  // The first time: the ending (fireworks, credits, secrets). After that, back to the menu.
+  // The first time: the ending (fireworks, credits, secrets), and then the balloon trip to World 4.
+  // After that, straight to the balloon trip.
   afterWin() {
-    this.time.delayedCall(1500, () => this.scene.start(this.firstTime ? 'Ending' : 'Menu'));
+    this.time.delayedCall(1500, () => {
+      if (this.firstTime) this.scene.start('Ending', { next: 'trip', hero: this.character.id });
+      else afterWorld(this, 3, this.character.id);
+    });
   }
 }

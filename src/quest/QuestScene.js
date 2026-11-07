@@ -23,9 +23,10 @@ export class QuestScene extends Phaser.Scene {
       container: this.game.canvas.parentElement,
       save,
       team,
-      onExit: () => {
+      // next: 'World1' through the way-home portal (with data), otherwise ESC goes to the menu
+      onExit: (next, data) => {
         this.world = null;
-        this.scene.start(team ? 'Title' : 'Menu');
+        this.scene.start(next ?? (team ? 'Title' : 'Menu'), data);
       },
     });
     if (import.meta.env.DEV) window.quest = this.world;

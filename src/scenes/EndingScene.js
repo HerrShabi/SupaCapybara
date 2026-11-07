@@ -4,6 +4,7 @@ import { loadSave, writeSave } from '../save.js';
 import { t, setLanguage } from '../i18n.js';
 import { audio } from '../audio.js';
 import { createHeroTextures } from '../art/heroes.js';
+import { afterWorld } from '../trips/worlds.js';
 
 // After beating the Lava Dragon: fireworks, all the heroes dancing, the credits ("a game by ETHAN"),
 // and the secrets you just unlocked. Then back to the menu.
@@ -17,8 +18,11 @@ export class EndingScene extends Phaser.Scene {
   }
 
   // replay: watching again from the 🎬 CREDITS button on the title screen.
+  // next: 'trip' after the first World 3 win: the balloon trip to World 4 comes after the credits.
   create(data = {}) {
     this.replay = Boolean(data.replay);
+    this.next = data.next ?? null;
+    this.hero = data.hero;
     const save = loadSave();
     setLanguage(save.language);
     if (!save.owned.includes('golden-capybara')) save.owned.push('golden-capybara');
@@ -42,6 +46,7 @@ export class EndingScene extends Phaser.Scene {
 
     this.input.keyboard.on('keydown-ENTER', () => this.finish());
     this.input.keyboard.on('keydown-ESC', () => this.finish());
+    this.input.on('pointerdown', () => this.finish()); // a tap skips too (iPad)
   }
 
   firework() {
@@ -119,6 +124,7 @@ export class EndingScene extends Phaser.Scene {
   finish() {
     if (this.leaving) return;
     this.leaving = true;
-    this.scene.start(this.replay ? 'Title' : 'Menu');
+    if (this.next === 'trip') afterWorld(this, 3, this.hero);
+    else this.scene.start(this.replay ? 'Title' : 'Menu');
   }
 }

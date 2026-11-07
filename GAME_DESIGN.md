@@ -309,7 +309,35 @@ Ethan's decisions (round 9, started 2026-11-07):
 - Ethan's idea: THE BAD GUY KING's places are also the next worlds of the normal platform game (STORY → character select).
 - **World 4** ☁️ Cloud Kingdom, **World 5** 🌊 Underwater City, **World 6** 🌴 Jungle, **World 7** 🏰 The King's Castle (with the rematch), **World 8** 👑 Throne Room.
 - They unlock **like Worlds 1 to 3**: beat a world to get its key and open the next one. You play with the hero you picked. Winning gives the key and goes back to the menu (it doesn't change your progress in THE BAD GUY KING).
-- The menu's world buttons are now a small grid (1 to 8, plus 🥊 Boss Rush), the PLAY button shows the world's name, and the KEYS box has 8 keys.
+- **New STORY menu** (Ethan's dad asked for an overhaul): smaller hero cards in one row, a big colorful card for every world (picture + name, locks on locked ones), ◀ ▶ picks the hero and ▲ ▼ the world, the difficulty and one wide PLAY button ("PLAY <hero>" + the world), the shop and the 8 keys on the right.
+
+### Trips between the worlds (round 10, in the game)
+
+- After beating a world you go **straight into the next one** through a little mini game. You **can't fail**: a mistake costs 10 bolts, bolts on the way give 5. After you've played a trip once, **ESC (⏸ on iPad) skips it**.
+- 🌋 3 → ☁️ 4: 🎈 **Balloon ride**: steer ◀ ▶, shoot the storm clouds (X) for bolts, a zap costs bolts. The Cloud Kingdom comes down to meet you. (The first time you beat World 3, the credits play first.)
+- ☁️ 4 → 🌊 5: 🌈 **Rainbow slide**: jump the gaps between the rainbow pieces, then a big jump and SPLASH into the sea.
+- 🌊 5 → 🌴 6: 🏄 **Surf's up!**: on a surfboard, with a giant wave right behind you, jump rocks and logs until the jungle island.
+- 🌴 6 → 🏰 7: 🚂 **Mine cart**: jump the gaps and rocks, duck (▼) under wooden beams, and CRASH through the castle wall.
+- 🏰 7 → 👑 8: 🪜 **The tower stairs**: jump up step after step while the stairs crumble into darkness right behind you, up to the throne room door.
+
+
+Like World 1 → 2 (the rocket) and World 2 → 3 (the crash landing), every world should lead into the next one with its own little trip. Designed stage by stage.
+
+Done right away (2026-11-07):
+- iPad: a big **◀ BACK** button on the STORY menu and the 2 PLAYERS screen (there's no ESC key on a tablet). Tapping skips the ending movies.
+- 🌀 **Way home from Cube Islands**: a swirly portal at base camp (behind you when you arrive) takes you back to World 1, right next to the secret portal, without finishing anything. You're safe for a moment when you pop out.
+
+Ethan's decisions (round 10, started 2026-11-07):
+- Q1: World 3 → 4: a 🎈 **hot air balloon** floats you up from the volcano to the Cloud Kingdom, and on the way you **pop little storm clouds**.
+- Q2: In the balloon you **steer left and right to dodge** the storm clouds (a hit = ZAP, lose a heart) **and shoot them** with your attack for bolts ⚡.
+- Q3: World 4 → 5: a 🌈 **rainbow slide** from the clouds down to the sea: SPLASH, and you sink down to the Underwater City.
+- Q4: The rainbow slide is **a little game**: jump over gaps in the rainbow and grab bolts on the way down.
+- Q5: World 5 → 6: 🏄 **surf a huge wave** onto the jungle island, jumping over rocks and logs.
+- Q6: World 6 → 7: a 🚂 **runaway mine cart** through a dark tunnel under the volcano (duck and jump), crashing through the castle wall.
+- Q7: World 7 → 8: a giant 🪜 **spiral staircase** up the tower: run up while the stairs crumble behind you!
+- Q8: You **can't really fail** a trip: messing up only means fewer bolts, and you always land in the next world. (So the storm cloud "ZAP" from Q2 costs bolts, not hearts.)
+- Q9: The trips play **every time** you beat a world, and you can **skip** one (ESC, or ⏸ on iPad) after you've played it once.
+- Q10: When a trip ends, you go **straight into the next world** (no menu in between).
 
 ## Fixed (2026-11-01, bugs Ethan found)
 

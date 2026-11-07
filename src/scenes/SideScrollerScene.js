@@ -82,7 +82,8 @@ export class SideScrollerScene extends Phaser.Scene {
     this.tip = null;
     this.hearts = data.hearts ?? this.settings.hearts;
     this.safeUntil = 0;
-    this.checkpoint = this.bossRush ? this.level.arenaCheckpoint : this.level.start;
+    // (data.start: start somewhere else, like next to World 1's portal when you come back from Cube Islands)
+    this.checkpoint = data.start ?? (this.bossRush ? this.level.arenaCheckpoint : this.level.start);
     this.bossStarted = false;
     this.levelBolts = 0;
 

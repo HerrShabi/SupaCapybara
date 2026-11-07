@@ -30,6 +30,7 @@ export class StoryEndingScene extends Phaser.Scene {
     createHatTextures(this);
     this.done = false;
     for (const key of ['SPACE', 'ENTER', 'ESC']) this.input.keyboard.on(`keydown-${key}`, () => this.finish());
+    this.input.on('pointerdown', () => this.finish()); // a tap skips too (iPad)
     this.crumble();
   }
 

@@ -31,6 +31,7 @@ export const ISLANDS = {
     start: [0, 9],
     facing: [0, -1],
     pot: [0, -1],
+    homePortal: [0, 15], // the swirly portal back to World 1 (behind you when you arrive)
     tent: [-9, 4],
     shop: [9, 4],
     pads: [

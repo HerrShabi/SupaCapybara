@@ -127,11 +127,18 @@ export class World1Scene extends SideScrollerScene {
     });
   }
 
-  create(data) {
+  // data.fromPortal: back from Cube Islands, so you pop out right next to the secret portal.
+  create(data = {}) {
     createHelicopterTextures(this);
     createRocketTextures(this);
-    super.create(data);
+    super.create(data.fromPortal ? { ...data, start: { x: PORTAL.x - 110, y: 360 } } : data);
     this.createPortal();
+    this.portalReadyAt = data.fromPortal ? this.time.now + 2500 : 0;
+    if (data.fromPortal) {
+      this.safeUntil = this.time.now + 3000; // a moment to look around before the bad guys can hurt you
+      this.cameras.main.flash(500, 206, 147, 216);
+      audio.play('forceField');
+    }
     audio.startCity();
     this.events.once('shutdown', () => audio.stopCity());
     this.updateSky();
@@ -167,6 +174,7 @@ export class World1Scene extends SideScrollerScene {
 
   updatePortal() {
     if (this.bossRush) return;
+    if (this.time.now < (this.portalReadyAt ?? 0)) return; // just came back out of it
     const near = Math.min(...this.players.map((player) => Phaser.Math.Distance.Between(player.x, player.y, PORTAL.x, PORTAL.y)));
     this.portal.setAlpha(near < PORTAL_GLOW_DISTANCE ? 1 : 0.15);
     const player = this.players.find((p) => Math.abs(p.x - PORTAL.x) < 34 && Math.abs(p.y - PORTAL.y) < 50);

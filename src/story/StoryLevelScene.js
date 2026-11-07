@@ -9,6 +9,7 @@ import { touchButtonsFor } from '../touch.js';
 import { drawComicBubble } from '../comicBubble.js';
 import { loadSave, writeSave } from '../save.js';
 import { STORY_START_HERO, freeFriend } from './story.js';
+import { afterWorld } from '../trips/worlds.js';
 
 // What every THE BAD GUY KING place shares (each place extends this, like StoryCloudScene):
 // - You play the 2 heroes you picked on the map (data.heroes) and switch between them with Q.
@@ -194,7 +195,7 @@ export class StoryLevelScene extends SideScrollerScene {
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(10);
-    this.time.delayedCall(3800, () => this.scene.start('Menu'));
+    this.time.delayedCall(3800, () => afterWorld(this, this.worldNumber, this.heroes[0] ?? this.player.id));
   }
 
   win() {

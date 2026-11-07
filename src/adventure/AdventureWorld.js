@@ -1617,10 +1617,11 @@ export class AdventureWorld {
 
   // ---------- Leaving ----------
 
-  exit() {
+  // next / data: where to go (a world like QuestWorld can pass a scene); nothing = the usual place
+  exit(next, data) {
     if (this.ended) return;
     this.destroy();
-    this.onExit();
+    this.onExit(next, data);
   }
 
   destroy() {

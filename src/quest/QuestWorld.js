@@ -256,6 +256,7 @@ export class QuestWorld extends AdventureWorld {
 
   begin() {
     audio.playMusic('menu');
+    this.createHomePortal();
     this.island = 'base';
     this.zone = 'base';
     this.refreshBabies();
@@ -372,6 +373,7 @@ export class QuestWorld extends AdventureWorld {
 
   updateWorld(dt) {
     for (const p of this.players) if (p.pos.y < WATER_Y - 0.5) this.splash(p);
+    this.updateHomePortal(dt);
     this.updateRiding();
     this.updatePads();
     this.updateFood();
@@ -381,6 +383,41 @@ export class QuestWorld extends AdventureWorld {
     this.updateSpots();
     this.updateBabies(dt);
     this.updateDragon(dt);
+  }
+
+  // ---------- The way home: a swirly portal at base camp, back to World 1 (next to the secret portal) ----------
+
+  createHomePortal() {
+    const base = ISLANDS.base;
+    const x = base.x + base.homePortal[0];
+    const z = base.z + base.homePortal[1];
+    const y = this.groundAt(x, z);
+    const group = new THREE.Group();
+    group.position.set(x, y + 1.8, z);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.22, 10, 32), new THREE.MeshBasicMaterial({ color: 0xce93d8 }));
+    const swirl = new THREE.Mesh(new THREE.CircleGeometry(1.4, 32), new THREE.MeshBasicMaterial({ color: 0x7b1fa2, transparent: true, opacity: 0.75, side: THREE.DoubleSide }));
+    group.add(ring, swirl);
+    this.scene.add(group);
+    this.homePortal = { x, z, group, swirl };
+  }
+
+  updateHomePortal(dt) {
+    const portal = this.homePortal;
+    if (!portal || this.leavingHome) return;
+    portal.group.rotation.z += dt * 1.5;
+    portal.swirl.material.opacity = 0.6 + 0.2 * Math.sin(this.now / 200);
+    const near = this.players.find((p) => Math.hypot(p.pos.x - portal.x, p.pos.z - portal.z) < 6);
+    if (near && !this.homeMessageShown) {
+      this.homeMessageShown = true;
+      this.hud.message('', t('quest.homePortal'), 2500);
+    }
+    if (!near) this.homeMessageShown = false;
+    const inside = this.players.find((p) => Math.hypot(p.pos.x - portal.x, p.pos.z - portal.z) < 1.4);
+    if (!inside) return;
+    this.leavingHome = true;
+    audio.play('forceField');
+    this.hud.message(t('quest.backToWorld1'), '', 0);
+    setTimeout(() => this.exit('World1', { fromPortal: true, ...(this.twoPlayers ? { team: this.twoPlayers } : {}) }), 900);
   }
 
   targets() {

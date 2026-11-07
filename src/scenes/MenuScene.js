@@ -9,18 +9,38 @@ import { HATS, createHatTextures, hatAnchor } from '../art/hats.js';
 import { createEffectTextures } from '../art/effects.js';
 import { createBoltTexture } from '../art/bolt.js';
 import { createItemTextures } from '../art/items.js';
+import { addBackButton } from '../backButton.js';
+import { WORLD_COUNT, startWorld } from '../trips/worlds.js';
 
-// Character select. The shop is at the bottom right, with the boss keys right under it.
+// STORY's menu (also called character select):
+// - top bar: languages, logo, sound, bolts
+// - 🦸 HEROES: a row of hero cards (pick with ◀ ▶, buy locked heroes)
+// - 🗺️ WORLDS: a card for each world with its picture and name (pick with ▲ ▼), plus 🥊 BOSS RUSH once unlocked
+// - difficulty and one wide PLAY button ("PLAY <hero>" and the world)
+// - right side: the shop, and the boss keys under it
+// - bottom: touch buttons, secret colors, wardrobe, back
 
-// Worlds 4 to 8 are THE BAD GUY KING's places as normal levels (src/story/), unlocked one after another.
-const WORLD_SCENES = { 4: 'StoryCloud', 5: 'StoryUnderwater', 6: 'StoryJungle', 7: 'StoryCastle', 8: 'StoryKing' };
-const WORLD_COUNT = 8;
+// Each world card's picture and color
+const WORLD_LOOKS = {
+  1: { icon: '🏙️', color: 0x1565c0 },
+  2: { icon: '🚀', color: 0x4527a0 },
+  3: { icon: '🌋', color: 0xbf360c },
+  4: { icon: '☁️', color: 0x0288d1 },
+  5: { icon: '🌊', color: 0x01579b },
+  6: { icon: '🌴', color: 0x2e7d32 },
+  7: { icon: '🏰', color: 0x455a64 },
+  8: { icon: '👑', color: 0x6a1b9a },
+};
 
 const FONT = 'Arial Black, Arial';
-const CARD_HEIGHT = 200;
-const CARD_GAP = 12;
-const CARDS_WIDTH = 904; // all the cards together
-const CARDS_TOP = 92;
+const CARD_HEIGHT = 124;
+const CARD_GAP = 10;
+const CARDS_WIDTH = 904; // all the hero cards together, at most
+const CARDS_TOP = 58;
+const LEFT = 28; // the left part (worlds, difficulty, PLAY) goes from here...
+const LEFT_WIDTH = 604; // ...this wide
+const RIGHT = 648; // the shop and keys
+const RIGHT_WIDTH = 284;
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -44,18 +64,19 @@ export class MenuScene extends Phaser.Scene {
     // Secret heroes only show up once they're unlocked (and then they're yours)
     this.characters = CHARACTERS.filter((c) => !c.secret || this.save.keys.includes(c.unlockKey));
     for (const c of this.characters) if (c.secret && !this.save.owned.includes(c.id)) this.save.owned.push(c.id);
-    this.cardWidth = Math.min(164, (CARDS_WIDTH - (this.characters.length - 1) * CARD_GAP) / this.characters.length);
+    this.cardWidth = Math.min(150, (CARDS_WIDTH - (this.characters.length - 1) * CARD_GAP) / this.characters.length);
+    this.cardsLeft = 480 - (this.characters.length * (this.cardWidth + CARD_GAP) - CARD_GAP) / 2;
     this.selectedIndex = Math.max(0, this.characters.findIndex((c) => c.id === this.save.selected));
 
     this.add.rectangle(0, 0, 960, 540, 0x1b1b2f).setOrigin(0, 0);
     this.add
-      .text(480, 44, 'SUPERCAPYBARA', { fontFamily: FONT, fontSize: '44px', color: '#ffd23f' })
-      .setStroke('#000000', 8)
+      .text(480, 28, 'SUPERCAPYBARA', { fontFamily: FONT, fontSize: '32px', color: '#ffd23f' })
+      .setStroke('#000000', 7)
       .setOrigin(0.5);
 
-    this.add.image(838, 44, 'bolt').setScale(1.3);
+    this.add.image(846, 28, 'bolt').setScale(1.1);
     this.boltText = this.add
-      .text(860, 44, String(this.save.bolts), { fontFamily: FONT, fontSize: '26px', color: '#ffd23f' })
+      .text(866, 28, String(this.save.bolts), { fontFamily: FONT, fontSize: '22px', color: '#ffd23f' })
       .setStroke('#000000', 6)
       .setOrigin(0, 0.5);
 
@@ -68,22 +89,19 @@ export class MenuScene extends Phaser.Scene {
     this.createTouchButton();
     this.createColorsButton();
     this.createWardrobeButton();
-    const back = this.add
-      .text(500, 506, t('menu.back'), { fontFamily: 'Arial', fontSize: '13px', color: '#cccccc' })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => this.scene.start('Title'));
-    back.setScale(Math.min(1, 76 / back.width));
+    addBackButton(this, RIGHT + RIGHT_WIDTH - 60, 506, () => this.scene.start('Title'));
     this.createShop();
     this.createKeys();
 
     this.message = this.add
-      .text(480, 304, '', { fontFamily: FONT, fontSize: '16px', color: '#ff8a80' })
+      .text(LEFT + LEFT_WIDTH / 2, 474, '', { fontFamily: FONT, fontSize: '15px', color: '#ff8a80' })
       .setStroke('#000000', 4)
       .setOrigin(0.5);
 
     this.input.keyboard.on('keydown-LEFT', () => this.select(this.selectedIndex - 1));
     this.input.keyboard.on('keydown-RIGHT', () => this.select(this.selectedIndex + 1));
+    this.input.keyboard.on('keydown-UP', () => this.stepWorld(-1));
+    this.input.keyboard.on('keydown-DOWN', () => this.stepWorld(1));
     this.input.keyboard.on('keydown-ENTER', () => this.play());
     this.input.keyboard.on('keydown-ESC', () => this.scene.start('Title'));
     this.input.keyboard.on('keydown-M', () => this.toggleSound());
@@ -99,7 +117,7 @@ export class MenuScene extends Phaser.Scene {
   // ---------- Hero cards ----------
 
   createCard(character, i) {
-    const x = 28 + i * (this.cardWidth + CARD_GAP);
+    const x = this.cardsLeft + i * (this.cardWidth + CARD_GAP);
     const centerX = x + this.cardWidth / 2;
     const owned = this.owns(character);
     const canBuy = !owned && character.price && this.save.keys.includes(character.unlockKey);
@@ -111,48 +129,43 @@ export class MenuScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => this.select(i));
 
-    this.add
-      .text(centerX, CARDS_TOP + 18, t(`name.${character.id}`), { fontFamily: FONT, fontSize: '15px', color: '#ffffff' })
-      .setOrigin(0.5);
+    const name = this.add.text(centerX, CARDS_TOP + 13, t(`name.${character.id}`), { fontFamily: FONT, fontSize: '13px', color: '#ffffff' }).setOrigin(0.5);
+    name.setScale(Math.min(1, (this.cardWidth - 10) / name.width));
 
+    const heroY = CARDS_TOP + 54;
     if (character.fireAura) {
-      this.add.image(centerX, CARDS_TOP + 82, character.auraTexture ?? 'aura').setScale(0.9).setAlpha(owned ? 1 : 0.3);
+      this.add.image(centerX, heroY + 2, character.auraTexture ?? 'aura').setScale(0.65).setAlpha(owned ? 1 : 0.3);
     }
     const look = heroKey(character.id, this.palette);
-    const hero = this.add.sprite(centerX, CARDS_TOP + 80, `${look}-idle`).setScale(Math.min(2, this.cardWidth / 70));
+    const hero = this.add.sprite(centerX, heroY, `${look}-idle`).setScale(1.35);
 
     const hat = this.save.wearing?.[character.id];
     if (hat && owned) {
       createHatTextures(this);
-      const scale = hero.scaleX;
-      const anchor = hatAnchor(character.id, hat, scale);
-      this.add.image(centerX + anchor.x, CARDS_TOP + 80 + anchor.y, `hat-${hat}`).setScale(scale).setOrigin(0.5, hat === 'shades' ? 0.5 : 1);
+      const anchor = hatAnchor(character.id, hat, 1.35);
+      this.add.image(centerX + anchor.x, heroY + anchor.y, `hat-${hat}`).setScale(1.35).setOrigin(0.5, hat === 'shades' ? 0.5 : 1);
     }
 
     if (owned) {
       hero.play(`${look}-run`);
     } else {
       hero.setAlpha(0.3);
-      this.add.image(centerX, CARDS_TOP + 80, 'lock');
+      this.add.image(centerX, heroY, 'lock').setScale(0.8);
     }
 
-    this.add
-      .text(centerX, CARDS_TOP + 140, t(`power.${character.id}`), {
-        fontFamily: 'Arial',
-        fontSize: '14px',
-        color: '#cccccc',
-        align: 'center',
-        wordWrap: { width: this.cardWidth - 16 },
-      })
+    const power = this.add
+      .text(centerX, CARDS_TOP + 92, t(`power.${character.id}`), { fontFamily: 'Arial', fontSize: '11px', color: '#cccccc', align: 'center', wordWrap: { width: this.cardWidth - 12 } })
       .setOrigin(0.5);
+    power.setScale(Math.min(1, 26 / power.height));
 
+    const bottomY = CARDS_TOP + CARD_HEIGHT - 13;
     if (canBuy) {
-      this.createBuyButton(character, centerX, CARDS_TOP + 176);
+      this.createBuyButton(character, centerX, bottomY);
     } else if (!owned && this.save.keys.includes(character.unlockKey)) {
-      this.add.text(centerX, CARDS_TOP + 176, t('menu.soon'), { fontFamily: FONT, fontSize: '13px', color: '#aaaaaa' }).setOrigin(0.5);
+      this.add.text(centerX, bottomY, t('menu.soon'), { fontFamily: FONT, fontSize: '11px', color: '#aaaaaa' }).setOrigin(0.5);
     } else if (!owned) {
       const unlockHint = this.add
-        .text(centerX, CARDS_TOP + 176, t('menu.beat', { boss: t(`boss.${character.unlockKey}`) }), { fontFamily: FONT, fontSize: '13px', color: '#ff8a80' })
+        .text(centerX, bottomY, t('menu.beat', { boss: t(`boss.${character.unlockKey}`) }), { fontFamily: FONT, fontSize: '11px', color: '#ff8a80' })
         .setOrigin(0.5);
       unlockHint.setScale(Math.min(1, (this.cardWidth - 12) / unlockHint.width));
     }
@@ -162,13 +175,13 @@ export class MenuScene extends Phaser.Scene {
 
   createBuyButton(character, x, y) {
     const button = this.add
-      .rectangle(x, y, 150, 30, 0x2e7d32)
-      .setStrokeStyle(3, 0xb9f6ca)
+      .rectangle(x, y, Math.min(120, this.cardWidth - 12), 20, 0x2e7d32)
+      .setStrokeStyle(2, 0xb9f6ca)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => this.buy(character));
-    const label = this.add.text(x - 10, y, t('menu.buy', { price: character.price }), { fontFamily: FONT, fontSize: '14px', color: '#ffffff' }).setOrigin(0.5);
-    label.setScale(Math.min(1, 100 / label.width));
-    this.add.image(x + 52, y, 'bolt').setScale(0.75);
+    const label = this.add.text(x - 8, y, t('menu.buy', { price: character.price }), { fontFamily: FONT, fontSize: '11px', color: '#ffffff' }).setOrigin(0.5);
+    label.setScale(Math.min(1, 84 / label.width));
+    this.add.image(x + 44, y, 'bolt').setScale(0.5);
     return button;
   }
 
@@ -181,7 +194,7 @@ export class MenuScene extends Phaser.Scene {
     });
     const character = this.characters[this.selectedIndex];
     this.playLabel.setText(this.owns(character) ? t('menu.play', { name: t(`name.${character.id}`).toUpperCase() }) : t('menu.locked'));
-    this.playLabel.setScale(Math.min(1, 296 / this.playLabel.width));
+    this.playLabel.setScale(Math.min(1, (LEFT_WIDTH - 40) / this.playLabel.width));
     this.message?.setText('');
   }
 
@@ -203,29 +216,25 @@ export class MenuScene extends Phaser.Scene {
   // ---------- Play ----------
 
   createPlayButton() {
+    const centerX = LEFT + LEFT_WIDTH / 2;
     this.add
-      .rectangle(332, 400, 316, 70, 0x2e7d32)
+      .rectangle(centerX, 400, LEFT_WIDTH, 58, 0x2e7d32)
       .setStrokeStyle(5, 0xb9f6ca)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => this.play());
     this.playLabel = this.add
-      .text(332, 392, '', { fontFamily: FONT, fontSize: '26px', color: '#ffffff' })
+      .text(centerX, 391, '', { fontFamily: FONT, fontSize: '24px', color: '#ffffff' })
       .setStroke('#000000', 5)
       .setOrigin(0.5);
     const where = this.add
-      .text(332, 421, this.worldLabel(), { fontFamily: FONT, fontSize: '14px', color: '#b9f6ca' })
+      .text(centerX, 417, `▶ ${this.worldLabel()}`, { fontFamily: FONT, fontSize: '13px', color: '#b9f6ca' })
       .setStroke('#000000', 4)
       .setOrigin(0.5);
-    where.setScale(Math.min(1, 296 / where.width));
+    where.setScale(Math.min(1, (LEFT_WIDTH - 40) / where.width));
     const help = this.add
-      .text(270, 462, `${t('menu.choose')}\n${t('menu.controls')}`, {
-        fontFamily: 'Arial',
-        fontSize: '15px',
-        color: '#cccccc',
-        align: 'center',
-      })
+      .text(centerX, 448, `${t('menu.choose')}\n${t('menu.controls')}`, { fontFamily: 'Arial', fontSize: '12px', color: '#aaaaaa', align: 'center' })
       .setOrigin(0.5);
-    help.setScale(Math.min(1, 480 / help.width));
+    help.setScale(Math.min(1, LEFT_WIDTH / help.width));
   }
 
   play() {
@@ -243,9 +252,7 @@ export class MenuScene extends Phaser.Scene {
       this.scene.start('World1', { bossRush: true });
     } else {
       // Pass {} so the level forgets old Boss Rush or team data (Phaser keeps the last data otherwise)
-      const world = this.worldUnlocked(this.save.world) ? this.save.world : 1;
-      if (WORLD_SCENES[world]) this.scene.start(WORLD_SCENES[world], { world, heroes: [character.id] });
-      else this.scene.start(`World${world}`, {});
+      startWorld(this, this.worldUnlocked(this.save.world) ? this.save.world : 1, character.id);
     }
   }
 
@@ -258,24 +265,48 @@ export class MenuScene extends Phaser.Scene {
     return number === 1 || this.save.keys.includes(`world${number - 1}`);
   }
 
-  // A grid of world numbers (3 across), plus 🥊 Boss Rush once it's unlocked.
+  // A card for every world (4 across): its picture, "WORLD n" and its name. Locked worlds show a lock.
+  // 🥊 BOSS RUSH is a small button next to the WORLDS title once it's unlocked.
   createWorldButtons() {
-    const worlds = Array.from({ length: WORLD_COUNT }, (_, i) => i + 1);
-    if (this.secretsUnlocked) worlds.push('rush');
-    worlds.forEach((number, i) => {
-      const x = 38 + (i % 3) * 48;
-      const y = 360 + Math.floor(i / 3) * 29;
+    this.add.text(LEFT, 200, `🗺️ ${t('menu.worlds')}`, { fontFamily: FONT, fontSize: '15px', color: '#ffd23f' }).setOrigin(0, 0.5);
+    const width = (LEFT_WIDTH - 3 * 8) / 4;
+    for (let number = 1; number <= WORLD_COUNT; number++) {
+      const i = number - 1;
+      const x = LEFT + (i % 4) * (width + 8);
+      const y = 214 + Math.floor(i / 4) * 54;
       const unlocked = this.worldUnlocked(number);
       const selected = number === this.save.world && unlocked;
+      const look = WORLD_LOOKS[number];
       this.add
-        .rectangle(x, y, 44, 25, selected ? (number === 'rush' ? 0xc62828 : 0x1565c0) : 0x2c2c54)
-        .setStrokeStyle(3, selected ? 0xffd23f : 0x555588)
-        .setAlpha(unlocked ? 1 : 0.5)
+        .rectangle(x, y, width, 48, unlocked ? look.color : 0x22223a)
+        .setOrigin(0, 0)
+        .setStrokeStyle(selected ? 5 : 2, selected ? 0xffd23f : unlocked ? 0xffffff : 0x444466)
         .setInteractive({ useHandCursor: true })
         .on('pointerdown', () => this.chooseWorld(number));
-      if (!unlocked) this.add.image(x, y, 'lock').setScale(0.5).setAlpha(0.8);
-      else this.add.text(x, y, number === 'rush' ? '🥊' : String(number), { fontFamily: FONT, fontSize: '16px', color: '#ffffff' }).setOrigin(0.5);
-    });
+      this.add.text(x + 22, y + 24, look.icon, { fontSize: '24px' }).setOrigin(0.5).setAlpha(unlocked ? 1 : 0.35);
+      this.add.text(x + 42, y + 14, t('menu.world', { number }), { fontFamily: FONT, fontSize: '11px', color: unlocked ? '#ffffff' : '#777799' }).setOrigin(0, 0.5);
+      const name = this.add.text(x + 42, y + 32, t(`world.name${number}`), { fontFamily: FONT, fontSize: '12px', color: unlocked ? '#ffd23f' : '#777799' }).setOrigin(0, 0.5);
+      name.setScale(Math.min(1, (width - 48) / name.width));
+      if (!unlocked) this.add.image(x + width - 14, y + 14, 'lock').setScale(0.4);
+    }
+    if (this.secretsUnlocked) {
+      const selected = this.save.world === 'rush';
+      const x = LEFT + LEFT_WIDTH - 70;
+      this.add
+        .rectangle(x, 200, 140, 22, selected ? 0xc62828 : 0x2c2c54)
+        .setStrokeStyle(selected ? 4 : 2, selected ? 0xffd23f : 0xc62828)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', () => this.chooseWorld('rush'));
+      this.add.text(x, 200, `🥊 ${t('menu.bossRush')}`, { fontFamily: FONT, fontSize: '12px', color: '#ffffff' }).setOrigin(0.5);
+    }
+  }
+
+  // ▲ ▼: the world before / after (only unlocked ones)
+  stepWorld(delta) {
+    const current = typeof this.save.world === 'number' ? this.save.world : 1;
+    const next = current + delta;
+    if (next < 1 || next > WORLD_COUNT || !this.worldUnlocked(next)) return;
+    this.chooseWorld(next);
   }
 
   chooseWorld(number) {
@@ -295,7 +326,8 @@ export class MenuScene extends Phaser.Scene {
   worldLabel() {
     const world = this.save.world;
     if (world === 'rush') return t('menu.bossRush');
-    return WORLD_SCENES[world] ? `${t('menu.world', { number: world })}: ${t(`world.name${world}`)}` : t('menu.world', { number: world ?? 1 });
+    const number = this.worldUnlocked(world) && WORLD_LOOKS[world] ? world : 1;
+    return `${WORLD_LOOKS[number].icon} ${t('menu.world', { number })}: ${t(`world.name${number}`)}`;
   }
 
   // Secret colors (after beating the Lava Dragon): cycles every hero's suit and cape colors.
@@ -438,19 +470,20 @@ export class MenuScene extends Phaser.Scene {
   // ---------- Difficulty (above the PLAY button) ----------
 
   createDifficultyButtons() {
+    const width = (LEFT_WIDTH - 3 * 8) / 4;
     DIFFICULTY_ORDER.forEach((id, i) => {
-      const x = 102 + i * 112;
+      const x = LEFT + width / 2 + i * (width + 8);
       const selected = id === this.save.difficulty;
       this.add
-        .rectangle(x, 327, 104, 34, selected ? DIFFICULTIES[id].color : 0x2c2c54)
+        .rectangle(x, 345, width, 28, selected ? DIFFICULTIES[id].color : 0x2c2c54)
         .setStrokeStyle(3, selected ? 0xffffff : DIFFICULTIES[id].color)
         .setInteractive({ useHandCursor: true })
         .on('pointerdown', () => this.setDifficulty(id));
       const label = this.add
-        .text(x, 327, t(`difficulty.${id}`), { fontFamily: FONT, fontSize: '15px', color: '#ffffff' })
+        .text(x, 345, t(`difficulty.${id}`), { fontFamily: FONT, fontSize: '14px', color: '#ffffff' })
         .setStroke('#000000', 4)
         .setOrigin(0.5);
-      label.setScale(Math.min(1, 94 / label.width));
+      label.setScale(Math.min(1, (width - 10) / label.width));
     });
   }
 
@@ -464,12 +497,12 @@ export class MenuScene extends Phaser.Scene {
 
   createSoundButton() {
     this.add
-      .rectangle(762, 44, 84, 34, this.save.muted ? 0x2c2c54 : 0x2e7d32)
+      .rectangle(770, 28, 84, 30, this.save.muted ? 0x2c2c54 : 0x2e7d32)
       .setStrokeStyle(3, 0x555588)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => this.toggleSound());
     this.add
-      .text(762, 44, t(this.save.muted ? 'menu.soundOff' : 'menu.soundOn'), { fontFamily: FONT, fontSize: '15px', color: '#ffffff' })
+      .text(770, 28, t(this.save.muted ? 'menu.soundOff' : 'menu.soundOn'), { fontFamily: FONT, fontSize: '14px', color: '#ffffff' })
       .setOrigin(0.5);
   }
 
@@ -484,14 +517,14 @@ export class MenuScene extends Phaser.Scene {
 
   createLanguageButtons() {
     LANGUAGES.forEach((language, i) => {
-      const x = 76 + i * 122;
+      const x = 76 + i * 112;
       const selected = language.id === getLanguage();
       this.add
-        .rectangle(x, 44, 112, 34, selected ? 0x2e7d32 : 0x2c2c54)
+        .rectangle(x, 28, 104, 30, selected ? 0x2e7d32 : 0x2c2c54)
         .setStrokeStyle(3, selected ? 0xffd23f : 0x555588)
         .setInteractive({ useHandCursor: true })
         .on('pointerdown', () => this.setLanguage(language.id));
-      this.add.text(x, 44, language.name, { fontFamily: FONT, fontSize: '15px', color: '#ffffff' }).setOrigin(0.5);
+      this.add.text(x, 28, language.name, { fontFamily: FONT, fontSize: '14px', color: '#ffffff' }).setOrigin(0.5);
     });
   }
 
@@ -504,33 +537,31 @@ export class MenuScene extends Phaser.Scene {
   // ---------- Shop (bottom right) and keys (under it) ----------
 
   createShop() {
-    const left = 540;
-    const top = 312;
-    this.add.rectangle(left, top, 392, 150, 0x2c2c54).setOrigin(0, 0).setStrokeStyle(3, 0xffd23f);
-    this.add.text(left + 14, top + 8, t('menu.shop'), { fontFamily: FONT, fontSize: '20px', color: '#ffd23f' });
-    this.add.text(left + 378, top + 13, t('menu.clickToBuy'), { fontFamily: 'Arial', fontSize: '13px', color: '#aaaaaa' }).setOrigin(1, 0);
+    const top = 192;
+    this.add.rectangle(RIGHT, top, RIGHT_WIDTH, 210, 0x2c2c54).setOrigin(0, 0).setStrokeStyle(3, 0xffd23f);
+    this.add.text(RIGHT + 12, top + 8, `🛒 ${t('menu.shop')}`, { fontFamily: FONT, fontSize: '17px', color: '#ffd23f' });
+    const hint = this.add.text(RIGHT + RIGHT_WIDTH - 10, top + 12, t('menu.clickToBuy'), { fontFamily: 'Arial', fontSize: '11px', color: '#aaaaaa' }).setOrigin(1, 0);
+    hint.setScale(Math.min(1, 140 / hint.width));
 
     POWER_UPS.forEach((powerUp, i) => {
-      const column = i < 3 ? 0 : 1;
-      const row = i < 3 ? i : i - 3;
-      const x = left + 14 + column * 192;
-      const y = top + 50 + row * 32;
+      const x = RIGHT + 14;
+      const y = top + 50 + i * 26;
       const owned = this.save.powerUps.includes(powerUp.id);
+      const right = RIGHT + RIGHT_WIDTH - 14;
 
-      const parts = [this.add.text(x, y, t(`powerUp.${powerUp.id}`), { fontFamily: 'Arial', fontSize: '15px', color: '#ffffff' }).setOrigin(0, 0.5)];
+      const parts = [this.add.text(x, y, t(`powerUp.${powerUp.id}`), { fontFamily: 'Arial', fontSize: '14px', color: '#ffffff' }).setOrigin(0, 0.5)];
       if (owned) {
-        parts.push(this.add.text(x + 178, y, t('menu.owned'), { fontFamily: FONT, fontSize: '13px', color: '#b9f6ca' }).setOrigin(1, 0.5));
+        parts.push(this.add.text(right, y, t('menu.owned'), { fontFamily: FONT, fontSize: '12px', color: '#b9f6ca' }).setOrigin(1, 0.5));
       } else {
-        parts.push(this.add.text(x + 160, y, String(powerUp.price), { fontFamily: FONT, fontSize: '14px', color: '#ffd23f' }).setOrigin(1, 0.5));
-        parts.push(this.add.image(x + 172, y, 'bolt').setScale(0.6));
+        parts.push(this.add.text(right - 18, y, String(powerUp.price), { fontFamily: FONT, fontSize: '13px', color: '#ffd23f' }).setOrigin(1, 0.5));
+        parts.push(this.add.image(right - 6, y, 'bolt').setScale(0.55));
       }
 
       if (!powerUp.ready) {
         parts.forEach((part) => part.setAlpha(0.4));
-        this.add.text(x + 60, y + 11, t('menu.soon'), { fontFamily: 'Arial', fontSize: '10px', color: '#aaaaaa' }).setOrigin(0, 0.5);
       } else if (!owned) {
         this.add
-          .rectangle(x - 6, y, 190, 28, 0xffffff, 0.08)
+          .rectangle(RIGHT + 6, y, RIGHT_WIDTH - 12, 24, 0xffffff, 0.08)
           .setOrigin(0, 0.5)
           .setInteractive({ useHandCursor: true })
           .on('pointerdown', () => this.buyPowerUp(powerUp));
@@ -559,14 +590,12 @@ export class MenuScene extends Phaser.Scene {
   }
 
   createKeys() {
-    const left = 540;
-    const top = 470;
-    this.add.rectangle(left, top, 392, 56, 0x2c2c54).setOrigin(0, 0).setStrokeStyle(3, 0x9aa0aa);
-    this.add.text(left + 14, top + 28, t('menu.keys'), { fontFamily: FONT, fontSize: '20px', color: '#ffffff' }).setOrigin(0, 0.5);
-
+    const top = 410;
+    this.add.rectangle(RIGHT, top, RIGHT_WIDTH, 60, 0x2c2c54).setOrigin(0, 0).setStrokeStyle(3, 0x9aa0aa);
+    this.add.text(RIGHT + 12, top + 14, `🔑 ${t('menu.keys')}`, { fontFamily: FONT, fontSize: '13px', color: '#ffffff' }).setOrigin(0, 0.5);
     KEYS.forEach((key, i) => {
-      const x = left + 125 + i * 35;
-      const icon = this.add.image(x, top + 28, 'key').setScale(0.55).setAngle(-60);
+      const x = RIGHT + 24 + i * 34;
+      const icon = this.add.image(x, top + 40, 'key').setScale(0.45).setAngle(-60);
       if (!this.save.keys.includes(key.id)) icon.setAlpha(0.2);
     });
   }

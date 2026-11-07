@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { addBackButton } from '../backButton.js';
 import { CHARACTERS } from '../characters.js';
 import { loadSave, writeSave } from '../save.js';
 import { t, setLanguage } from '../i18n.js';
@@ -95,9 +96,7 @@ export class TwoPlayerScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => this.start());
     add(this.add.text(480, 490, t('menu.start'), { fontFamily: FONT, fontSize: '28px', color: '#ffffff' }).setStroke('#000000', 5).setOrigin(0.5));
-    add(this.add.text(910, 520, t('menu.back'), { fontFamily: 'Arial', fontSize: '14px', color: '#cccccc' }).setOrigin(1, 0.5))
-      .setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => this.scene.start('Title'));
+    for (const part of addBackButton(this, 880, 510, () => this.scene.start('Title'))) add(part);
   }
 
   pick(player, step) {

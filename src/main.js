@@ -14,6 +14,7 @@ import { StoryJungleScene } from './story/StoryJungleScene.js';
 import { StoryCastleScene } from './story/StoryCastleScene.js';
 import { StoryKingScene } from './story/StoryKingScene.js';
 import { StoryEndingScene } from './story/StoryEndingScene.js';
+import { TripBalloonScene, TripRainbowScene, TripSurfScene, TripMineScene, TripStairsScene } from './trips/TripScenes.js';
 import { World1Scene } from './scenes/World1Scene.js';
 import { World2Scene } from './world2/World2Scene.js';
 import { World3Scene } from './scenes/World3Scene.js';
@@ -36,12 +37,12 @@ const game = new Phaser.Game({
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [TitleScene, MenuScene, World1Scene, World2Scene, World3Scene, EndingScene, TrainingScene, TwoPlayerScene, BattleScene, AdventureScene, QuestScene, StoryMapScene, StoryIntroScene, StoryCloudScene, StoryUnderwaterScene, StoryJungleScene, StoryCastleScene, StoryKingScene, StoryEndingScene],
+  scene: [TitleScene, MenuScene, World1Scene, World2Scene, World3Scene, EndingScene, TrainingScene, TwoPlayerScene, BattleScene, AdventureScene, QuestScene, StoryMapScene, StoryIntroScene, StoryCloudScene, StoryUnderwaterScene, StoryJungleScene, StoryCastleScene, StoryKingScene, StoryEndingScene, TripBalloonScene, TripRainbowScene, TripSurfScene, TripMineScene, TripStairsScene],
 });
 
 // The controller presses keys in the menus and 3D worlds. These 2D scenes read it themselves (controls.js),
 // and so does any scene that sets `readsGamepad` (2-player Cube Islands).
-const READS_GAMEPAD = ['World1', 'World3', 'Training', 'Battle', 'StoryCloud', 'StoryUnderwater', 'StoryJungle', 'StoryCastle', 'StoryKing'];
+const READS_GAMEPAD = ['World1', 'World3', 'Training', 'Battle', 'StoryCloud', 'StoryUnderwater', 'StoryJungle', 'StoryCastle', 'StoryKing', 'TripBalloon', 'TripRainbow', 'TripSurf', 'TripMine', 'TripStairs'];
 startGamepadKeys(() => game.scene.getScenes(true).some((scene) => READS_GAMEPAD.includes(scene.scene.key) || scene.readsGamepad));
 
 // Lets automated tests reach into the game while developing.
