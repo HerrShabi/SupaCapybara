@@ -72,6 +72,11 @@ export class TripScene extends Phaser.Scene {
     }
   }
 
+  // DRAWING MODE: the hero (and the balloon with the hero in it) is drawn already, so the sketch leaves it alone
+  isCleanObject(child) {
+    return child === this.hero || child === this.hatSprite || child === this.balloon;
+  }
+
   // A hat on the hero, if they wear one (follows a sprite every frame: call this.updateHat()).
   addHat(sprite) {
     const hat = this.save.wearing?.[this.heroId];

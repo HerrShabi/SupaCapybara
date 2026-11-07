@@ -73,7 +73,8 @@ export function drawingMode(save) {
 
 // A 2D scene in drawing mode: the sketch effect on its camera (WebGL only; otherwise it just looks normal).
 // The screen display (things that don't scroll AND sit on top, depth HUD_DEPTH or more: hearts, texts,
-// messages, menus) goes on a second camera
+// messages, menus) and the heroes (they're drawn already; scene.isCleanObject(child) says which) go on a second
+// camera that copies the main camera's position
 // without the effect, so it stays easy to read. Every frame, new things are sorted onto one camera or the other.
 const HUD_DEPTH = 9;
 
@@ -82,12 +83,20 @@ export function applySketch(scene) {
   const world = scene.cameras.main;
   world.setPostPipeline('SketchFX');
   const hud = scene.cameras.add(0, 0, world.width, world.height);
+  // The main camera works out where it is (following the hero) right before it draws, and it draws first,
+  // so the clean camera copies that position just before it draws too.
+  const clean = hud.preRender.bind(hud);
+  hud.preRender = () => {
+    hud.setScroll(world.scrollX, world.scrollY);
+    return clean();
+  };
   const sort = () => {
     for (const child of scene.children.list) {
       if (child.sketchSorted) continue;
       child.sketchSorted = true;
       // (Skies and paper backgrounds don't scroll either, but they're at the back, so they stay sketched)
-      if (child.scrollFactorX === 0 && child.scrollFactorY === 0 && child.depth >= HUD_DEPTH) world.ignore(child);
+      const onScreen = child.scrollFactorX === 0 && child.scrollFactorY === 0 && child.depth >= HUD_DEPTH;
+      if (onScreen || scene.isCleanObject?.(child)) world.ignore(child);
       else hud.ignore(child);
     }
   };

@@ -222,6 +222,11 @@ export class SideScrollerScene extends Phaser.Scene {
       .setDepth(10);
   }
 
+  // DRAWING MODE: the heroes (and their hats and auras) are drawn already, so the sketch effect leaves them alone
+  isCleanObject(child) {
+    return this.players.some((player) => child === player.sprite || child === player.hatSprite || child === player.aura || child === player.tongueGraphics);
+  }
+
   onEscape() {
     this.scene.start(this.exitScene);
   }
@@ -872,6 +877,7 @@ export class SideScrollerScene extends Phaser.Scene {
     this.magicPencil?.afterPlayers();
     if (this.magicPencil && this.player.controls.justPressed('pencil')) this.magicPencil.open();
     this.powerText.setText(this.team ? '' : [this.player.powerStatus, this.magicPencil?.status].filter(Boolean).join('     '));
+    this.powerText.setScale(Math.min(1, (VIEW_WIDTH - 40) / Math.max(1, this.powerText.width))); // (lots of power-ups: shrink to fit)
     if (this.team) this.followTeam();
 
     // Fell down a hole: lose a heart and go back (with two players, next to the other one).
