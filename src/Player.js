@@ -191,6 +191,12 @@ export class Player {
   }
 
   update() {
+    // Held by the level (like swinging on a jungle vine): the scene moves the hero, so just keep the hat on.
+    if (this.held) {
+      if (this.aura) this.aura.setPosition(this.x, this.y + 6);
+      this.updateHat();
+      return;
+    }
     const now = this.scene.time.now;
     const c = this.controls;
     const speed = RUN_SPEED * (this.shadow ? SHADOW_SPEED : 1);

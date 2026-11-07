@@ -70,6 +70,17 @@ export function makeHat3D(hat) {
       group.add(spike);
     }
     group.add(ball(0.04, 0xe53935, 0, 0.08, 0.22));
+  } else if (hat === 'champion') {
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.18, 10, 1, true), mat(0xffd600, { side: THREE.DoubleSide }));
+    band.position.y = 0.09;
+    group.add(band);
+    for (let i = 0; i < 6; i++) {
+      const spike = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.2, 4), mat(0xffd600));
+      const angle = (i / 6) * Math.PI * 2;
+      spike.position.set(Math.cos(angle) * 0.23, 0.27, Math.sin(angle) * 0.23);
+      group.add(spike);
+    }
+    group.add(ball(0.05, 0x00e676, 0, 0.1, 0.25));
   } else if (hat === 'pirate') {
     const hatMesh = new THREE.Mesh(new THREE.ConeGeometry(0.34, 0.25, 3), mat(0x212121));
     hatMesh.position.y = 0.12;

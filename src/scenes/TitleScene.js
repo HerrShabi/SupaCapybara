@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { goldify } from '../art/gold.js';
 import { loadSave, writeSave, resetSave } from '../save.js';
 import { t, setLanguage, getLanguage, LANGUAGES } from '../i18n.js';
 import { audio } from '../audio.js';
@@ -6,6 +7,7 @@ import { createHeroTextures, heroKey } from '../art/heroes.js';
 import { createHatTextures, hatAnchor } from '../art/hats.js';
 import { CHARACTERS } from '../characters.js';
 import { TIP_STYLES } from '../tips.js';
+import { createCastleTextures } from '../art/crocKing.js';
 import { drawSkyline, drawBuilding } from '../art/city.js';
 
 // The first screen: SuperCapybara flying over the night city, and the game modes.
@@ -57,6 +59,7 @@ export class TitleScene extends Phaser.Scene {
     this.createTouchButton();
     this.createCreditsButton();
     this.createOpeningButton();
+    this.createKingRush();
     this.createResetButton();
     this.createFlyerButton(flyer);
     this.createTipsButton();
@@ -236,6 +239,26 @@ export class TitleScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => this.scene.start('Ending', { replay: true }));
     this.add.text(90, 510, `🎬 ${t('menu.credits')}`, { fontFamily: FONT, fontSize: '15px', color: '#ffffff' }).setOrigin(0.5);
+  }
+
+  // After beating THE BAD GUY KING: his gold trophy on display, and KING RUSH (the 3 dark copies and the King
+  // again, back to back, on EXTREME, with the whole team).
+  createKingRush() {
+    if (!this.save.story?.kingBeaten) return;
+    createCastleTextures(this);
+    this.add.rectangle(70, 236, 70, 12, 0xffa000);
+    const trophy = goldify(this.add.image(70, 190, 'croc-king-walk').setScale(0.5));
+    this.tweens.add({ targets: trophy, alpha: 0.75, duration: 900, yoyo: true, repeat: -1 });
+    this.add
+      .rectangle(360, 34, 190, 32, 0x4a148c)
+      .setStrokeStyle(3, 0xffd23f)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        audio.play('click');
+        this.scene.start('StoryCastle', { rush: true, heroes: ['supa-capybara', 'supa-cat', 'supa-chameleon', 'ultra-capybara'] });
+      });
+    const label = this.add.text(360, 34, `👑 ${t('menu.kingRush')}`, { fontFamily: FONT, fontSize: '14px', color: '#ffffff' }).setOrigin(0.5);
+    label.setScale(Math.min(1, 180 / label.width));
   }
 
   // Watch THE BAD GUY KING's opening movie again (after you've seen it once).

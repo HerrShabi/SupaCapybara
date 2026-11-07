@@ -5,7 +5,8 @@ import { AdventureWorld } from '../adventure/AdventureWorld.js';
 import { writeSave } from '../save.js';
 import { Hud } from '../world2/hud.js';
 import { QuestMenu } from '../quest/menu.js';
-import { PLACES, STORY_START_HERO, storyProgress } from './story.js';
+import { PLACES, FRIEND_PLACES, STORY_START_HERO, storyProgress, allFriendsFree } from './story.js';
+import { VOLCANO } from '../adventure/map.js';
 
 // THE BAD GUY KING's big map: the whole SupaCapybara world (the Adventure island's city, space launch pad
 // and volcano) plus the story's new places in the south: ☁️ cloud kingdom, 🌊 underwater city, 🌴 jungle.
@@ -51,7 +52,7 @@ export class StoryMapWorld extends AdventureWorld {
       controls: t('game.controls3d'),
       menu: `${t('game.sound')}   ${t('game.menu')}`,
       maxHearts: this.settings.hearts,
-      crystals: PLACES.length,
+      crystals: FRIEND_PLACES.length,
       bossName: '',
       itemIcon: '🏆',
     });
@@ -83,15 +84,45 @@ export class StoryMapWorld extends AdventureWorld {
       if (place.id === 'cloud') this.decorateCloud(group);
       if (place.id === 'underwater') this.decorateWater(group);
       if (place.id === 'jungle') this.decorateJungle(group);
+      if (place.castle) this.createCastle(pad);
       // A gold star floats over places you already won
+      let star = null;
       if (this.story.freed.includes(place.id)) {
-        const star = new THREE.Mesh(new THREE.OctahedronGeometry(0.8), new THREE.MeshStandardMaterial({ color: 0xffd23f, emissive: 0x8d6e00 }));
+        star = new THREE.Mesh(new THREE.OctahedronGeometry(0.8), new THREE.MeshStandardMaterial({ color: 0xffd23f, emissive: 0x8d6e00 }));
         star.position.y = 4;
         group.add(star);
-        place.star = star;
       }
-      return { ...place, y, pad, star: place.star };
+      return { ...place, y, pad, star };
     });
+  }
+
+  // The Bad Guy King's dark castle on top of the volcano (the pad at its foot is the gate).
+  // Locked: the pad is red until every friend is free.
+  createCastle(pad) {
+    const castle = new THREE.Group();
+    castle.position.set(VOLCANO.x, VOLCANO.height - 3, VOLCANO.z);
+    this.scene.add(castle);
+    const stone = new THREE.MeshStandardMaterial({ color: 0x37474f, flatShading: true });
+    const roof = new THREE.MeshStandardMaterial({ color: 0x4a148c });
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(12, 7, 12), stone);
+    wall.position.y = 3.5;
+    castle.add(wall);
+    for (const [x, z] of [[-6, -6], [6, -6], [-6, 6], [6, 6], [0, 0]]) {
+      const big = x === 0;
+      const tower = new THREE.Mesh(new THREE.CylinderGeometry(big ? 2.2 : 1.6, big ? 2.2 : 1.6, big ? 16 : 11, 10), stone);
+      tower.position.set(x, big ? 8 : 5.5, z);
+      castle.add(tower);
+      const top = new THREE.Mesh(new THREE.ConeGeometry(big ? 2.8 : 2.1, 3.5, 10), roof);
+      top.position.set(x, big ? 17.7 : 12.7, z);
+      castle.add(top);
+    }
+    const eyes = new THREE.MeshBasicMaterial({ color: 0xff1744 });
+    for (const x of [-1.6, 1.6]) {
+      const window = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.2), eyes);
+      window.position.set(x, 4.5, -6.05);
+      castle.add(window);
+    }
+    if (!allFriendsFree(this.save)) pad.material.color.setHex(0xc62828);
   }
 
   // Puffy clouds floating in a stack, like stairs up to the sky
@@ -143,11 +174,17 @@ export class StoryMapWorld extends AdventureWorld {
       const distance = Math.hypot(p.pos.x - place.x, p.pos.z - place.z);
       if (distance < NAME_DISTANCE && this.nearPlace !== place.id) {
         this.nearPlace = place.id;
-        const sub = !place.ready ? t('story.comingSoon') : this.story.freed.includes(place.id) ? t('story.playAgain') : t('story.stepOnPad');
+        let sub = !place.ready ? t('story.comingSoon') : this.story.freed.includes(place.id) ? t('story.playAgain') : t('story.stepOnPad');
+        if (place.castle) {
+          const freed = FRIEND_PLACES.filter((f) => this.story.freed.includes(f.id)).length;
+          sub = allFriendsFree(this.save) ? t('story.castleOpen') : t('story.castleLocked', { count: freed, total: FRIEND_PLACES.length });
+        }
         this.hud.message(t(`story.place.${place.id}`), sub, 3000);
       }
       if (distance > NAME_DISTANCE + 4 && this.nearPlace === place.id) this.nearPlace = null;
-      if (distance < PAD_RADIUS && p.onGround && place.ready && !this.leaving) this.openTeam(place);
+      if (distance >= PAD_RADIUS || !p.onGround || !place.ready || this.leaving) continue;
+      if (!place.castle) this.openTeam(place);
+      else if (allFriendsFree(this.save)) this.go(place, this.story.saved); // the whole team storms the castle!
     }
   }
 

@@ -232,6 +232,78 @@ Ethan's decisions (round 6, started 2026-11-07):
 - Q9: The mini bosses are **evil robot copies** of the heroes you're saving (made by the King's machine). Beat the dark copy of a hero to free the real one.
 - Q10: Build first: **the 3D map + the first level** (☁️ cloud kingdom, beat **Dark Supa Cat** to save the real Supa Cat), and **if possible** the Bad Guy King's intro movie and a first fight against him.
 
+### Story mode: 🌊 Underwater City (round 7, in the game)
+
+- Step on the 🌊 pad on the story map. You start in a **glass dome**, walk on the sandy sea floor, and **swim** through 3 deep trenches (press SPACE again and again; you sink slowly).
+- 💨 **Air bar**: it goes down in deep water. Grab **air bubbles** (+half) or rest in a **glass dome** (fills up). Empty = a heart every few seconds.
+- 🪼 **Jellyfish** bob up and down: land on top = **BOING**, super high! Touch the side = ZAP. 🐙 **Octopuses** shoot ink: 3 splotches cover the screen until you shake them off by moving fast. 🦈 **Robot sharks** fire torpedoes from far away. (Octopuses and sharks can be beaten; jellyfish can't.)
+- City: glass domes, coral houses with shell roofs (inside the 2nd dome), and old sunken stone pillars with seaweed.
+- At the end, in the ruins: **Dark Supa Chameleon** is almost invisible. Follow its **bubble trail**! It shows itself when it lunges or spits. Beat it and **Supa Chameleon joins your team**.
+- Baby Capybara explains deep water and air, jellyfish, ink and the invisible copy.
+
+
+Ethan's decisions (round 7, started 2026-11-07):
+- Q0: The next place to build is 🌊 **Underwater City** (Supa Chameleon is the trophy there).
+- Q1: You **walk on the sea floor**, but some parts are **deep water where you swim** (press jump to swim up, you slowly sink). Grab **air bubbles** so you don't run out of air.
+- Q2: An **air bar** shows your air while you're in deep water. When it's empty, you **lose a heart every few seconds** until you grab a bubble.
+- Q3: The city is a **mix of all three**: 🫧 glass bubble domes (with air inside), 🪸 colorful coral and shell houses, and 🏛️ old sunken stone ruins with seaweed.
+- Q4: Bad guys: 🦈 **robot sharks** that charge at you, 🐙 **octopuses** that squirt ink to make the screen dark, and 🪼 **jellyfish** that float up and down.
+- Q5: **Jellyfish are bouncy**: jump on top of one and it launches you super high! Touching one from the side zaps you (lose a heart).
+- Q6: The octopus **shoots ink blobs**. If one hits you, **ink splotches cover part of your screen**. Shake them off by moving fast!
+- Q7: The robot sharks are **torpedo sharks**: they stay far away and shoot little torpedoes at you.
+- Ethan made **clay models** of the 3 heroes (2026-11-07): `concept-art/clay-supa-capybara.jpg`, `clay-supa-cat.jpg`, `clay-supa-chameleon.jpg`. Blue capes and lightning bolts on the suits (yellow on SuperCapybara, gold on Supa Cat). **Supa Chameleon faces right**: the sparkly dark teal part on the right is his **head** with a green eye, the big green round part on the left is his **curly tail**, the body is pink, the orange pieces on top are his back, and he has 4 green feet.
+- Q8: The mini boss is **Dark Supa Chameleon**, a robot copy that turns **invisible** and sneaks up on you. You only see it when it attacks.
+- Q9: You find the invisible copy by its **trail of little bubbles** when it moves. 🫧
+- Q10: Inside the **glass domes** there's air: your **air bar fills all the way up**. They're safe rest stops before the deep water.
+
+### Story mode: 🌴 Jungle (round 8, in the game)
+
+- Step on the 🌴 pad on the story map (next to the palm trees).
+- 🐒 **Vines** hang from the treetops over the gaps. Jump into one (you grab it on the way down), swing with left/right, and press SPACE to let go and fly.
+- 🐍 **Snake vines** have tiny eyes and a flicking tongue. Grab one and it hisses: you fall! A jump from the edge sails over the snake to the real vine behind it.
+- 🐒 **Monkeys** on branches throw coconuts 🥥. Attack a coconut (or laser it) and it flies back: BONK, the monkey is knocked out!
+- 🌺 **Chomping flowers** stretch their necks out to bite when you get close.
+- 🗿 The **super long vine** swings you up to a ledge with a **stone statue**. It asks a **quiz question** about the game (6 questions, in English and German). Right answer: the door turns gold and **14 bolts** pour out. Wrong: step away and try another question.
+- 🛕 At the end, in the dark **temple**: **Dark Ultra Capybara** with a **purple fire aura** that lights up the room. Touching it burns, **even jumping on it**, so attack from far away. Beat it and **Ultra Capybara joins your team**.
+
+
+Ethan's decisions (round 8, started 2026-11-07):
+- Q0: The next place to build is the 🌴 **Jungle** (Ultra Capybara is the trophy there).
+- Q1: **Swinging on vines!** Grab a vine, swing back and forth, and let go to fly across big gaps. 🐒
+- Q2: Jump into a vine and you **grab it automatically**. Press **jump** to let go and fly off in the direction you're swinging.
+- Q3: Bad guys: 🐍 **snakes** that hang from trees and drop down on you, 🐒 **naughty monkeys** that throw coconuts, and 🌺 **chomping flowers** that try to bite you.
+- Q4: **Hit the coconuts back!** Attack a coconut in the air and it flies back at the monkey and knocks it out (Ethan: "like a ghast's fireball in Minecraft"). A coconut that hits you costs a heart.
+- Q5: **Vine snakes**: some vines are secretly snakes! Grab one and it hisses and you fall off.
+- Q6: You **can spot them if you look closely**: snake vines have tiny eyes and a little flicking tongue. (Like the horned knight's TNT bolts, which look like normal bolts except for a tiny spark.)
+- Q7: **Stretchy chomping flowers**: they stay in one place but stretch their long necks out to snap at you.
+- Q8: The mini boss is **Dark Ultra Capybara**, a robot copy with a **dark purple fire aura**. Touching it burns, so attack it from far away.
+- Q9: The fight is in an **old jungle temple** with stone steps and statues. The purple fire aura lights up the dark temple.
+- Q10: A **secret statue** with a hidden door: swing to it on a super long vine to find a **secret room with bolts**. The statue asks a **quiz question** ("like in Mario Odyssey"): answer right and the secret door opens.
+
+### Story mode: the fight against the Bad Guy King (round 9, in the game)
+
+- 🏰 The King's **dark castle** sits on top of the volcano. Its gate pad (at the volcano's foot) is red and locked until you've saved all 3 friends; then the **whole team** goes in (Q switches between all 4 heroes).
+- **Castle level**: lava moats, giant **swinging axes**, and 🐊🛡️ **croc knights** whose shields block attacks from the front (they turn around slowly: jump over and hit them from behind, or stomp them).
+- **Rematch hallway**: the 3 dark copies, one after another, tougher and with **stolen tricks**: Dark Supa Cat turns invisible, Dark Supa Chameleon has a purple fire aura (don't jump on it), Dark Ultra Capybara super-jumps and slams down shockwaves.
+- 👑 **Throne room**, phase 1: the King flies on his throne, fires the laser cannons and the **trophy zapper** (a blinking yellow line shows where it will hit). Zapped = that hero becomes a gold trophy and you switch to the next. All trophies = the fight starts over.
+- Phase 2 (half health): the **throne breaks**! He fights on foot: chomping charges, tail spins, stomps with shockwaves, and still the zapper.
+- The end: his **zapper backfires** and he turns into a gold trophy, your trophy friends break free, and the **ending movie** plays: the castle crumbles, then a party in the city with fireworks, confetti, every hero dancing and the King trophy on display.
+- 🎁 Prizes: the 👑 **champion crown** in the wardrobe, the gold **King trophy** on the title screen, and 👑 **KING RUSH** (title screen): the 3 copies and the King back to back, on EXTREME, with all 4 heroes.
+
+
+Ethan's decisions (round 9, started 2026-11-07):
+- Q0: Next is the **big fight against the Bad Guy King** 🐊👑 (after all 3 places are done).
+- Q1: His hideout is a 🏰 **dark castle on top of the volcano** in the middle of the map, with lava all around it.
+- Q2: The castle gate opens **only after you save all 3 friends**. Then your whole team can come.
+- Q3: In the final fight you can switch between **all 4 heroes** (SuperCapybara, Supa Cat, Supa Chameleon, Ultra Capybara), not just 2.
+- Q4: First a **castle level** (lava moats, swinging axes, the King's crocodile guards), then a **rematch hallway** where you fight all 3 dark robot copies again, one after another, and they're **harder** this time. Then the King's throne room.
+- Q5: The copies are harder because they **learned new tricks** (they stole each other's powers): Dark Supa Cat can turn **invisible**, Dark Supa Chameleon has a **fire aura**, and Dark Ultra Capybara can **jump super high**.
+- Q6: The King fights in **two phases**: first from his **flying throne** (laser cannons, and the trophy zapper beam on the floor), then when the throne breaks he **jumps off and fights on foot**, angrier (tail swipes, chomping jaws, big stomps).
+- Q7: If the trophy zapper beam hits you, **that hero is stuck as a trophy** and you switch to the next hero automatically. If all 4 become trophies, the fight starts again. Beating the King frees them all.
+- Q8: The castle has 🛡️ **croc knights with shields**: attacks bounce off the front, so jump over them and hit them from behind.
+- Q9: When you beat him, his **own zapper backfires and turns him into a trophy**! Then a **happy ending movie**: the castle crumbles, and all your friends celebrate with a big party and fireworks 🎆 (the King trophy goes on display in the city).
+- Q10: The prize for beating the story: a 👑 **golden champion crown** hat for the wardrobe (only story champions get it), the **Bad Guy King trophy** shown in the menu, and a new **KING RUSH** mode: fight all the dark copies and the King again, as hard as possible.
+
 ## Fixed (2026-11-01, bugs Ethan found)
 
 - The hero's hat (and fire glow) got left behind on the helipad when jumping into the rocket. Now they go into the rocket too.

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { goldify } from '../art/gold.js';
 import { t, setLanguage } from '../i18n.js';
 import { audio } from '../audio.js';
 import { loadSave, writeSave } from '../save.js';
@@ -24,7 +25,6 @@ const CAST = [
   { id: 'baby', x: 600, trophy: true }, // Baby Capybara
 ];
 const KING_SPOT = { x: 780, y: 190 };
-const GOLD = 0xffd54f;
 
 export class StoryIntroScene extends Phaser.Scene {
   constructor() {
@@ -135,7 +135,7 @@ export class StoryIntroScene extends Phaser.Scene {
     friends.forEach((friend, i) => {
       this.time.delayedCall(i * 550, () => {
         this.beam(friend.sprite.x, friend.sprite.y);
-        friend.sprite.setTint(GOLD);
+        goldify(friend.sprite);
         audio.play('freeze');
         const base = this.add.graphics().setDepth(1.5);
         base.fillStyle(0xffa000);

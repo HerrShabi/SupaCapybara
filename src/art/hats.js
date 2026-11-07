@@ -1,7 +1,8 @@
 // Hats and costumes you find in ADVENTURE treasure chests. Heroes wear them in every world.
 // Names are in i18n.js as 'hat.<id>'. Which hero wears which hat is save.wearing[heroId].
 
-export const HATS = ['crown', 'pirate', 'wizard', 'party', 'shades'];
+export const HATS = ['crown', 'pirate', 'wizard', 'party', 'shades', 'champion'];
+// 'champion': the golden champion crown, only for beating THE BAD GUY KING story.
 
 // Where the top of the head (and the eyes, for shades) is in each animal's 64x48 hero frame.
 const HEAD = {
@@ -68,6 +69,22 @@ export function createHatTextures(scene) {
     g.fillRect(5, 13, 6, 3);
     g.fillStyle(0xffeb3b);
     g.fillCircle(8, 3, 3); // pompom
+  });
+  make(scene, 'hat-champion', 26, 18, (g) => {
+    g.fillStyle(0xffd600);
+    g.fillRect(1, 9, 24, 9);
+    g.fillTriangle(1, 10, 4, 0, 8, 10);
+    g.fillTriangle(8, 10, 13, 0, 18, 10);
+    g.fillTriangle(18, 10, 22, 0, 25, 10);
+    g.fillStyle(0xffffff);
+    g.fillCircle(4, 1, 1.5);
+    g.fillCircle(13, 1, 1.5);
+    g.fillCircle(22, 1, 1.5);
+    g.fillStyle(0x00e676);
+    g.fillCircle(13, 13, 3);
+    g.fillStyle(0xd500f9);
+    g.fillCircle(6, 13, 2);
+    g.fillCircle(20, 13, 2);
   });
   make(scene, 'hat-shades', 22, 8, (g) => {
     g.fillStyle(0x111111);

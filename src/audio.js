@@ -375,6 +375,13 @@ class GameAudio {
         this.noise({ length: 1, volume: 0.7, frequency: 1200 });
         this.tone({ wave: 'sawtooth', from: 200, to: 40, length: 0.8, volume: 0.25 });
         break;
+      case 'hiss': // a snake vine
+        this.noise({ length: 0.6, volume: 0.3, filter: 'highpass', frequency: 4000 });
+        break;
+      case 'bonk': // a coconut hit back
+        this.tone({ wave: 'square', from: 700, to: 300, length: 0.12, volume: 0.15 });
+        this.noise({ length: 0.08, volume: 0.3, filter: 'bandpass', frequency: 1200 });
+        break;
       case 'bash': // smashing the rocket door
         this.noise({ length: 0.07, volume: 0.4, filter: 'bandpass', frequency: 900 });
         this.tone({ from: 220, to: 160, length: 0.06, volume: 0.1 });

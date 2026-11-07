@@ -73,7 +73,9 @@ export class SideScrollerScene extends Phaser.Scene {
     this.powerUps = data.powerUps ?? (this.team ? [] : this.save.powerUps);
     this.exitScene = this.team ? 'Title' : this.level.exitTo ?? 'Menu';
     this.character = getCharacter(heroes[0]);
-    this.settings = getDifficulty(this.save.difficulty);
+    // (data.difficulty: a mode can force one, like KING RUSH's EXTREME)
+    this.difficultyId = data.difficulty ?? this.save.difficulty;
+    this.settings = getDifficulty(this.difficultyId);
     this.won = false;
     this.dancing = null;
     this.cutscene = null;
@@ -153,7 +155,7 @@ export class SideScrollerScene extends Phaser.Scene {
 
   createHud() {
     this.add
-      .text(16, 16, this.bossRush ? t('menu.bossRush') : t(this.level.titleKey ?? `game.world${this.level.world}`), { fontFamily: 'Arial Black, Arial', fontSize: '28px', color: '#ffffff' })
+      .text(16, 16, this.bossRush ? t(this.level.rushTitleKey ?? 'menu.bossRush') : t(this.level.titleKey ?? `game.world${this.level.world}`), { fontFamily: 'Arial Black, Arial', fontSize: '28px', color: '#ffffff' })
       .setStroke('#000000', 6)
       .setScrollFactor(0)
       .setDepth(10);
@@ -164,7 +166,7 @@ export class SideScrollerScene extends Phaser.Scene {
     }
 
     this.add
-      .text(16, 92, t(`difficulty.${this.save.difficulty}`), { fontFamily: 'Arial Black, Arial', fontSize: '14px', color: '#ffffff' })
+      .text(16, 92, t(`difficulty.${this.difficultyId}`), { fontFamily: 'Arial Black, Arial', fontSize: '14px', color: '#ffffff' })
       .setStroke('#000000', 4)
       .setScrollFactor(0)
       .setDepth(10);
@@ -385,6 +387,10 @@ export class SideScrollerScene extends Phaser.Scene {
         continue;
       }
 
+      // Extra bad guys a level adds itself (like the underwater ones) can float up and down (data `bob`),
+      // turn to look at you (`faces`) and shoot their own way (`shoot(badGuy, dir)`).
+      if (badGuy.getData('bob')) badGuy.y = badGuy.getData('baseY') + 12 * Math.sin(now / 500 + (badGuy.getData('phase') ?? 0));
+
       if (kind === 'robot' && !beingBounced) {
         let dir = badGuy.getData('walkDir');
         if (badGuy.x >= badGuy.getData('toX')) dir = -1;
@@ -397,7 +403,7 @@ export class SideScrollerScene extends Phaser.Scene {
       if (target.invisible) continue; // they can't see you, so they don't shoot
 
       const dx = target.x - badGuy.x;
-      if (kind === 'robot') badGuy.setFlipX(dx < 0); // always looks at you
+      if (kind === 'robot' || badGuy.getData('faces')) badGuy.setFlipX(dx < 0); // always looks at you
 
       if (Math.abs(dx) > this.settings.enemySeeDistance) continue;
       if (!badGuy.getData('nextShotAt')) {
@@ -411,6 +417,8 @@ export class SideScrollerScene extends Phaser.Scene {
         // One blaster on each side: shoots both ways at once.
         this.enemyShoot(badGuy.x - 40, badGuy.y + 5, -this.settings.enemyShotSpeed);
         this.enemyShoot(badGuy.x + 40, badGuy.y + 5, this.settings.enemyShotSpeed);
+      } else if (badGuy.getData('shoot')) {
+        badGuy.getData('shoot')(badGuy, dx < 0 ? -1 : 1);
       } else {
         const dir = dx < 0 ? -1 : 1;
         this.enemyShoot(badGuy.x + dir * 50, badGuy.y - 6, dir * this.settings.enemyShotSpeed);
@@ -620,7 +628,7 @@ export class SideScrollerScene extends Phaser.Scene {
     audio.stopMusic();
     audio.play('fall');
     this.bigMessage(t('game.gameOver'), '#ff5252');
-    this.time.delayedCall(3000, () => this.scene.start('Menu'));
+    this.time.delayedCall(3000, () => this.scene.start(this.exitScene));
   }
 
   respawn() {
@@ -676,7 +684,7 @@ export class SideScrollerScene extends Phaser.Scene {
     const title = this.bigMessage(`${t(bossName)}!`, '#ff5a3a');
     this.time.delayedCall(1500, () => title.destroy());
 
-    this.add
+    this.bossNameText = this.add
       .text(480, 112, t(bossName), { fontFamily: 'Arial Black, Arial', fontSize: '16px', color: '#ffffff' })
       .setStroke('#000000', 4)
       .setOrigin(0.5)
@@ -867,6 +875,26 @@ export class SideScrollerScene extends Phaser.Scene {
     this.checkTips();
   }
 
+  // ---------- Freezing the game (for tips, or a level's own pop-ups like the jungle quiz) ----------
+
+  // Stops physics, every running tween, animations and the clock. Tweens added after this still play.
+  freezeWorld() {
+    this.physics.pause();
+    this.frozenTweens = this.tweens.getTweens().filter((tween) => !tween.paused);
+    for (const tween of this.frozenTweens) tween.pause();
+    this.anims.pauseAll();
+    this.time.paused = true;
+  }
+
+  unfreezeWorld() {
+    this.physics.resume();
+    for (const tween of this.frozenTweens ?? []) tween.resume();
+    this.frozenTweens = [];
+    this.anims.resumeAll();
+    this.time.paused = false;
+    this.safeUntil = Math.max(this.safeUntil, this.time.now + 800);
+  }
+
   // ---------- Baby Capybara's tips (see tips.js) ----------
 
   checkTips() {
@@ -887,12 +915,7 @@ export class SideScrollerScene extends Phaser.Scene {
   showTip(id, x, y) {
     if (this.tip || this.bossRush || !tipWanted(this.save, id)) return;
     markTipSeen(this.save, id);
-    this.physics.pause();
-    // Pause every tween that's running now (Baby Capybara's own tweens, added after this, still play)
-    this.frozenTweens = this.tweens.getTweens().filter((tween) => !tween.paused);
-    for (const tween of this.frozenTweens) tween.pause();
-    this.anims.pauseAll();
-    this.time.paused = true;
+    this.freezeWorld();
 
     const view = this.cameras.main.worldView;
     const side = x - view.x > 260 ? -1 : 1; // stand on the side with more room
@@ -928,12 +951,7 @@ export class SideScrollerScene extends Phaser.Scene {
     if (!gotIt) return;
     for (const part of tip.parts) part.destroy();
     this.tip = null;
-    this.physics.resume();
-    for (const tween of this.frozenTweens) tween.resume();
-    this.frozenTweens = [];
-    this.anims.resumeAll();
-    this.time.paused = false;
-    this.safeUntil = Math.max(this.safeUntil, this.time.now + 800);
+    this.unfreezeWorld();
     // Bye-bye! He flies away
     tip.helper.setTexture(`${heroKey('supa-capybara', this.palette)}-jump`);
     this.tweens.add({ targets: tip.helper, y: tip.helper.y - 400, duration: 700, ease: 'Quad.easeIn', onComplete: () => tip.helper.destroy() });
