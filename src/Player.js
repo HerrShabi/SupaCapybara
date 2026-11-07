@@ -287,8 +287,12 @@ export class Player {
   updateHat() {
     if (!this.hatSprite) return;
     const anchor = hatAnchor(this.id, this.hat, this.sprite.scaleX);
+    // Turn the hat with the hero (only the win dances tip the hero over)
+    const turn = this.sprite.rotation;
+    const ax = anchor.x * this.facing;
     this.hatSprite
-      .setPosition(this.x + anchor.x * this.facing, this.y + anchor.y)
+      .setPosition(this.x + ax * Math.cos(turn) - anchor.y * Math.sin(turn), this.y + ax * Math.sin(turn) + anchor.y * Math.cos(turn))
+      .setRotation(turn)
       .setFlipX(this.sprite.flipX)
       .setVisible(!this.mecha && this.sprite.visible)
       .setAlpha(this.sprite.alpha);
@@ -514,6 +518,53 @@ export class Player {
     this.flyUntil = 0;
     this.flyReadyAt = this.scene.time.now + FLY_WAIT_MS;
     this.sprite.body.setAllowGravity(true);
+  }
+
+  // ---------- Win dances (after beating a boss, see DANCES in characters.js) ----------
+
+  // Starts the dance and returns how long it takes (ms). While dancing, the scene calls updateDance() instead of update().
+  dance(id) {
+    if (this.mecha) this.endMecha();
+    if (this.flying) this.stopFlying();
+    if (this.shielded) this.lowerShield();
+    if (this.invisible) this.becomeVisible();
+    if (this.shadow) this.endShadow();
+    this.danceId = id;
+    const scene = this.scene;
+    const sprite = this.sprite;
+    sprite.anims.stop();
+    sprite.setVelocityX(0).setTexture(`${this.look}-idle`);
+    audio.play('dance');
+
+    if (id === 'wiggle') {
+      // Shake your whole body!
+      scene.tweens.add({ targets: sprite, angle: { from: -14, to: 14 }, duration: 90, yoyo: true, repeat: 8, onComplete: () => sprite.setAngle(0) });
+      scene.tweens.add({ targets: sprite, scaleX: 1.75, scaleY: 1.3, duration: 180, yoyo: true, repeat: 4, onComplete: () => sprite.setScale(1.5) });
+      return 1900;
+    }
+    if (id === 'bunny') {
+      // Hop hop hop, turning around each time
+      [0, 520, 1040].forEach((delay) =>
+        scene.time.delayedCall(delay, () => {
+          sprite.setVelocityY(-340).setFlipX(!sprite.flipX);
+          audio.play('jump');
+        }),
+      );
+      return 1700;
+    }
+    // Flip: a backflip high in the air
+    sprite.setVelocityY(-JUMP_SPEED);
+    audio.play('doubleJump');
+    scene.tweens.add({ targets: sprite, angle: -360 * this.facing, duration: 820, ease: 'Sine.easeInOut', onComplete: () => sprite.setAngle(0) });
+    return 1500;
+  }
+
+  updateDance() {
+    const sprite = this.sprite;
+    sprite.setVelocityX(0);
+    if (this.danceId !== 'wiggle') sprite.setTexture(`${this.look}-${sprite.body.blocked.down ? 'idle' : 'jump'}`);
+    if (this.aura) this.aura.setPosition(this.x, this.y + 6);
+    this.updateHat();
   }
 
   // ---------- Shield power-up (V) ----------

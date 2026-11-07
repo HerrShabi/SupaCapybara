@@ -21,6 +21,12 @@ function newSave() {
     palette: 0, // secret colors (see art/heroes.js)
     hats: [], // hats found in ADVENTURE chests
     wearing: {}, // which hat each hero wears: { heroId: hatId }
+    dances: [], // win dances bought in the wardrobe
+    dancing: {}, // which dance each hero does: { heroId: danceId } (none picked = a random one you own)
+    crashSeen: false, // after the first rocket crash in World 3, ESC skips it
+    tips: 'excited', // Baby Capybara's tips: 'excited', 'professor', 'baby', or null = off (see tips.js)
+    tipsSeen: [], // tips he already gave (each one shows once)
+    titleHero: 'supa-capybara', // the hero flying across the title screen
     adventure: { opened: [], superBossBeaten: false }, // ADVENTURE progress
   };
 }

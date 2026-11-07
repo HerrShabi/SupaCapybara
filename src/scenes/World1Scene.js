@@ -108,6 +108,13 @@ export class World1Scene extends SideScrollerScene {
       keyId: 'world1',
       music: 'city',
       bossName: 'game.pizzaBoss',
+      // Baby Capybara's tips: [tip, when you pass x, point at x, y]
+      tips: [
+        ['move', 0],
+        ['bolt', 110, 250, 400],
+        ['badGuy', 400, 620, 400],
+        ['gap', 560, 760, 470],
+      ],
       width: LEVEL_WIDTH,
       arenaStart: ARENA_START,
       start: { x: 100, y: 360 },

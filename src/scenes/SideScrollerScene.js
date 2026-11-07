@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { Player } from '../Player.js';
-import { getCharacter } from '../characters.js';
+import { getCharacter, pickDance } from '../characters.js';
 import { loadSave, writeSave } from '../save.js';
 import { t, setLanguage } from '../i18n.js';
 import { getDifficulty, BAD_GUY_REWARD, BOSS_REWARD } from '../difficulty.js';
@@ -11,6 +11,7 @@ import { createEffectTextures, createShieldTexture, createBubbleTexture, createP
 import { createBoltTexture } from '../art/bolt.js';
 import { createSunglassesTexture, createAppleTexture, createRobotTexture, createFireBadGuyTextures } from '../art/badGuys.js';
 import { createItemTextures } from '../art/items.js';
+import { tipWanted, markTipSeen, tipText, TIP_MIN_MS } from '../tips.js';
 
 // Everything the side-scrolling worlds (1 and 3) share: the hero, hearts, bolts, bad guys,
 // getting hurt, the boss health bar, the key and winning.
@@ -23,6 +24,8 @@ import { createItemTextures } from '../art/items.js';
 //   bossAction()       one attack, on a timer
 //   updateBoss()       every frame during the fight
 //   afterWin()         what happens after the key message (World 1 launches a rocket)
+// Optional: set this.cutscene to pause the level and call updateCutscene(time, delta) every frame instead
+// (World 3's crash landing), and override onEscape() to change what ESC does.
 
 export const VIEW_WIDTH = 960;
 export const VIEW_HEIGHT = 540;
@@ -38,7 +41,8 @@ const MAX_TNT_BOLTS = 6;
 
 export class SideScrollerScene extends Phaser.Scene {
   // level: { world, titleKey, exitTo, keyId, music, bossName, width, arenaStart, start, arenaCheckpoint, bolts, sunglasses, apples, robots, fallY,
-  //          fire (fire versions of the bad guys), knights: [[fromX, toX, y]], bossRushNext (scene key of the next Boss Rush fight) }
+  //          fire (fire versions of the bad guys), knights: [[fromX, toX, y]], bossRushNext (scene key of the next Boss Rush fight),
+  //          tips: [[tipId, whenPlayerPassesX, pointAtX, pointAtY]] (Baby Capybara's tips; no point = point at the player) }
   //
   // Boss Rush (a secret): start the scene with { bossRush: true, hearts }. You start right at the boss,
   // your hearts carry over from fight to fight, and losing them all is game over.
@@ -70,6 +74,9 @@ export class SideScrollerScene extends Phaser.Scene {
     this.character = getCharacter(heroes[0]);
     this.settings = getDifficulty(this.save.difficulty);
     this.won = false;
+    this.dancing = null;
+    this.cutscene = null;
+    this.tip = null;
     this.hearts = data.hearts ?? this.settings.hearts;
     this.safeUntil = 0;
     this.checkpoint = this.bossRush ? this.level.arenaCheckpoint : this.level.start;
@@ -119,7 +126,7 @@ export class SideScrollerScene extends Phaser.Scene {
       );
     }
 
-    this.input.keyboard.on('keydown-ESC', () => this.scene.start(this.exitScene));
+    this.input.keyboard.on('keydown-ESC', () => this.onEscape());
     this.input.keyboard.on('keydown-M', () => this.toggleSound());
 
     audio.setMuted(this.save.muted);
@@ -192,6 +199,10 @@ export class SideScrollerScene extends Phaser.Scene {
       .setOrigin(1, 1)
       .setScrollFactor(0)
       .setDepth(10);
+  }
+
+  onEscape() {
+    this.scene.start(this.exitScene);
   }
 
   toggleSound() {
@@ -680,6 +691,7 @@ export class SideScrollerScene extends Phaser.Scene {
 
   startBossActions(delayFactor = 1) {
     audio.play('bossRoar');
+    this.time.delayedCall(10, () => this.showTip(`boss${this.level.world}`, this.boss.x, this.boss.y));
     this.bossTimer = this.time.addEvent({
       delay: this.settings.bossActionMs * delayFactor,
       loop: true,
@@ -718,9 +730,32 @@ export class SideScrollerScene extends Phaser.Scene {
       scale: 0,
       duration: 900,
       onComplete: () => {
-        this.dropKey(this.boss.x);
+        const x = this.boss.x;
         this.boss.destroy();
+        this.danceThen(() => this.dropKey(x));
       },
+    });
+  }
+
+  // Win dances: once everyone has landed, each hero does their dance, then `done` runs (the key drops).
+  danceThen(done) {
+    const dances = this.players.map((player) => pickDance(this.save, player.id));
+    if (!dances.some(Boolean)) return done();
+    this.dancing = { dances, done, startBy: this.time.now + 1500, started: false };
+  }
+
+  updateDancing() {
+    const dancing = this.dancing;
+    for (const player of this.players) player.updateDance();
+    if (dancing.started) return;
+    const landed = this.players.every((player) => player.sprite.body.blocked.down);
+    if (!landed && this.time.now < dancing.startBy) return;
+    dancing.started = true;
+    const longest = Math.max(...this.players.map((player, i) => (dancing.dances[i] ? player.dance(dancing.dances[i]) : 0)));
+    this.time.delayedCall(longest, () => {
+      this.dancing = null;
+      for (const player of this.players) player.danceId = null;
+      dancing.done();
     });
   }
 
@@ -786,8 +821,21 @@ export class SideScrollerScene extends Phaser.Scene {
   // ---------- Every frame ----------
 
   update(time, delta) {
+    if (this.tip) {
+      this.updateTip();
+      return;
+    }
     this.updateScenery(time, delta);
     if (this.won) return;
+    if (this.cutscene) {
+      this.updateCutscene(time, delta);
+      return;
+    }
+    if (this.dancing) {
+      this.updateDancing();
+      if (this.team) this.followTeam();
+      return;
+    }
 
     for (const player of this.players) player.update();
     this.powerText.setText(this.team ? '' : this.player.powerStatus);
@@ -815,6 +863,113 @@ export class SideScrollerScene extends Phaser.Scene {
     } else if (this.boss.active && this.boss.body.enable) {
       this.updateBoss(time, delta);
     }
+    this.checkTips();
+  }
+
+  // ---------- Baby Capybara's tips (see tips.js) ----------
+
+  checkTips() {
+    if (!this.save.tips || this.bossRush || this.won) return;
+    const lead = this.leadX();
+    for (const [id, passX, x, y] of this.level.tips ?? []) {
+      if (lead < passX || !tipWanted(this.save, id)) continue;
+      if (id === 'badGuy') {
+        // Point at the closest bad guy (they move around)
+        const badGuy = this.badGuys.getChildren().filter((b) => b.active).sort((a, b) => Math.abs(a.x - lead) - Math.abs(b.x - lead))[0];
+        if (badGuy) return this.showTip(id, badGuy.x, badGuy.y);
+      }
+      return this.showTip(id, x ?? this.player.x, y ?? this.player.y);
+    }
+  }
+
+  // Freezes the game. Baby Capybara flies over, stands next to (x, y), points at it and says the tip in a comic bubble.
+  showTip(id, x, y) {
+    if (this.tip || this.bossRush || !tipWanted(this.save, id)) return;
+    markTipSeen(this.save, id);
+    this.physics.pause();
+    // Pause every tween that's running now (Baby Capybara's own tweens, added after this, still play)
+    this.frozenTweens = this.tweens.getTweens().filter((tween) => !tween.paused);
+    for (const tween of this.frozenTweens) tween.pause();
+    this.anims.pauseAll();
+    this.time.paused = true;
+
+    const view = this.cameras.main.worldView;
+    const side = x - view.x > 260 ? -1 : 1; // stand on the side with more room
+    const spot = { x: x + side * 90, y: Math.max(view.y + 150, y - 20) };
+    const look = heroKey('supa-capybara', this.palette);
+    const helper = this.add.image(view.centerX, view.y - 60, `${look}-jump`).setScale(0.8).setDepth(12).setFlipX(side > 0);
+    const tip = { id, helper, parts: [], shownAt: Infinity };
+    this.tip = tip;
+    audio.play('fly');
+
+    this.tweens.add({
+      targets: helper,
+      x: spot.x,
+      y: spot.y,
+      duration: 550,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        helper.setTexture(`${look}-idle`);
+        // Pointing at the thing
+        const finger = this.add.text(spot.x - side * 44, spot.y + 4, '👉', { fontSize: '28px' }).setOrigin(0.5).setDepth(13).setScale(side < 0 ? 1 : -1, 1);
+        this.tweens.add({ targets: finger, x: finger.x - side * 10, duration: 250, yoyo: true, repeat: -1 });
+        tip.parts.push(finger, ...this.drawBubble(tipText(this.save, id), spot, view, side));
+        tip.shownAt = performance.now();
+        audio.play('click');
+      },
+    });
+  }
+
+  // A comic book speech bubble: white, thick black outline, a pointy tail down to Baby Capybara's head.
+  // side: which side of the thing he's on; the bubble sticks out that way so it doesn't cover the thing.
+  drawBubble(text, spot, view, side) {
+    const words = this.add
+      .text(0, 0, text, { fontFamily: 'Comic Sans MS, Chalkboard SE, Arial Black, Arial', fontSize: '19px', color: '#000000', align: 'center', wordWrap: { width: 300 } })
+      .setOrigin(0.5, 0)
+      .setDepth(14);
+    const hint = this.add.text(0, 0, t('tip.gotIt'), { fontFamily: 'Arial Black, Arial', fontSize: '13px', color: '#666666' }).setOrigin(0.5, 0).setDepth(14);
+    const width = Math.max(words.width, hint.width) + 36;
+    const height = words.height + hint.height + 30;
+    const centerX = Phaser.Math.Clamp(spot.x + side * (width / 2 - 50), view.x + width / 2 + 10, view.right - width / 2 - 10);
+    const head = { x: spot.x, y: spot.y - 26 };
+    let top = head.y - 40 - height;
+    let tailBase = top + height;
+    if (top < view.y + 8) {
+      // No room above: the bubble goes under him, tail pointing up
+      top = spot.y + 60;
+      tailBase = top;
+      head.y = spot.y + 26;
+    }
+    words.setPosition(centerX, top + 12);
+    hint.setPosition(centerX, top + 18 + words.height);
+
+    const g = this.add.graphics().setDepth(13);
+    const tailX = Phaser.Math.Clamp(head.x, centerX - width / 2 + 24, centerX + width / 2 - 24);
+    g.fillStyle(0xffffff).lineStyle(4, 0x000000);
+    g.fillTriangle(tailX - 14, tailBase, tailX + 14, tailBase, head.x, head.y);
+    g.strokeTriangle(tailX - 14, tailBase, tailX + 14, tailBase, head.x, head.y);
+    g.fillRoundedRect(centerX - width / 2, top, width, height, 18);
+    g.strokeRoundedRect(centerX - width / 2, top, width, height, 18);
+    g.fillRect(tailX - 11, tailBase - 4, 22, 8); // join the tail to the bubble (hide the outline there)
+    return [g, words, hint];
+  }
+
+  updateTip() {
+    const tip = this.tip;
+    if (performance.now() - tip.shownAt < TIP_MIN_MS) return;
+    const gotIt = this.players.some((player) => player.controls.justPressed('jump') || player.controls.justPressed('attack'));
+    if (!gotIt) return;
+    for (const part of tip.parts) part.destroy();
+    this.tip = null;
+    this.physics.resume();
+    for (const tween of this.frozenTweens) tween.resume();
+    this.frozenTweens = [];
+    this.anims.resumeAll();
+    this.time.paused = false;
+    this.safeUntil = Math.max(this.safeUntil, this.time.now + 800);
+    // Bye-bye! He flies away
+    tip.helper.setTexture(`${heroKey('supa-capybara', this.palette)}-jump`);
+    this.tweens.add({ targets: tip.helper, y: tip.helper.y - 400, duration: 700, ease: 'Quad.easeIn', onComplete: () => tip.helper.destroy() });
   }
 
   // Two players: the camera looks between them, and nobody can walk off the screen.

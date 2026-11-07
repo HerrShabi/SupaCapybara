@@ -19,9 +19,11 @@ export class World2Scene extends Phaser.Scene {
     this.world = new SpaceWorld({
       container: this.game.canvas.parentElement,
       save,
-      onExit: () => {
+      onExit: (next) => {
         this.world = null;
-        this.scene.start('Menu');
+        // After Grape Boss, the rocket crash-lands in World 3
+        if (next) this.scene.start(next, { crash: true });
+        else this.scene.start('Menu');
       },
     });
     if (import.meta.env.DEV) window.world2 = this.world;

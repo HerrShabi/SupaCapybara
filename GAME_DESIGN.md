@@ -167,6 +167,46 @@ Ethan's decisions (round 3, built 2026-11-01):
 - Q9: The alien baby **rides a mini flying saucer** and shoots **shrink rays** from the sky: bad guys get tiny and easy to beat.
 - Q10: In 2-player Cube Islands, **each player has their own hearts**. If one runs out, the other can **revive** them by standing next to them.
 
+### From space to the volcano, and win dances (round 4, in the game)
+
+- After Grape Boss blows up, he throws **one last sticky grape** into space. Then your rocket comes to pick you up, you hop in, 3... 2... 1... blast off, and the grape comes back: **SPLAT!** The rocket smokes and wobbles away.
+- **World 3 starts with a crash landing**: the smoking rocket (with purple grape goo on it) crashes next to the volcano. **SMASH THE DOOR!** Press attack really fast before the timer runs out. Too slow? **BOOM**: you fly out all crispy and black and lose 1 heart. The burnt rocket stays there, smoking.
+- It happens every time World 3 starts (not in Boss Rush or 2 players). After the first time, **ESC skips it**.
+- 🎉 **Win dances**: in the 👕 **wardrobe** (under the hats), buy the 🤪 **Wiggle**, 🐰 **Bunny Hop** or 🤸 **Flip** for 50 ⚡ each and pick one for each hero. 🎲 RANDOM (or nothing picked) = a random one you own. After Pizza Boss, Grape Boss or the Lava Dragon, your hero dances, then the key drops.
+
+
+Ethan's decisions (round 4, started 2026-11-07):
+- Q1: After beating Grape Boss, you hop back in the 🚀 **rocket**, fly down, the engine catches fire, and you **crash land** next to the volcano (smoke, sparks, climb out of the wreck). Then World 3 starts.
+- Q2: The engine catches fire because of **Grape Boss's revenge**: just before he explodes, he throws one last **sticky grape** at the rocket. *SPLAT!* Then smoke comes out.
+- Q3: The rocket crashes **right at the start of World 3**. You have to **climb out before it explodes**! After the boom, the broken rocket stays behind you, smoking.
+- Q4: To get out, you **smash the stuck door**: press attack really fast to fill a bar, while a timer counts down 3... 2... 1...
+- Q5: Too slow? **BOOM, you get launched!** You fly through the air all crispy and black, land, and lose **1 heart**, but you keep playing.
+- Q6: The crash happens **every time** World 3 starts, but after the first time you can **skip it** with ESC.
+- Q7: No new worlds for now. Ethan wants **little details**, so his friends can get used to the game as it is.
+- Q8: 🎉 **Win dances!** When you beat a boss, your hero does a little dance before grabbing the key. You **buy** the dances with ⚡ bolts.
+- Q9: The dances are **silly moves**: the 🤪 **Wiggle** (shake your whole body), the 🐰 **Bunny Hop** (hop hop hop) and the 🤸 **Flip** (backflip in the air). 50 ⚡ each.
+- Q10: You buy and pick dances in the 👕 **wardrobe**, next to the hats, so each hero can have their own dance. If a hero has no dance picked, they do a **random** one of the dances you own.
+
+### Baby Capybara's tips, and the title flyer (round 5, in the game)
+
+- 🐹 **Baby Capybara** (a mini SuperCapybara) flies over the first time you meet something new, stands next to it, **points at it** 👉 and explains it in a **comic speech bubble**. The game freezes until you press SPACE / JUMP. Each tip shows once.
+- Tips: World 1: running and jumping, bolts, bad guys, gaps. World 3: horned knights, lava, falling rocks. World 2: walking around planets, jump rings, crystals, flying saucers. And every boss.
+- On the title screen, **💬 TIPS** switches between 😄 EXCITED, 🤓 PROFESSOR, 👶 BABY and OFF. Turning tips back on shows every tip again (for a new friend).
+- On the title screen, **🦸 FLYER** picks which of your heroes flies across the sky (wearing their hat).
+
+
+Ethan's decisions (round 5, started 2026-11-07):
+- Q1: 📖 **Tips for new players**: signs at the start of World 1 that show the buttons, in English and German, so his friends learn the game fast.
+- Q2: The tips come from a **little helper character** who pops up and says each tip in a **speech bubble**.
+- Q3: The helper is 🐹 **Baby Capybara**: a tiny capybara with a little cape, like a mini SuperCapybara. His speech bubbles look **like in comics** (white bubble, black outline, a pointy tail to his mouth).
+- Q4: Baby Capybara pops up **the first time you meet something new** in any world (a new bad guy, lava, the portal, the boss...) and tells you what to do. Each tip shows only **once**.
+- Q5: For each tip, Baby Capybara **stands next to the new thing** (next to the lava, the bad guy...) and **points at it**.
+- Q6: While he talks, **the game freezes** until you press a button to say "got it!", so everyone has time to read.
+- Q7: A **TIPS: ON/OFF** button in the menu. Turning it back **ON** makes all the tips show again from the start (for a new friend).
+- Q8: Baby Capybara helps in **World 1, World 3 and World 2** (space is the most confusing: walking around planets!). Not in Adventure or Cube Islands for now.
+- Q9: **The player chooses** how Baby Capybara talks: 😄 **super excited**, 🤓 **smart little professor** or 👶 **baby talk**. 
+- Q10: You can **choose which hero flies across the title screen** (it's always SuperCapybara now). It keeps flying like it does now.
+
 ## Fixed (2026-11-01, bugs Ethan found)
 
 - The hero's hat (and fire glow) got left behind on the helipad when jumping into the rocket. Now they go into the rocket too.
@@ -178,6 +218,7 @@ Ethan's decisions (round 3, built 2026-11-01):
 
 - More worlds: underwater 🌊, a spooky castle 🏰, candy land 🍭.
 - More power-ups.
+- A big new **story mode** with levels, cutscenes and lots of heroes teaming up, inspired by the adventure mode in Super Smash Bros (Ethan's idea, 2026-11-07). Our own story and bad guys, not a copy.
 - 2 PLAYERS TEAM in World 2 (3D), with a split screen (Cube Islands has it now).
 - Grape Boss in Boss Rush (he's in the 3D world).
 - More stuff for Grape Boss / World 2.

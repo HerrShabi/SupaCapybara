@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { CHARACTERS, KEYS, POWER_UPS } from '../characters.js';
+import { CHARACTERS, KEYS, POWER_UPS, DANCES } from '../characters.js';
 import { t, setLanguage, getLanguage, LANGUAGES } from '../i18n.js';
 import { DIFFICULTIES, DIFFICULTY_ORDER } from '../difficulty.js';
 import { audio } from '../audio.js';
@@ -24,6 +24,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create() {
+    this.wardrobe = null;
     const savedForColors = loadSave();
     this.secretsUnlocked = savedForColors.keys.includes('world3'); // beating the Lava Dragon unlocks the secrets
     this.palette = this.secretsUnlocked ? savedForColors.palette ?? 0 : 0;
@@ -49,7 +50,7 @@ export class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add.image(838, 44, 'bolt').setScale(1.3);
-    this.add
+    this.boltText = this.add
       .text(860, 44, String(this.save.bolts), { fontFamily: FONT, fontSize: '26px', color: '#ffd23f' })
       .setStroke('#000000', 6)
       .setOrigin(0, 0.5);
@@ -298,7 +299,7 @@ export class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
   }
 
-  // ---------- Wardrobe: pick the hat for the selected hero (hats come from ADVENTURE chests) ----------
+  // ---------- Wardrobe: pick the hat (hats come from ADVENTURE chests) and buy and pick the win dance ----------
 
   createWardrobeButton() {
     const x = this.secretsUnlocked ? 386 : 236;
@@ -306,39 +307,52 @@ export class MenuScene extends Phaser.Scene {
       .rectangle(x, 506, 140, 28, 0x00695c)
       .setStrokeStyle(3, 0x555588)
       .setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => this.openWardrobe());
+      .on('pointerdown', () => {
+        audio.play('click');
+        this.openWardrobe();
+      });
     const label = this.add.text(x, 506, `🎩 ${t('menu.wardrobe')}`, { fontFamily: FONT, fontSize: '13px', color: '#ffffff' }).setOrigin(0.5);
     label.setScale(Math.min(1, 130 / label.width));
   }
 
-  openWardrobe() {
+  openWardrobe(note = '') {
     createHatTextures(this);
-    audio.play('click');
+    this.wardrobe?.destroy();
     const character = this.characters[this.selectedIndex];
     const hats = HATS.filter((hat) => this.save.hats?.includes(hat));
     const wearing = this.save.wearing?.[character.id] ?? null;
     const panel = this.add.container(0, 0).setDepth(20);
+    this.wardrobe = panel;
     const add = (object) => panel.add(object) && object;
+    const label = (x, y, text, size, color = '#ffffff', width = 90) => {
+      const object = add(this.add.text(x, y, text, { fontFamily: FONT, fontSize: `${size}px`, color, align: 'center' }).setOrigin(0.5));
+      object.setScale(Math.min(1, width / object.width));
+      return object;
+    };
+    const card = (x, y, width, height, selected, onPick) =>
+      add(this.add.rectangle(x, y, width, height, selected ? 0x1565c0 : 0x1b1b2f).setStrokeStyle(3, selected ? 0xffd23f : 0x555588))
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', onPick);
 
     add(this.add.rectangle(0, 0, 960, 540, 0x000000, 0.6).setOrigin(0, 0).setInteractive()); // blocks clicks behind
-    add(this.add.rectangle(480, 290, 700, 330, 0x2c2c54).setStrokeStyle(4, 0xffd23f));
-    add(this.add.text(480, 150, `🎩 ${t('menu.wardrobe')}: ${t(`name.${character.id}`)}`, { fontFamily: FONT, fontSize: '24px', color: '#ffd23f' }).setOrigin(0.5));
-    add(this.add.text(820, 150, '✕', { fontFamily: FONT, fontSize: '28px', color: '#ffffff' }).setOrigin(0.5))
+    add(this.add.rectangle(480, 290, 720, 360, 0x2c2c54).setStrokeStyle(4, 0xffd23f));
+    label(480, 136, `🎩 ${t('menu.wardrobe')}: ${t(`name.${character.id}`)}`, 24, '#ffd23f', 600);
+    add(this.add.text(820, 136, '✕', { fontFamily: FONT, fontSize: '28px', color: '#ffffff' }).setOrigin(0.5))
       .setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => panel.destroy());
+      .on('pointerdown', () => {
+        panel.destroy();
+        this.wardrobe = null;
+      });
 
+    // Hats
+    label(480, 172, t('menu.hats'), 16, '#b9f6ca', 300);
     if (hats.length === 0) {
-      add(this.add.text(480, 290, t('menu.findHats'), { fontFamily: FONT, fontSize: '20px', color: '#ffffff' }).setOrigin(0.5));
-      return;
-    }
-
-    const choices = [null, ...hats];
-    choices.forEach((hat, i) => {
-      const x = 480 + (i - (choices.length - 1) / 2) * 110;
-      const selected = hat === wearing;
-      add(this.add.rectangle(x, 280, 96, 110, selected ? 0x1565c0 : 0x1b1b2f).setStrokeStyle(3, selected ? 0xffd23f : 0x555588))
-        .setInteractive({ useHandCursor: true })
-        .on('pointerdown', () => {
+      label(480, 226, t('menu.findHats'), 18, '#ffffff', 600);
+    } else {
+      const choices = [null, ...hats];
+      choices.forEach((hat, i) => {
+        const x = 480 + (i - (choices.length - 1) / 2) * 106;
+        card(x, 228, 96, 86, hat === wearing, () => {
           this.save.wearing ??= {};
           if (hat) this.save.wearing[character.id] = hat;
           else delete this.save.wearing[character.id];
@@ -346,11 +360,47 @@ export class MenuScene extends Phaser.Scene {
           audio.play('buy');
           this.scene.restart();
         });
-      if (hat) add(this.add.image(x, 270, `hat-${hat}`).setScale(2.5));
-      else add(this.add.text(x, 270, '🚫', { fontSize: '36px' }).setOrigin(0.5));
-      const name = add(this.add.text(x, 320, hat ? t(`hat.${hat}`) : t('menu.noHat'), { fontFamily: 'Arial', fontSize: '13px', color: '#ffffff', align: 'center', wordWrap: { width: 90 } }).setOrigin(0.5));
-      name.setScale(Math.min(1, 90 / name.width));
+        if (hat) add(this.add.image(x, 228, `hat-${hat}`).setScale(2.2));
+        else add(this.add.text(x, 220, '🚫', { fontSize: '30px' }).setOrigin(0.5));
+        label(x, 258, hat ? t(`hat.${hat}`) : t('menu.noHat'), 12);
+      });
+    }
+
+    // Win dances: buy one by clicking it, then click to pick it for this hero. 🎲 = a random one you own.
+    label(480, 292, t('menu.dances'), 16, '#b9f6ca', 400);
+    const owned = this.save.dances ?? [];
+    const picked = this.save.dancing?.[character.id] ?? null;
+    const choices = [null, ...DANCES];
+    choices.forEach((dance, i) => {
+      const x = 480 + (i - (choices.length - 1) / 2) * 132;
+      const has = !dance || owned.includes(dance.id);
+      card(x, 360, 120, 100, has && (dance?.id ?? null) === picked, () => this.pickDance(character, dance));
+      add(this.add.text(x, 334, dance ? dance.icon : '🎲', { fontSize: '30px' }).setOrigin(0.5)).setAlpha(has ? 1 : 0.5);
+      label(x, 370, dance ? t(`dance.${dance.id}`) : t('menu.randomDance'), 14, '#ffffff', 110);
+      const status = !dance ? '' : has ? t('menu.owned') : t('menu.buy', { price: `${dance.price} ⚡` });
+      if (status) label(x, 394, status, 12, has ? '#b9f6ca' : '#ffd23f', 110);
     });
+    label(480, 440, note || t('menu.danceHint'), 14, note ? '#ff8a80' : '#cccccc', 680);
+  }
+
+  pickDance(character, dance) {
+    const owned = (this.save.dances ??= []);
+    this.save.dancing ??= {};
+    if (dance && !owned.includes(dance.id)) {
+      if (this.save.bolts < dance.price) {
+        audio.play('error');
+        this.openWardrobe(t('menu.needBolts', { count: dance.price - this.save.bolts }));
+        return;
+      }
+      this.save.bolts -= dance.price;
+      owned.push(dance.id);
+      this.boltText.setText(String(this.save.bolts));
+    }
+    if (dance) this.save.dancing[character.id] = dance.id;
+    else delete this.save.dancing[character.id];
+    writeSave(this.save);
+    audio.play(dance ? 'buy' : 'click');
+    this.openWardrobe();
   }
 
   createTouchButton() {

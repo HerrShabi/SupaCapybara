@@ -3,6 +3,9 @@ import { loadSave, writeSave, resetSave } from '../save.js';
 import { t, setLanguage, getLanguage, LANGUAGES } from '../i18n.js';
 import { audio } from '../audio.js';
 import { createHeroTextures, heroKey } from '../art/heroes.js';
+import { createHatTextures, hatAnchor } from '../art/hats.js';
+import { CHARACTERS } from '../characters.js';
+import { TIP_STYLES } from '../tips.js';
 import { drawSkyline, drawBuilding } from '../art/city.js';
 
 // The first screen: SuperCapybara flying over the night city, and the game modes.
@@ -31,7 +34,10 @@ export class TitleScene extends Phaser.Scene {
     createHeroTextures(this, palette);
 
     this.createNightCity();
-    this.createFlyingHero(heroKey('supa-capybara', palette));
+    // The hero flying across the sky is your pick (FLYER button), wearing their hat
+    this.flyers = CHARACTERS.filter((c) => this.save.owned.includes(c.id)).map((c) => c.id);
+    const flyer = this.flyers.includes(this.save.titleHero) ? this.save.titleHero : 'supa-capybara';
+    this.createFlyingHero(flyer, heroKey(flyer, palette));
 
     const logo = this.add
       .text(480, 110, 'SUPERCAPYBARA', { fontFamily: FONT, fontSize: '76px', color: '#ffd23f' })
@@ -49,6 +55,8 @@ export class TitleScene extends Phaser.Scene {
     this.createTouchButton();
     this.createCreditsButton();
     this.createResetButton();
+    this.createFlyerButton(flyer);
+    this.createTipsButton();
 
     this.input.keyboard.on('keydown-UP', () => this.select(this.selected - 1));
     this.input.keyboard.on('keydown-DOWN', () => this.select(this.selected + 1));
@@ -77,10 +85,21 @@ export class TitleScene extends Phaser.Scene {
   }
 
   // SuperCapybara flies across the sky again and again, cape flapping.
-  createFlyingHero(look) {
+  createFlyingHero(id, look) {
     const hero = this.add.sprite(-120, 205, `${look}-jump`).setScale(2.4);
-    this.tweens.add({ targets: hero, x: 1080, duration: 5200, repeat: -1, repeatDelay: 900 });
-    this.tweens.add({ targets: hero, y: 178, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    const hatId = this.save.wearing?.[id];
+    let hat = null;
+    if (hatId) {
+      createHatTextures(this);
+      hat = this.add.image(0, 0, `hat-${hatId}`).setScale(2.4).setOrigin(0.5, hatId === 'shades' ? 0.5 : 1);
+    }
+    const moveHat = () => {
+      if (!hat) return;
+      const anchor = hatAnchor(id, hatId, 2.4);
+      hat.setPosition(hero.x + anchor.x, hero.y + anchor.y);
+    };
+    this.tweens.add({ targets: hero, x: 1080, duration: 5200, repeat: -1, repeatDelay: 900, onUpdate: moveHat });
+    this.tweens.add({ targets: hero, y: 178, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', onUpdate: moveHat });
     this.time.addEvent({
       delay: 70,
       loop: true,
@@ -163,6 +182,45 @@ export class TitleScene extends Phaser.Scene {
       .text(770, 34, `📱 ${t(this.save.touch ? 'menu.touchOn' : 'menu.touchOff')}`, { fontFamily: FONT, fontSize: '13px', color: '#ffffff' })
       .setOrigin(0.5);
     label.setScale(Math.min(1, 140 / label.width));
+  }
+
+  // FLYER: pick which of your heroes flies across the sky here.
+  createFlyerButton(flyer) {
+    this.add
+      .rectangle(480, 510, 240, 34, 0x00695c)
+      .setStrokeStyle(3, 0xffd23f)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        const next = this.flyers[(this.flyers.indexOf(flyer) + 1) % this.flyers.length];
+        this.save.titleHero = next;
+        writeSave(this.save);
+        audio.play('click');
+        this.scene.restart();
+      });
+    const label = this.add.text(480, 510, `🦸 ${t('menu.flyer')}: ${t(`name.${flyer}`)} ▶`, { fontFamily: FONT, fontSize: '14px', color: '#ffffff' }).setOrigin(0.5);
+    label.setScale(Math.min(1, 225 / label.width));
+  }
+
+  // Baby Capybara's tips: OFF, or his way of talking. Turning tips back on shows every tip again (for a new friend).
+  createTipsButton() {
+    const style = this.save.tips;
+    this.add
+      .rectangle(600, 34, 190, 32, style ? 0x2e7d32 : 0x2c2c54)
+      .setStrokeStyle(3, 0x555588)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        const order = [null, ...TIP_STYLES];
+        const next = order[(order.indexOf(style ?? null) + 1) % order.length];
+        if (!style && next) this.save.tipsSeen = [];
+        this.save.tips = next;
+        writeSave(this.save);
+        audio.play('click');
+        this.scene.restart();
+      });
+    const label = this.add
+      .text(600, 34, `💬 ${t('menu.tips')}: ${style ? t(`tips.${style}`) : t('menu.off')}`, { fontFamily: FONT, fontSize: '13px', color: '#ffffff' })
+      .setOrigin(0.5);
+    label.setScale(Math.min(1, 180 / label.width));
   }
 
   // Watch the ending again (after you've beaten the Lava Dragon).

@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { t } from '../i18n.js';
 import { audio } from '../audio.js';
-import { getCharacter } from '../characters.js';
+import { getCharacter, pickDance } from '../characters.js';
 import { getDifficulty, BAD_GUY_REWARD, BOSS_REWARD } from '../difficulty.js';
 import { writeSave, addBaby } from '../save.js';
 import { Hud } from './hud.js';
+import { tipWanted, markTipSeen, tipText, TIP_MIN_MS } from '../tips.js';
 import { PLANETS, START_PLANET, FORCE_FIELD_RADIUS, JUMPS, BOLT_RINGS, BAD_GUYS, SAUCERS, SHIP } from './level.js';
 import * as models from './models.js';
 
@@ -100,7 +101,10 @@ export class SpaceWorld {
     this.settings = getDifficulty(save.difficulty);
     this.keysDown = new Set();
     this.keysPressed = new Set();
+    this.pausedFor = 0; // time spent frozen by Baby Capybara's tips (this.now doesn't count it)
     this.now = performance.now();
+    this.startedAt = this.now;
+    this.tip = null;
     this.ended = false;
 
     this.setUpRenderer();
@@ -171,6 +175,7 @@ export class SpaceWorld {
       ring.position.copy(this.pointOn(from, dir, 0.05));
       ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
       this.scene.add(ring);
+      (this.rings ??= []).push(ring);
       from.jumpDir ??= dir;
     }
 
@@ -181,6 +186,7 @@ export class SpaceWorld {
     rocket.position.copy(this.pointOn(start, rocketDir, 0));
     orient(rocket, rocketDir, anyTangent(rocketDir));
     this.scene.add(rocket);
+    this.parkedRocket = rocket; // it flies over to pick you up after Grape Boss
 
     this.crystals = this.planets
       .filter((p) => p.crystal)
@@ -427,21 +433,34 @@ export class SpaceWorld {
   loop(time) {
     if (this.ended) return;
     const dt = Math.min((time - this.lastFrame) / 1000, 0.05);
+    if (this.tip) this.pausedFor += time - this.lastFrame; // frozen: the clock stops too
     this.lastFrame = time;
-    this.now = performance.now();
+    this.now = performance.now() - this.pausedFor;
 
-    if (!this.won) {
+    if (this.tip) {
+      this.updateTip(dt);
+      this.keysPressed.clear();
+      this.renderer.render(this.scene, this.camera);
+      this.frame = requestAnimationFrame((next) => this.loop(next));
+      return;
+    }
+    if (this.trip) {
+      this.updateTrip(dt);
+    } else if (this.danceState) {
+      this.updateDance(dt);
+    } else if (!this.won) {
       if (this.beam) this.updateBeam(dt);
       else this.updatePlayer(dt);
       this.updatePowers();
       this.updateEnemies(dt);
       this.updateShip();
       this.updateBoss(dt);
+      this.checkTips();
     }
     this.updateShots(dt);
     this.updateEffects(dt);
     this.updatePickups(dt);
-    this.updateCamera(dt);
+    if (!this.trip) this.updateCamera(dt);
 
     this.keysPressed.clear();
     this.renderer.render(this.scene, this.camera);
@@ -535,6 +554,18 @@ export class SpaceWorld {
 
     if (this.pressed('KeyX') || this.down('KeyX')) this.attack();
     this.updateTongue();
+
+    if (this.pendingDance && p.onGround && !this.beam) {
+      const { id, done } = this.pendingDance;
+      this.pendingDance = null;
+      p.mechaUntil = Math.min(p.mechaUntil, this.now);
+      p.flyUntil = Math.min(p.flyUntil, this.now);
+      p.vel.set(0, 0, 0);
+      p.model.visible = true;
+      this.mechaModel.visible = false;
+      this.danceState = { id, done, start: this.now, ms: id === 'wiggle' ? 1900 : 1700, hop: -1 };
+      audio.play('dance');
+    }
   }
 
   landed(planet) {
@@ -1396,10 +1427,159 @@ export class SpaceWorld {
     this.scene.remove(boss.mesh);
     for (const shot of this.shots.filter((s) => !s.fromPlayer)) shot.life = 0;
 
-    this.key = models.makeKey();
-    this.key.position.copy(this.pointOn(boss.planet, boss.dir, 1.6));
-    orient(this.key, boss.dir, anyTangent(boss.dir));
-    this.scene.add(this.key);
+    // Grape Boss's revenge: one last sticky grape flies off into space (it hits your rocket later!)
+    const grape = new THREE.Mesh(new THREE.SphereGeometry(0.7, 14, 10), new THREE.MeshStandardMaterial({ color: 0x8e24aa, emissive: 0x4a148c }));
+    const from = center.clone();
+    this.addEffect(grape, 1.6, (m, k) => m.position.copy(from).addScaledVector(boss.dir, k * k * 60));
+    this.hud.message('', t('game.grapeRevenge'), 3500);
+
+    // Win dance, then the key shows up
+    this.startDance(() => {
+      this.key = models.makeKey();
+      this.key.position.copy(this.pointOn(boss.planet, boss.dir, 1.6));
+      orient(this.key, boss.dir, anyTangent(boss.dir));
+      this.scene.add(this.key);
+    });
+  }
+
+  // ---------- Baby Capybara's tips (see tips.js) ----------
+
+  checkTips() {
+    if (!this.save.tips || this.won || this.danceState || this.beam) return;
+    const p = this.player;
+    if (!p.onGround) return;
+    const body = this.playerBody();
+    // Only things you can see on the screen
+    const near = (list, distance) => list.find((pos) => pos.distanceTo(body) < distance && this.onScreen(pos));
+    // First how planets work (after the "WORLD 2" message), then the rest
+    if (tipWanted(this.save, 'planet')) {
+      if (this.now - this.startedAt > 8500) this.showTip('planet', body);
+      return;
+    }
+    let spot = near((this.rings ?? []).map((ring) => ring.position), 7);
+    if (spot) this.showTip('ring', spot);
+    spot = near(this.crystals.filter((c) => !c.taken).map((c) => c.mesh.position), 9);
+    if (spot) this.showTip('crystal', spot);
+    spot = near(this.enemies.filter((e) => e.alive && e.kind === 'saucer').map((e) => e.mesh.position), 14);
+    if (spot) this.showTip('saucer', spot);
+    if (this.boss && this.boss.state !== 'arriving' && this.boss.state !== 'defeated' && this.onScreen(this.bossCenter())) this.showTip('boss2', this.bossCenter());
+  }
+
+  // Freezes the game. Baby Capybara (a mini SuperCapybara) flies over, floats next to `target`, points at it,
+  // and an HTML comic bubble shows the tip above him.
+  showTip(id, target) {
+    if (this.tip || !tipWanted(this.save, id)) return;
+    markTipSeen(this.save, id);
+    const up = this.upAt(this.nearestPlanet(target).planet, target);
+    const toCamera = this.camera.position.clone().sub(target);
+    const right = new THREE.Vector3().crossVectors(up, toCamera).normalize();
+    const spot = target.clone().addScaledVector(up, 1.2).addScaledVector(right, 1.8).addScaledVector(toCamera.normalize(), 0.8);
+    const { group } = models.makeHero('supa-capybara');
+    group.scale.setScalar(0.45);
+    orient(group, up, target.clone().sub(spot));
+    this.scene.add(group);
+
+    const bubble = document.createElement('div');
+    bubble.style.cssText =
+      'position:absolute;transform:translate(-50%,-100%);max-width:320px;padding:12px 18px;background:#fff;border:4px solid #000;border-radius:18px;' +
+      'font:19px "Comic Sans MS","Chalkboard SE",Arial,sans-serif;color:#000;text-align:center;pointer-events:none;z-index:20;visibility:hidden;';
+    bubble.innerHTML = '<div></div><div style="font:bold 13px Arial,sans-serif;color:#666;margin-top:6px"></div>' +
+      '<div style="position:absolute;left:50%;bottom:-14px;width:20px;height:20px;margin-left:-10px;background:#fff;border-right:4px solid #000;border-bottom:4px solid #000;transform:rotate(45deg)"></div>';
+    bubble.children[0].textContent = tipText(this.save, id);
+    bubble.children[1].textContent = t('tip.gotIt');
+    const finger = document.createElement('div');
+    finger.textContent = '👉';
+    finger.style.cssText = 'position:absolute;transform:translate(-50%,-50%);font-size:30px;pointer-events:none;z-index:20;visibility:hidden;';
+    this.container.append(bubble, finger);
+    this.tip = { id, group, up, spot, target: target.clone(), bubble, finger, age: 0, shownAt: Infinity };
+    audio.play('fly');
+  }
+
+  onScreen(pos) {
+    const v = pos.clone().project(this.camera);
+    return v.z < 1 && Math.abs(v.x) < 0.8 && Math.abs(v.y) < 0.8;
+  }
+
+  // Where a 3D point is on the screen, in pixels of the container.
+  toScreen(pos) {
+    const v = pos.clone().project(this.camera);
+    return { x: ((v.x + 1) / 2) * this.container.clientWidth, y: ((1 - v.y) / 2) * this.container.clientHeight };
+  }
+
+  updateTip(dt) {
+    const tip = this.tip;
+    tip.age += dt;
+    const k = Math.min(1, tip.age / 0.55);
+    tip.group.position.copy(tip.spot).addScaledVector(tip.up, 8 * (1 - k) * (1 - k));
+    if (k < 1) return;
+    if (tip.shownAt === Infinity) {
+      tip.shownAt = performance.now();
+      tip.bubble.style.visibility = tip.finger.style.visibility = 'visible';
+      audio.play('click');
+    }
+    tip.group.position.addScaledVector(tip.up, Math.sin(tip.age * 4) * 0.1); // floating
+    const head = this.toScreen(tip.spot.clone().addScaledVector(tip.up, 0.9));
+    tip.bubble.style.left = `${Math.min(Math.max(head.x, 170), this.container.clientWidth - 170)}px`;
+    tip.bubble.style.top = `${Math.min(Math.max(head.y - 20, tip.bubble.offsetHeight + 10), this.container.clientHeight - 30)}px`;
+    const from = this.toScreen(tip.spot);
+    const to = this.toScreen(tip.target);
+    tip.finger.style.left = `${from.x + (to.x - from.x) * 0.45}px`;
+    tip.finger.style.top = `${from.y + (to.y - from.y) * 0.45}px`;
+    tip.finger.style.transform = `translate(-50%,-50%) scaleX(${to.x < from.x ? -1 : 1})`;
+
+    if (performance.now() - tip.shownAt < TIP_MIN_MS) return;
+    if (!this.pressed('Space', 'Enter', 'KeyX')) return;
+    tip.bubble.remove();
+    tip.finger.remove();
+    this.tip = null;
+    this.player.safeUntil = Math.max(this.player.safeUntil, this.now + 800);
+    // Bye-bye! He flies away
+    const start = tip.group.position.clone();
+    this.addEffect(tip.group, 0.7, (m, j) => m.position.copy(start).addScaledVector(tip.up, j * j * 12));
+  }
+
+  // ---------- Win dance (see DANCES in characters.js) ----------
+
+  // Once you're standing on the ground, your hero dances, then `done` runs. No dance bought = `done` right away.
+  startDance(done) {
+    const id = pickDance(this.save, this.character.id);
+    if (!id) return done();
+    this.pendingDance = { id, done };
+  }
+
+  // Waits for the hero to land (the normal loop keeps running until then), then dances in place, facing the camera.
+  updateDance() {
+    const p = this.player;
+    const d = this.danceState;
+    const k = Math.min(1, (this.now - d.start) / d.ms);
+    const up = this.upAt(p.planet, p.pos);
+    p.model.position.copy(p.pos);
+    orient(p.model, up, p.forward.clone().negate());
+    p.legs.forEach((leg) => (leg.rotation.x = 0));
+    if (d.id === 'wiggle') {
+      p.model.rotateY(Math.sin(k * Math.PI * 14) * 0.5);
+      p.model.rotateZ(Math.sin(k * Math.PI * 18) * 0.2);
+    } else if (d.id === 'bunny') {
+      const hop = Math.floor(k * 3);
+      if (hop !== d.hop && hop < 3) {
+        d.hop = hop;
+        audio.play('jump');
+      }
+      p.model.position.addScaledVector(up, Math.abs(Math.sin(k * Math.PI * 3)) * 1.1);
+      p.model.rotateY(hop % 2 ? 0.6 : -0.6);
+    } else {
+      // Backflip: go up, spin all the way around (around the middle of the body), come down
+      p.model.position.addScaledVector(up, Math.sin(k * Math.PI) * 2.4);
+      p.model.translateY(0.6);
+      p.model.rotateX(-Math.PI * 2 * (k < 0.15 ? 0 : k > 0.85 ? 1 : (k - 0.15) / 0.7));
+      p.model.translateY(-0.6);
+    }
+    if (this.aura) this.aura.position.copy(this.playerBody());
+    if (k >= 1) {
+      this.danceState = null;
+      orient(p.model, up, p.forward);
+      d.done();
+    }
   }
 
   win() {
@@ -1409,7 +1589,114 @@ export class SpaceWorld {
     if (!this.save.keys.includes('world2')) this.save.keys.push('world2');
     writeSave(this.save);
     this.hud.message(t('game.gotKey'), t('game.world2Done'), 0);
-    this.exitTimer = setTimeout(() => this.exit(), 5000);
+    this.exitTimer = setTimeout(() => this.startTrip(), 2500);
+  }
+
+  // ---------- Off to the volcano: the rocket picks you up, and Grape Boss's sticky grape SPLATs it ----------
+
+  startTrip() {
+    const p = this.player;
+    const up = this.upAt(p.planet, p.pos);
+    const side = new THREE.Vector3().crossVectors(up, p.forward).normalize();
+    const landDir = up.clone().applyAxisAngle(side, -3 / p.planet.radius); // a few steps in front of you
+    const land = this.pointOn(p.planet, landDir, 0);
+    if (this.parkedRocket) this.scene.remove(this.parkedRocket);
+    const rocket = models.makeRocket();
+    const flame = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.8, 12), new THREE.MeshBasicMaterial({ color: 0xff7043 }));
+    flame.rotation.x = Math.PI; // pointing down
+    flame.position.y = -0.6;
+    rocket.add(flame);
+    orient(rocket, landDir, p.forward);
+    this.scene.add(rocket);
+    this.hud.message('', t('game.rocketComing'), 4000);
+    audio.play('rocket');
+    // The camera backs off to the side so you can watch the whole thing
+    const camera = land.clone().addScaledVector(p.forward, -12).addScaledVector(side, 9).addScaledVector(landDir, 5);
+    this.trip = { start: this.now, rocket, flame, land, up: landDir, camera, heroFrom: p.model.position.clone(), beeps: 0, splatted: false };
+    // A black curtain for the fade at the end
+    this.curtain = document.createElement('div');
+    this.curtain.style.cssText = 'position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity 0.8s;';
+    this.container.appendChild(this.curtain);
+  }
+
+  updateTrip(dt) {
+    const trip = this.trip;
+    const { rocket, flame, land, up } = trip;
+    const p = this.player;
+    const time = (this.now - trip.start) / 1000;
+    const ease = (k) => 1 - (1 - k) * (1 - k);
+
+    if (time < 2) {
+      // Fly down from the sky and land
+      rocket.position.copy(land).addScaledVector(up, 30 * (1 - ease(time / 2)));
+      flame.scale.setScalar(0.8 + Math.random() * 0.4);
+    } else if (time < 2.8) {
+      // Hop in (the hero shrinks into the door)
+      rocket.position.copy(land);
+      flame.visible = false;
+      const k = (time - 2) / 0.8;
+      p.model.position.lerpVectors(trip.heroFrom, land.clone().addScaledVector(up, 1.5), k);
+      p.model.scale.setScalar(Math.max(0.01, 1 - k));
+      if (this.aura) this.aura.visible = false;
+    } else if (time < 4.4) {
+      p.model.visible = false;
+      const beep = Math.floor((time - 2.8) / 0.5);
+      if (beep > trip.beeps - 1 && beep < 3) {
+        trip.beeps = beep + 1;
+        audio.play('countdown');
+      }
+    } else {
+      // Blast off!
+      if (!trip.blasted) {
+        trip.blasted = true;
+        audio.play('blastOff');
+        this.shakeUntil = this.now + 1500;
+      }
+      const flying = time - 4.4;
+      flame.visible = true;
+      flame.scale.setScalar(1.3 + Math.random() * 0.5);
+      rocket.position.copy(land).addScaledVector(up, 3 * flying * flying);
+      if (flying > 1.1 && !trip.grape) {
+        // Here comes the sticky grape from Grape Boss's revenge...
+        trip.grape = true;
+        const grape = new THREE.Mesh(new THREE.SphereGeometry(0.6, 14, 10), new THREE.MeshStandardMaterial({ color: 0x8e24aa, emissive: 0x4a148c }));
+        const from = rocket.position.clone().addScaledVector(this.camera.position.clone().sub(rocket.position).cross(up).normalize(), 25);
+        this.addEffect(grape, 0.5, (m, k) => m.position.lerpVectors(from, rocket.position.clone().addScaledVector(up, 1.5), k));
+      }
+      if (flying > 1.6 && !trip.splatted) {
+        // SPLAT! The sticky grape comes back and hits the engine
+        trip.splatted = true;
+        audio.play('splat');
+        this.pop(rocket.position.clone(), 0x8e24aa, 3);
+        const goo = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 8), new THREE.MeshStandardMaterial({ color: 0x8e24aa, emissive: 0x4a148c }));
+        goo.position.set(0.7, 0.8, 0);
+        goo.scale.set(0.6, 1, 1);
+        rocket.add(goo);
+        this.hud.message(t('game.splat'), '', 2000);
+      }
+      if (trip.splatted) {
+        // Smoke, and the rocket wobbles
+        rocket.rotateZ(Math.sin(this.now / 90) * 0.04);
+        if (Math.random() < dt * 25) this.pop(rocket.position.clone().addScaledVector(up, -0.5), 0x616161, 1.2);
+      }
+      if (flying > 3.2 && !trip.fading) {
+        trip.fading = true;
+        this.curtain.style.opacity = '1';
+      }
+      if (flying > 4.2) {
+        this.exit('World3');
+        return;
+      }
+    }
+
+    // The camera watches the rocket (and rises a bit to follow it)
+    const lift = Math.max(0, rocket.position.distanceTo(land) - (time < 2 ? 30 : 0)) * 0.6;
+    const smooth = 1 - Math.exp(-dt * 3);
+    this.camera.position.lerp(trip.camera.clone().addScaledVector(up, lift), smooth);
+    this.camera.up.lerp(up, smooth).normalize();
+    const look = rocket.position.clone().addScaledVector(up, 2);
+    if (this.now < (this.shakeUntil ?? 0)) look.add(new THREE.Vector3().randomDirection().multiplyScalar(0.25));
+    this.camera.lookAt(look);
   }
 
 
@@ -1486,10 +1773,11 @@ export class SpaceWorld {
 
   // ---------- Leaving ----------
 
-  exit() {
+  // next: the scene to go to ('World3' after the rocket trip), or nothing for the menu
+  exit(next) {
     if (this.ended) return;
     this.destroy();
-    this.onExit();
+    this.onExit(next);
   }
 
   destroy() {
@@ -1500,6 +1788,9 @@ export class SpaceWorld {
     window.removeEventListener('keyup', this.onKeyUp);
     window.removeEventListener('resize', this.resize);
     this.hud.destroy();
+    this.curtain?.remove();
+    this.tip?.bubble.remove();
+    this.tip?.finger.remove();
     this.renderer.dispose();
     this.renderer.domElement.remove();
   }

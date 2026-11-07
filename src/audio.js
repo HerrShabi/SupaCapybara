@@ -359,6 +359,30 @@ class GameAudio {
         this.tone({ from: 160, length: 0.15, volume: 0.13 });
         this.tone({ from: 140, delay: 0.17, length: 0.2, volume: 0.13 });
         break;
+      case 'dance': // a silly little tune for the win dances
+        this.notes(['G5', 'E5', 'G5', 'E5', 'C6', 'B5', 'G5', 'C6'], { wave: 'triangle', gap: 0.15, length: 0.12, volume: 0.14 });
+        this.notes(['C4', 'G3', 'C4', 'G3'], { wave: 'square', gap: 0.3, length: 0.1, volume: 0.06 });
+        break;
+      case 'splat': // Grape Boss's sticky grape
+        this.noise({ length: 0.25, volume: 0.5, frequency: 600 });
+        this.tone({ wave: 'sine', from: 400, to: 60, length: 0.3, volume: 0.3 });
+        break;
+      case 'alarm':
+        this.tone({ from: 990, length: 0.12, volume: 0.1 });
+        this.tone({ from: 740, delay: 0.15, length: 0.12, volume: 0.1 });
+        break;
+      case 'crash':
+        this.noise({ length: 1, volume: 0.7, frequency: 1200 });
+        this.tone({ wave: 'sawtooth', from: 200, to: 40, length: 0.8, volume: 0.25 });
+        break;
+      case 'bash': // smashing the rocket door
+        this.noise({ length: 0.07, volume: 0.4, filter: 'bandpass', frequency: 900 });
+        this.tone({ from: 220, to: 160, length: 0.06, volume: 0.1 });
+        break;
+      case 'doorOpen':
+        this.noise({ length: 0.3, volume: 0.4, filter: 'bandpass', frequency: 1800 });
+        this.notes(['C5', 'G5'], { gap: 0.08, length: 0.15, volume: 0.12 });
+        break;
       default:
         break;
     }

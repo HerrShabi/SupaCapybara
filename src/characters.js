@@ -65,6 +65,22 @@ export const POWER_UPS = [
   { id: 'mecha-capybara', price: 1750, ready: true },
 ];
 
+// Win dances: after beating a boss, your hero dances before the key drops. Bought and picked in the wardrobe.
+// Names are in i18n.js as 'dance.<id>'. Which hero does which is save.dancing[heroId].
+export const DANCES = [
+  { id: 'wiggle', price: 50, icon: '🤪' },
+  { id: 'bunny', price: 50, icon: '🐰' },
+  { id: 'flip', price: 50, icon: '🤸' },
+];
+
+// The dance this hero does: the one picked in the wardrobe, or a random one you own. null if you own none.
+export function pickDance(save, heroId) {
+  const owned = save.dances ?? [];
+  const chosen = save.dancing?.[heroId];
+  if (chosen && owned.includes(chosen)) return chosen;
+  return owned.length ? owned[Math.floor(Math.random() * owned.length)] : null;
+}
+
 export function getCharacter(id) {
   return CHARACTERS.find((c) => c.id === id) ?? CHARACTERS[0];
 }
