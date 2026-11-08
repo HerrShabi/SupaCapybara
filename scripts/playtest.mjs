@@ -2,7 +2,7 @@
 // Usage: node scripts/playtest.mjs '[["eval","S.player.setPosition(3700, 380), 1"],["hold","right",1000],["down","x"],["wait",500],["up","x"],["shot","name"]]'
 // Steps: touchdown <x> <y> | touchmove <x> <y> | touchup | hold <key> <ms> | down <key> | up <key> | wait <ms> | click <x> <y> (game coordinates) | shot <name> (saved to /tmp/supercapybara-<name>.png)
 //        eval <js> where "S." means the World1 scene and "M." the Menu scene. Keys: right, left, up, down, enter, esc, shift, space, or any single letter (x, c, v...).
-//        The game starts on the Title screen (ENTER there goes to the Menu). Saved progress stays between runs; eval "localStorage.clear()" to reset it.
+//        The game starts on the WHO'S PLAYING? screen (ENTER picks the last player and goes to the Title screen; ENTER there goes to the Menu). Saved progress stays between runs; eval "localStorage.clear()" to reset it.
 
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';

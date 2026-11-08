@@ -96,6 +96,7 @@ export class StoryUnderwaterScene extends StoryLevelScene {
         titleKey: 'story.place.underwater',
         keyId: 'story-underwater',
         bossName: 'story.darkChameleon',
+        disco: { x: 2180, y: 482, prop: 'clam', ground: 510 }, // the secret disco: a giant clam at the bottom of a deep trench
         width: LEVEL_WIDTH,
         arenaStart: ARENA_START,
         start: { x: 120, y: 360 },

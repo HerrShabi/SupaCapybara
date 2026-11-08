@@ -1,6 +1,6 @@
 // All sounds and music, made with the Web Audio API (there are no sound files).
 // - audio.play('laser') plays an effect.
-// - audio.playMusic('menu' | 'city' | 'space' | 'volcano' | 'boss') loops a theme song; audio.stopMusic() stops it.
+// - audio.playMusic('menu' | 'city' | 'space' | 'volcano' | 'boss' | 'disco') loops a theme song; audio.stopMusic() stops it.
 // - audio.startCity() / audio.stopCity() turn the city background noise on and off.
 // Browsers only allow sound after the player clicks or presses a key, so everything waits for that.
 
@@ -84,6 +84,19 @@ const SONGS = {
       'E2 E2 E3 E2 E2 E2 E3 E2', 'C2 C2 C3 C2 C2 C2 C3 C2', 'A1 A1 A2 A1 A1 A1 A2 A1', 'B1 B1 B2 B1 B1 B1 B2 B1',
     ),
     drums: Array(8).fill('kh h sh h kh kh sh sh').join(' '),
+  },
+  // The secret capybara disco (the easter egg in every world): octave-jumping bass and a kick on every beat.
+  disco: {
+    bpm: 124,
+    lead: bars(
+      'A4 . C5 E5 . D5 C5 .', 'D5 . F5 . E5 D5 C5 .', 'G4 . B4 D5 . C5 B4 .', 'C5 E5 G5 E5 C5 - - .',
+      'A5 . G5 E5 . G5 A5 .', 'F5 . E5 D5 . E5 F5 .', 'G5 . F5 D5 . B4 D5 .', 'E5 . G#5 . B5 - - .',
+    ),
+    bass: bars(
+      'A2 A3 A2 A3 A2 A3 A2 A3', 'D2 D3 D2 D3 D2 D3 D2 D3', 'G2 G3 G2 G3 G2 G3 G2 G3', 'C2 C3 C2 C3 C2 C3 C2 C3',
+      'F2 F3 F2 F3 F2 F3 F2 F3', 'D2 D3 D2 D3 D2 D3 D2 D3', 'G2 G3 G2 G3 G2 G3 G2 G3', 'E2 E3 E2 E3 E2 E3 E2 E3',
+    ),
+    drums: Array(8).fill('kh h ksh h kh h ksh h').join(' '),
   },
 };
 

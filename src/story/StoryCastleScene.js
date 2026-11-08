@@ -93,6 +93,7 @@ export class StoryCastleScene extends StoryLevelScene {
         rushTitleKey: 'menu.kingRush',
         keyId: 'story-castle',
         bossName: COPIES[0].name,
+        disco: { x: 2300, y: 400, prop: 'brick' }, // the secret disco: a cracked brick right behind a swinging axe
         width: LEVEL_WIDTH,
         arenaStart: ARENA_START,
         start: { x: 100, y: 360 },

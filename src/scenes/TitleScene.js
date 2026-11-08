@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { goldify } from '../art/gold.js';
 import { pen } from '../art/doodle.js';
-import { loadSave, writeSave, resetSave } from '../save.js';
+import { loadSave, writeSave, resetSave, currentAccount } from '../save.js';
 import { t, setLanguage, getLanguage, LANGUAGES } from '../i18n.js';
 import { audio } from '../audio.js';
 import { createHeroTextures, heroKey } from '../art/heroes.js';
@@ -65,6 +65,7 @@ export class TitleScene extends Phaser.Scene {
     this.createResetButton();
     this.createFlyerButton(flyer);
     this.createTipsButton();
+    this.createAccountButton();
 
     this.input.keyboard.on('keydown-UP', () => this.select(this.selected - 1));
     this.input.keyboard.on('keydown-DOWN', () => this.select(this.selected + 1));
@@ -208,6 +209,20 @@ export class TitleScene extends Phaser.Scene {
       });
     const label = this.add.text(480, 510, `🦸 ${t('menu.flyer')}: ${t(`name.${flyer}`)} ▶`, { fontFamily: FONT, fontSize: '14px', color: '#ffffff' }).setOrigin(0.5);
     label.setScale(Math.min(1, 225 / label.width));
+  }
+
+  // 👤 Who's playing: back to the WHO'S PLAYING? screen (switch, rename, add or delete players)
+  createAccountButton() {
+    this.add
+      .rectangle(110, 450, 190, 34, 0x1565c0)
+      .setStrokeStyle(3, 0xffd23f)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        audio.play('click');
+        this.scene.start('Accounts');
+      });
+    const label = this.add.text(110, 450, `👤 ${currentAccount().name}`, { fontFamily: FONT, fontSize: '15px', color: '#ffffff' }).setOrigin(0.5);
+    label.setScale(Math.min(1, 175 / label.width));
   }
 
   // Baby Capybara's tips: OFF, or his way of talking. Turning tips back on shows every tip again (for a new friend).

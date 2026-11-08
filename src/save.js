@@ -1,4 +1,7 @@
 // The saved game lives in the browser (localStorage), so it's still there tomorrow.
+// ACCOUNTS (Ethan's design, 2026-11-08): up to 4 players on one device, each with their own save. The list is
+// stored under ACCOUNTS_KEY; loadSave()/writeSave() always use the current account's save. The first account
+// ('main') keeps the save from before accounts existed (STORAGE_KEY), so nobody loses their progress.
 
 import { STARTING_CHARACTERS } from './characters.js';
 import { isTouchDevice } from './touch.js';
@@ -31,16 +34,78 @@ function newSave() {
   };
 }
 
+const ACCOUNTS_KEY = 'supercapybara-accounts';
+export const MAX_ACCOUNTS = 4;
+
+const saveKey = (id) => (id === 'main' ? STORAGE_KEY : `${STORAGE_KEY}~${id}`);
+
+// { current: id, list: [{ id, name, hero }] } (hero = the hero picture on the WHO'S PLAYING? screen)
+export function loadAccounts() {
+  try {
+    const accounts = JSON.parse(localStorage.getItem(ACCOUNTS_KEY));
+    if (accounts?.list?.length) {
+      if (!accounts.list.some((a) => a.id === accounts.current)) accounts.current = accounts.list[0].id;
+      return accounts;
+    }
+  } catch {}
+  // No accounts yet: the save from before accounts is Ethan's
+  const name = localStorage.getItem(STORAGE_KEY) ? 'Ethan' : 'Player 1';
+  return { current: 'main', list: [{ id: 'main', name, hero: 'supa-capybara' }] };
+}
+
+function writeAccounts(accounts) {
+  localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
+}
+
+export function currentAccount() {
+  const accounts = loadAccounts();
+  return accounts.list.find((a) => a.id === accounts.current);
+}
+
+export function switchAccount(id) {
+  const accounts = loadAccounts();
+  accounts.current = id;
+  writeAccounts(accounts);
+}
+
+// A new player with a fresh save (keeping this device's language, sound and touch buttons). Returns its id.
+export function addAccount(name, hero) {
+  const accounts = loadAccounts();
+  if (accounts.list.length >= MAX_ACCOUNTS) return null;
+  const { language, muted, touch } = loadSave();
+  const id = `p${Date.now().toString(36)}`;
+  accounts.list.push({ id, name, hero });
+  writeAccounts(accounts);
+  localStorage.setItem(saveKey(id), JSON.stringify({ ...newSave(), language, muted, touch }));
+  return id;
+}
+
+export function changeAccount(id, changes) {
+  const accounts = loadAccounts();
+  Object.assign(accounts.list.find((a) => a.id === id), changes);
+  writeAccounts(accounts);
+}
+
+// Deletes the player and their save. The last player can't be deleted.
+export function deleteAccount(id) {
+  const accounts = loadAccounts();
+  if (accounts.list.length <= 1) return;
+  accounts.list = accounts.list.filter((a) => a.id !== id);
+  if (accounts.current === id) accounts.current = accounts.list[0].id;
+  writeAccounts(accounts);
+  localStorage.removeItem(saveKey(id));
+}
+
 export function loadSave() {
   try {
-    return { ...newSave(), ...JSON.parse(localStorage.getItem(STORAGE_KEY)) };
+    return { ...newSave(), ...JSON.parse(localStorage.getItem(saveKey(loadAccounts().current))) };
   } catch {
     return newSave();
   }
 }
 
 export function writeSave(save) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
+  localStorage.setItem(saveKey(loadAccounts().current), JSON.stringify(save));
 }
 
 // CUBE ISLANDS progress: { food: { color: count }, babies: [{ animal, color, xp, team }], dragonBeaten }.

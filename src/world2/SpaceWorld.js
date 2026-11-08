@@ -1,3 +1,4 @@
+import { showDisco } from '../disco.js';
 import * as THREE from 'three';
 import { t } from '../i18n.js';
 import { audio } from '../audio.js';
@@ -94,8 +95,10 @@ function slide(dir, heading, angle) {
 }
 
 export class SpaceWorld {
-  constructor({ container, save, onExit }) {
+  constructor({ container, save, onExit, discoPictures }) {
     this.container = container;
+    this.discoPictures = discoPictures;
+    this.disco = false;
     this.save = save;
     this.onExit = onExit;
     this.character = getCharacter(save.selected);
@@ -188,6 +191,7 @@ export class SpaceWorld {
     orient(rocket, rocketDir, anyTangent(rocketDir));
     this.scene.add(rocket);
     this.parkedRocket = rocket; // it flies over to pick you up after Grape Boss
+    this.createDiscoCrack(rocket);
 
     this.crystals = this.planets
       .filter((p) => p.crystal)
@@ -434,9 +438,16 @@ export class SpaceWorld {
   loop(time) {
     if (this.ended) return;
     const dt = Math.min((time - this.lastFrame) / 1000, 0.05);
-    if (this.tip) this.pausedFor += time - this.lastFrame; // frozen: the clock stops too
+    if (this.tip || this.disco) this.pausedFor += time - this.lastFrame; // frozen: the clock stops too
     this.lastFrame = time;
     this.now = performance.now() - this.pausedFor;
+
+    if (this.disco) {
+      // The secret disco party is on (an HTML overlay): everything waits
+      this.keysPressed.clear();
+      this.frame = requestAnimationFrame((next) => this.loop(next));
+      return;
+    }
 
     if (this.tip) {
       this.updateTip(dt);
@@ -716,6 +727,65 @@ export class SpaceWorld {
       audio.play('tongue');
       p.tongue = { startedAt: this.now, hit: false };
     }
+    // Right next to the disco crack, any attack breaks it (scratches and tongues too)
+    if (this.discoCrack && this.discoSpot().distanceTo(this.playerBody()) < 2.4) this.openDisco();
+  }
+
+  // ---------- The secret capybara disco (the easter egg, see disco.js): a crack on the back of the parked rocket ----------
+
+  createDiscoCrack(rocket) {
+    if (!this.discoPictures) return;
+    const crack = new THREE.Group();
+    const lines = [
+      [0, 0.25, 0.5, 0.25],
+      [0.05, -0.1, 0.4, -0.35],
+      [-0.05, -0.4, 0.35, 0.3],
+      [0.18, 0.05, 0.25, 1.1],
+      [-0.14, -0.15, 0.22, -1.0],
+    ];
+    for (const [x, y, length, angle] of lines) {
+      const dark = new THREE.Mesh(new THREE.BoxGeometry(0.06, length, 0.04), new THREE.MeshBasicMaterial({ color: 0x1a1a1a }));
+      dark.position.set(x, y, 0);
+      dark.rotation.z = angle;
+      const glow = new THREE.Mesh(new THREE.BoxGeometry(0.025, length * 0.8, 0.05), new THREE.MeshBasicMaterial({ color: 0xff4dd2 }));
+      glow.position.set(x, y, 0.01);
+      glow.rotation.z = angle;
+      crack.add(dark, glow);
+    }
+    // On the back of the body (the window is on the front)
+    crack.position.set(0, 1.5, -0.81);
+    crack.rotation.y = Math.PI;
+    rocket.add(crack);
+    this.discoCrack = crack;
+  }
+
+  discoSpot() {
+    return this.discoCrack.getWorldPosition(new THREE.Vector3());
+  }
+
+  openDisco() {
+    if (!this.discoCrack || this.won) return;
+    const crack = this.discoCrack;
+    this.discoCrack = null;
+    // The crack breaks into a glowing hole with flashing disco lights
+    const hole = new THREE.Mesh(new THREE.CircleGeometry(0.35, 16), new THREE.MeshBasicMaterial({ color: 0xff4dd2 }));
+    hole.position.copy(crack.position);
+    hole.rotation.y = Math.PI;
+    crack.parent.add(hole);
+    crack.parent.remove(crack);
+    const colors = [0xff1744, 0x00e5ff, 0xffea00, 0x76ff03, 0xd500f9];
+    const flash = setInterval(() => hole.material.color.setHex(colors[Math.floor(Math.random() * colors.length)]), 250);
+    this.pop(hole.getWorldPosition(new THREE.Vector3()), 0xff4dd2, 1);
+    this.disco = true;
+    this.keysDown.clear();
+    setTimeout(() => {
+      showDisco({
+        ...this.discoPictures,
+        music: audio.wantedSong,
+        onDone: () => (this.disco = false),
+      });
+    }, 450);
+    this.discoFlash = flash;
   }
 
   addShot({ mesh, planet, start, dir, speed, life, damage = 1, fromPlayer, homing = false }) {
@@ -817,7 +887,10 @@ export class SpaceWorld {
       shot.mesh.position.copy(shot.planet.center).add(shot.offset);
       shot.mesh.lookAt(shot.mesh.position.clone().add(shot.heading));
 
-      if (shot.fromPlayer) {
+      if (shot.fromPlayer && this.discoCrack && this.discoSpot().distanceTo(shot.mesh.position) < 1.2) {
+        shot.life = 0;
+        this.openDisco();
+      } else if (shot.fromPlayer) {
         const enemy = this.enemies.find((e) => e.alive && this.enemyPosition(e).distanceTo(shot.mesh.position) < (e.hitRadius ?? 1));
         if (enemy) {
           this.defeat(enemy, shot.damage);
@@ -1793,6 +1866,7 @@ export class SpaceWorld {
 
   destroy() {
     this.ended = true;
+    clearInterval(this.discoFlash);
     cancelAnimationFrame(this.frame);
     clearTimeout(this.exitTimer);
     window.removeEventListener('keydown', this.onKeyDown);

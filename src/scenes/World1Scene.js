@@ -108,6 +108,7 @@ export class World1Scene extends SideScrollerScene {
       keyId: 'world1',
       music: 'city',
       bossName: 'game.pizzaBoss',
+      disco: { x: 1486, y: 355 }, // the secret disco: a crack in the first water tower's tank
       // Baby Capybara's tips: [tip, when you pass x, point at x, y]
       tips: [
         ['move', 0],

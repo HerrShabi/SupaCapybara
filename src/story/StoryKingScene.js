@@ -40,6 +40,7 @@ export class StoryKingScene extends StoryLevelScene {
         rushTitleKey: 'menu.kingRush',
         keyId: 'story-king',
         bossName: 'story.kingName',
+        disco: { x: 868, y: 170 }, // the secret disco: a crack peeking out from behind a purple banner
         width: VIEW_WIDTH,
         arenaStart: 0,
         start: { x: 120, y: 360 },
@@ -327,7 +328,9 @@ export class StoryKingScene extends StoryLevelScene {
   // ---------- The end: his own zapper backfires ----------
 
   defeatBoss() {
+    if (this.won) return; // only once: shots still flying at him don't make it backfire again
     this.won = true;
+    this.boss.body.enable = false; // can't be hit anymore
     this.bossTimer?.remove();
     this.zap = null;
     this.zapGraphics.clear();

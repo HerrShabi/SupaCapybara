@@ -92,6 +92,7 @@ export class StoryJungleScene extends StoryLevelScene {
         titleKey: 'story.place.jungle',
         keyId: 'story-jungle',
         bossName: 'story.darkUltra',
+        disco: { x: 2060, y: 235, prop: 'trunk', ground: 430 }, // the secret disco: high up in a hollow tree trunk
         width: LEVEL_WIDTH,
         arenaStart: ARENA_START,
         start: { x: 100, y: 360 },
@@ -415,7 +416,9 @@ export class StoryJungleScene extends StoryLevelScene {
 
   checkStatue() {
     if (this.quizDone || this.quiz || this.time.now < this.quizReadyAt) return;
-    const player = this.players.find((p) => Math.abs(p.x - STATUE.x) < 40 && Math.abs(p.sprite.body.bottom - STATUE.y) < 10);
+    // Standing anywhere on the statue's ledge opens the quiz
+    const [left, , width] = STATUE_LEDGE;
+    const player = this.players.find((p) => p.x > left && p.x < left + width && Math.abs(p.sprite.body.bottom - STATUE.y) < 10);
     if (player) this.openQuiz(player);
   }
 

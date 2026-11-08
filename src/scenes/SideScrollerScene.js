@@ -15,6 +15,8 @@ import { tipWanted, markTipSeen, tipText, TIP_MIN_MS } from '../tips.js';
 import { drawComicBubble } from '../comicBubble.js';
 import { MagicPencil } from '../magicPencil.js';
 import { drawingMode, applySketch, useDrawnHeroes } from '../sketch.js';
+import { showDisco, heroPicture } from '../disco.js';
+import { drawDiscoProp } from '../art/discoSpots.js';
 
 // Everything the side-scrolling worlds (1 and 3) share: the hero, hearts, bolts, bad guys,
 // getting hurt, the boss health bar, the key and winning.
@@ -45,7 +47,8 @@ const MAX_TNT_BOLTS = 6;
 export class SideScrollerScene extends Phaser.Scene {
   // level: { world, titleKey, exitTo, keyId, music, bossName, width, arenaStart, start, arenaCheckpoint, bolts, sunglasses, apples, robots, fallY,
   //          fire (fire versions of the bad guys), knights: [[fromX, toX, y]], bossRushNext (scene key of the next Boss Rush fight),
-  //          tips: [[tipId, whenPlayerPassesX, pointAtX, pointAtY]] (Baby Capybara's tips; no point = point at the player) }
+  //          tips: [[tipId, whenPlayerPassesX, pointAtX, pointAtY]] (Baby Capybara's tips; no point = point at the player),
+  //          disco: { x, y, prop?, ground? } (the crack to the secret capybara disco, see disco.js; prop: its hiding place from art/discoSpots.js) }
   //
   // Boss Rush (a secret): start the scene with { bossRush: true, hearts }. You start right at the boss,
   // your hearts carry over from fight to fight, and losing them all is game over.
@@ -90,6 +93,7 @@ export class SideScrollerScene extends Phaser.Scene {
     this.dancing = null;
     this.cutscene = null;
     this.tip = null;
+    this.disco = null;
     this.hearts = data.hearts ?? this.settings.hearts;
     this.safeUntil = 0;
     // (data.start: start somewhere else, like next to World 1's portal when you come back from Cube Islands)
@@ -120,6 +124,7 @@ export class SideScrollerScene extends Phaser.Scene {
       this.physics.add.collider(player.lasers, this.solids, (laser) => laser.destroy());
     }
 
+    this.createDiscoCrack();
     this.createBolts();
     this.createBadGuys();
     this.createEnemyShots();
@@ -500,7 +505,76 @@ export class SideScrollerScene extends Phaser.Scene {
       this.hitBoss(damage);
       hitSomething = true;
     }
+    if (this.discoCrack?.active && Phaser.Geom.Intersects.RectangleToRectangle(area, this.discoCrack.getBounds())) {
+      this.openDisco();
+      hitSomething = true;
+    }
     return hitSomething;
+  }
+
+  // ---------- The secret capybara disco (the easter egg, see disco.js) ----------
+
+  // A little crack at level.disco. Any attack breaks it (lasers, scratches, the magic pencil's bomb).
+  createDiscoCrack() {
+    const spot = this.level.disco;
+    if (!spot) return;
+    const { x, y } = spot;
+    if (spot.prop) drawDiscoProp(this, spot);
+    const g = this.add.graphics().setDepth(1.4);
+    // Jagged dark lines, with a tiny bit of colored disco light shining through
+    const lines = [
+      [[x - 4, y - 18], [x + 3, y - 8], [x - 3, y], [x + 5, y + 9], [x, y + 18]],
+      [[x + 3, y - 8], [x + 12, y - 12]],
+      [[x - 3, y], [x - 13, y + 4]],
+      [[x + 5, y + 9], [x + 13, y + 14]],
+    ];
+    for (const [width, color] of [[4, 0x1a1a1a], [1.5, 0xff4dd2]]) {
+      g.lineStyle(width, color);
+      for (const line of lines) g.strokePoints(line.map(([px, py]) => ({ x: px, y: py })));
+    }
+    this.discoCrackLook = g;
+    this.discoCrack = this.add.zone(x, y, 40, 44);
+    this.physics.add.existing(this.discoCrack, true);
+    for (const player of this.players) {
+      this.physics.add.overlap(player.lasers, this.discoCrack, (laser) => {
+        laser.destroy();
+        this.openDisco();
+      });
+    }
+  }
+
+  openDisco() {
+    if (!this.discoCrack?.active || this.won) return;
+    const { x, y } = this.level.disco;
+    this.discoCrack.destroy();
+    this.disco = true;
+    this.freezeWorld(); // (tweens added after this still play)
+    this.time.paused = false; // (a little pause to see the crack break, then the party)
+    // The crack breaks into a glowing hole, with disco lights flashing inside
+    this.discoCrackLook.clear();
+    const hole = this.add.ellipse(x, y, 34, 44, 0xff4dd2).setDepth(1.4).setStrokeStyle(4, 0x1a1a1a);
+    const colors = [0xff1744, 0x00e5ff, 0xffea00, 0x76ff03, 0xd500f9];
+    this.time.addEvent({ delay: 250, loop: true, callback: (n = Phaser.Math.Between(0, 4)) => hole.setFillStyle(colors[n]) });
+    for (let i = 0; i < 8; i++) {
+      const bit = this.add.rectangle(x, y, 8, 8, 0x5d4037).setDepth(1.5);
+      this.tweens.add({ targets: bit, x: x + Phaser.Math.Between(-60, 60), y: y + Phaser.Math.Between(-50, 30), angle: 360, alpha: 0, duration: 500, onComplete: () => bit.destroy() });
+    }
+    audio.play('shatter');
+    const id = this.player.character.id;
+    const textures = this.textures;
+    this.time.delayedCall(450, () => {
+      this.time.paused = true;
+      showDisco({
+        hero: heroPicture(textures, `${this.heroLook?.(id) ?? heroKey(id, this.palette)}-idle`),
+        capybara: heroPicture(textures, `${heroKey('supa-capybara', 0)}-idle`),
+        music: audio.wantedSong,
+        onDone: () => {
+          if (!this.scene.isActive()) return;
+          this.disco = null;
+          this.unfreezeWorld();
+        },
+      });
+    });
   }
 
   // For Bloodmoon Cat's moon: the closest bad guy (or the boss) to x, y.
@@ -853,6 +927,7 @@ export class SideScrollerScene extends Phaser.Scene {
   // ---------- Every frame ----------
 
   update(time, delta) {
+    if (this.disco) return; // the party is on (the world is frozen)
     if (this.tip) {
       this.updateTip();
       return;
@@ -912,6 +987,7 @@ export class SideScrollerScene extends Phaser.Scene {
       if (badGuy.body?.enable && Phaser.Math.Distance.Between(x, y, badGuy.x, badGuy.y) < radius) this.defeat(badGuy);
     }
     if (this.bossHittable() && Phaser.Math.Distance.Between(x, y, this.boss.x, this.boss.y) < radius + 80) this.hitBoss(damage);
+    if (this.discoCrack?.active && Phaser.Math.Distance.Between(x, y, this.discoCrack.x, this.discoCrack.y) < radius) this.openDisco();
   }
 
   // ---------- Freezing the game (for tips, or a level's own pop-ups like the jungle quiz) ----------

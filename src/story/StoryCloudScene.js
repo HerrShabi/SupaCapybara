@@ -70,6 +70,7 @@ export class StoryCloudScene extends StoryLevelScene {
         titleKey: 'story.place.cloud',
         keyId: 'story-cloud',
         bossName: 'story.darkCat',
+        disco: { x: 2070, y: 250, prop: 'pot', ground: 270 }, // the secret disco: a pot at the end of a rainbow on the highest puff
         width: LEVEL_WIDTH,
         arenaStart: ARENA_START,
         start: { x: 100, y: 360 },

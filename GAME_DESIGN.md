@@ -382,6 +382,36 @@ Ethan's decisions (round 12, started 2026-11-07):
 - The heroes and their hats become the **drawn ones from the Drawings World** (SuperCapybara upright, like the clay model).
 - The screen display (hearts, bolts, messages) stays clean and easy to read.
 
+## Easter eggs (in the game since 2026-11-08)
+
+Ethan's idea: an easter egg in **every world**. An easter egg is something **well hidden** that's **funny to find**.
+
+- The easter egg is the **same in every world**: a hidden capybara **disco party** with dancing capybaras and flashing lights.
+- How you get in: a little **crack** in a wall or tower. **Attack it**, it breaks, and disco music bursts out.
+- When you find it, your hero **joins the party and dances**, then the capybaras wave goodbye and you keep playing. (No prize: the fun is finding it.)
+- **World 1 (city):** the disco is inside a water tower.
+- **World 2 (space):** inside the **rocket**.
+- **World 3 (volcano):** a crack in the wall just above a **lava pit**: jump at it and attack it in mid-air.
+- Ethan let Claude pick the rest:
+- **World 4 (Cloud Kingdom):** a cracked **pot at the end of a rainbow** on a high cloud (you expect gold, but it's a disco).
+- **World 5 (Underwater City):** a cracked **giant clam** at the bottom of a deep trench.
+- **World 6 (Jungle):** a crack in a **hollow tree trunk**, way up high.
+- **World 7 (Castle):** a cracked **brick** in the wall right behind a swinging axe.
+- **World 8 (Throne Room):** a crack hidden **behind one of the King's purple banners**.
+
+## Accounts (in the game since 2026-11-08)
+
+Ethan's idea: **other accounts**, so friends each have their own save (bolts, heroes, worlds).
+- When the game starts, a **"Who's playing?"** screen shows up to **4 players**. Each one has a **name** and picks a **hero picture**.
+- You can **switch accounts** and **change an account's name** anytime.
+- Deleting: a **trash button**. The account's capybara looks super sad and says **"Nooo, don't delete me!"**, then it asks **"Are you SURE?"**.
+- The save from before accounts becomes the first account, named **Ethan**.
+
+## Fixed (2026-11-08, bugs Ethan found)
+
+- The Bad Guy King's zapper backfired again and again (every laser still flying hit him after he lost). Now it's once.
+- The jungle quiz statue: standing anywhere on its ledge opens the quiz (it used to need the exact spot).
+
 ## Fixed (2026-11-01, bugs Ethan found)
 
 - The hero's hat (and fire glow) got left behind on the helipad when jumping into the rocket. Now they go into the rocket too.
