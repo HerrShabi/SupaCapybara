@@ -4,14 +4,14 @@ import { audio } from './audio.js';
 // THE SECRET CAPYBARA DISCO (Ethan's easter egg, 2026-11-08): the same well-hidden surprise in every STORY
 // world. Attack the little crack (each world hides it somewhere else) and it breaks open: disco music, flashing
 // lights, a disco ball, and dancing capybaras. Your hero joins the party and dances, then the capybaras wave
-// goodbye and you keep playing. No prize: the fun is finding it.
+// goodbye, hand you a MAGIC STRAWBERRY (strawberry.js; golden the first time in each world), and you keep playing.
 //
 // It's an HTML overlay, so the 2D worlds (SideScrollerScene) and World 2's 3D (SpaceWorld) show the same party.
-// showDisco({ hero, capybara, music, onDone }): hero / capybara are image URLs (see heroPicture);
-// music is the song to go back to afterwards.
+// showDisco({ hero, capybara, music, reward, onDone }): hero / capybara are image URLs (see heroPicture);
+// music is the song to go back to afterwards; reward is 'gold', 'red' or 'full' (from discoReward).
 
 const PARTY_MS = 6500; // dancing
-const BYE_MS = 1800; // waving goodbye, then the party fades away
+const BYE_MS = 3200; // waving goodbye and handing you the strawberry, then the party fades away
 
 const STYLE = `
 .disco { position: fixed; inset: 0; z-index: 40; overflow: hidden; background: radial-gradient(circle at 50% 30%, #4a148c, #12002b 70%);
@@ -35,9 +35,13 @@ const STYLE = `
 .disco .dancer.hero img { width: 24vmin; filter: drop-shadow(0 0 2vmin #ffea00); }
 .disco .dancer .wave { position: absolute; top: -6vmin; font-size: 6vmin; opacity: 0; transition: opacity 0.3s; }
 .disco.bye .dancer .wave { opacity: 1; animation: disco-wave 0.4s ease-in-out infinite alternate; }
-.disco .bye-text { position: absolute; top: 40%; width: 100%; text-align: center; font-size: 9vmin; color: #fff; text-shadow: 4px 4px 0 #d500f9;
+.disco .bye-text { position: absolute; top: 18%; width: 100%; text-align: center; font-size: 9vmin; color: #fff; text-shadow: 4px 4px 0 #d500f9;
   opacity: 0; transition: opacity 0.3s; }
 .disco.bye .bye-text { opacity: 1; }
+.disco .reward { position: absolute; top: 36%; width: 100%; text-align: center; font-size: 4.5vmin; color: #fff; text-shadow: 3px 3px 0 #000;
+  opacity: 0; transition: opacity 0.3s; }
+.disco .reward .berry { display: block; font-size: 14vmin; animation: disco-pulse 0.3s ease-in-out infinite alternate; }
+.disco.bye .reward { opacity: 1; }
 .disco .d0 { animation: disco-bounce 0.48s ease-in-out infinite alternate; }
 .disco .d1 { animation: disco-side 0.97s ease-in-out infinite; }
 .disco .d2 { animation: disco-twirl 1.94s ease-in-out infinite; }
@@ -62,7 +66,7 @@ const CAPYBARA_COLORS = [0, 120, 200, 290];
 
 let styled = false;
 
-export function showDisco({ hero, capybara, music, onDone }) {
+export function showDisco({ hero, capybara, music, reward, onDone }) {
   if (!styled) {
     styled = true;
     const style = document.createElement('style');
@@ -80,7 +84,8 @@ export function showDisco({ hero, capybara, music, onDone }) {
     <div class="ball">🪩</div>
     <div class="title">🪩 ${t('disco.title')} 🪩</div>
     <div class="dancers">${capy(0)}${capy(1)}<div class="dancer hero"><span class="wave">👋</span><img class="hero-dance" src="${hero}"></div>${capy(2)}${capy(3)}</div>
-    <div class="bye-text">${t('disco.bye')}</div>`;
+    <div class="bye-text">${t('disco.bye')}</div>
+    <div class="reward">${reward ? `<span class="berry">${{ gold: '🌟🍓', red: '🍓', full: '🍓🍓🍓' }[reward]}</span>${t({ gold: 'strawberry.gotGold', red: 'strawberry.gotRed', full: 'strawberry.bagFull' }[reward])}` : ''}</div>`;
   document.body.appendChild(room);
   requestAnimationFrame(() => room.classList.add('show'));
   audio.play('shatter');

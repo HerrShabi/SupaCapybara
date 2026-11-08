@@ -916,7 +916,7 @@ export class QuestWorld extends AdventureWorld {
           this.defeatBadGuy(bad);
           p.vel.y = JUMP_SPEED * 0.8;
           audio.play('stomp');
-        } else if (p.character.fireAura || this.active('mecha', p)) {
+        } else if (p.character.fireAura || this.active('mecha', p) || this.active('rainbow', p)) {
           this.defeatBadGuy(bad);
         } else {
           this.hurt(bad.pos, p);
@@ -1066,7 +1066,7 @@ export class QuestWorld extends AdventureWorld {
     // Touching the dragon hurts (unless you're on fire or in the Mecha suit)
     for (const player of this.players) {
       if (this.bodyOf(player).distanceTo(this.dragonCenter()) > DRAGON_HIT_RADIUS + 0.5) continue;
-      if (player.character.fireAura || this.active('mecha', player)) {
+      if (player.character.fireAura || this.active('mecha', player) || this.active('rainbow', player)) {
         if (this.now > (dragon.burnReadyAt ?? 0)) {
           dragon.burnReadyAt = this.now + 300;
           this.hitDragon(1);

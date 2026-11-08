@@ -1,6 +1,6 @@
 // All sounds and music, made with the Web Audio API (there are no sound files).
 // - audio.play('laser') plays an effect.
-// - audio.playMusic('menu' | 'city' | 'space' | 'volcano' | 'boss' | 'disco') loops a theme song; audio.stopMusic() stops it.
+// - audio.playMusic('menu' | 'city' | 'space' | 'volcano' | 'boss' | 'disco' | 'strawberry' | 'strawberryHurry') loops a theme song; audio.stopMusic() stops it.
 // - audio.startCity() / audio.stopCity() turn the city background noise on and off.
 // Browsers only allow sound after the player clicks or presses a key, so everything waits for that.
 
@@ -99,6 +99,22 @@ const SONGS = {
     drums: Array(8).fill('kh h ksh h kh h ksh h').join(' '),
   },
 };
+// The magic strawberry's song (strawberry.js): bouncy and bright. strawberryHurry is the same song, faster,
+// for the last seconds of the magic.
+SONGS.strawberry = {
+  bpm: 168,
+  leadWave: 'triangle',
+  lead: bars(
+    'C5 E5 G5 E5 C6 . G5 .', 'A5 . F5 A5 C6 . A5 .', 'G5 E5 C5 E5 G5 . E5 .', 'F5 E5 D5 E5 C5 - - .',
+    'E5 G5 C6 G5 E6 . C6 .', 'D6 . B5 G5 D6 . B5 .', 'C6 B5 A5 G5 F5 E5 D5 E5', 'C5 E5 G5 C6 C6 - - .',
+  ),
+  bass: bars(
+    'C3 . G3 . C3 . G3 .', 'F2 . C3 . F2 . C3 .', 'C3 . G3 . C3 . G3 .', 'G2 . D3 . G2 . B2 .',
+    'C3 . G3 . C3 . G3 .', 'G2 . D3 . G2 . D3 .', 'F2 . C3 . G2 . D3 .', 'C3 . G3 . C3 C3 C3 .',
+  ),
+  drums: Array(8).fill('kh h sh h kh kh sh h').join(' '),
+};
+SONGS.strawberryHurry = { ...SONGS.strawberry, bpm: 236 };
 
 // Turns "C5 - . D5" into notes with a start step and a length in steps.
 function toNotes(track) {

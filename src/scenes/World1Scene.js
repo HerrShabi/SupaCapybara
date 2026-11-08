@@ -3,6 +3,7 @@ import { t } from '../i18n.js';
 import { audio } from '../audio.js';
 import { SideScrollerScene, VIEW_WIDTH, VIEW_HEIGHT } from './SideScrollerScene.js';
 import { createPizzaBossTexture } from '../art/pizzaBoss.js';
+import { openKeypad, drawKeypadPost } from '../keypad.js';
 import { drawBuilding, drawBillboard, drawWaterTower, drawSkyline, createHelicopterTextures, createRocketTextures } from '../art/city.js';
 
 // World 1: the city. Jump across rooftops; the sky goes from day to sunset to night as you go.
@@ -52,8 +53,10 @@ const WASHERS = [
   [2795, 100, 300, 460],
 ];
 const WASHER_SPEED = 60;
-// The secret portal to the Cube Islands floats above the second water tower. It glows when you get close.
+// The secret portal to the Cube Islands floats above the second water tower. It's closed until you type the code
+// on the keypad next to it (Ethan's drawing, see keypad.js); then it swirls open and glows when you get close.
 const PORTAL = { x: 3605, y: 270 };
+const KEYPAD = { x: 3490, ground: 440 }; // on the roof, left of the water tower
 const PORTAL_GLOW_DISTANCE = 220;
 
 // Lightning bolts to collect: [x, y, howMany]. Each row is spaced 40px apart.
@@ -133,8 +136,12 @@ export class World1Scene extends SideScrollerScene {
     createHelicopterTextures(this);
     createRocketTextures(this);
     super.create(data.fromPortal ? { ...data, start: { x: PORTAL.x - 110, y: 360 } } : data);
+    this.portalOpen = Boolean(data.fromPortal); // (coming back from Cube Islands, it's still open)
     this.createPortal();
     this.portalReadyAt = data.fromPortal ? this.time.now + 2500 : 0;
+    this.keypad = null;
+    this.keypadReadyAt = 0;
+    if (!this.bossRush) drawKeypadPost(this, KEYPAD.x, KEYPAD.ground);
     if (data.fromPortal) {
       this.safeUntil = this.time.now + 3000; // a moment to look around before the bad guys can hurt you
       this.cameras.main.flash(500, 206, 147, 216);
@@ -169,12 +176,49 @@ export class World1Scene extends SideScrollerScene {
     });
     g.generateTexture('portal', 80, 110);
     g.destroy();
-    this.portal = this.add.image(PORTAL.x, PORTAL.y, 'portal').setAlpha(0.15);
+    this.portal = this.add.image(PORTAL.x, PORTAL.y, 'portal').setAlpha(this.portalOpen ? 0.15 : 0);
     this.tweens.add({ targets: this.portal, scaleX: 0.85, duration: 500, yoyo: true, repeat: -1 });
+  }
+
+  // While the keypad is open, the level waits
+  update(time, delta) {
+    if (this.keypad) {
+      this.keypad.update();
+      return;
+    }
+    super.update(time, delta);
+  }
+
+  // Walk up to the keypad: it opens (type the code from the note, then ✓)
+  checkKeypad() {
+    if (this.portalOpen || this.keypad || this.time.now < this.keypadReadyAt) return;
+    const player = this.players.find((p) => Math.abs(p.x - KEYPAD.x) < 30 && Math.abs(p.sprite.body.bottom - KEYPAD.ground) < 12);
+    if (!player) return;
+    this.freezeWorld();
+    this.keypad = openKeypad(this, player, {
+      onClose: () => {
+        this.keypad = null;
+        this.unfreezeWorld();
+        this.keypadReadyAt = this.time.now + 2500; // step away before it opens again
+      },
+      onRight: () => this.openPortal(),
+    });
+  }
+
+  // The right code: the portal swirls open
+  openPortal() {
+    this.portalOpen = true;
+    audio.play('forceField');
+    this.cameras.main.flash(400, 206, 147, 216);
+    const message = this.bigMessage(t('keypad.open'), '#e1bee7').setScale(0.6);
+    this.time.delayedCall(1800, () => message.destroy());
+    this.portal.setAlpha(1).setScale(0);
+    this.tweens.add({ targets: this.portal, scaleY: 1, angle: 720, duration: 900, ease: 'Back.easeOut', onComplete: () => this.portal.setAngle(0) });
   }
 
   updatePortal() {
     if (this.bossRush) return;
+    if (!this.portalOpen) return this.checkKeypad();
     if (this.time.now < (this.portalReadyAt ?? 0)) return; // just came back out of it
     const near = Math.min(...this.players.map((player) => Phaser.Math.Distance.Between(player.x, player.y, PORTAL.x, PORTAL.y)));
     this.portal.setAlpha(near < PORTAL_GLOW_DISTANCE ? 1 : 0.15);

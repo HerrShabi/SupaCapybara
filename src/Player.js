@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { Magic, MAGIC_SPEED, takeStrawberry, bagText, rainbowColor } from './strawberry.js';
 import { t } from './i18n.js';
 import { audio } from './audio.js';
 import { Controls } from './controls.js';
@@ -58,7 +59,10 @@ export class Player {
   // scheme / padIndex: which keys and game controller (see controls.js); two players use 'p1' and 'p2'.
   // hat: the hat this hero wears (from save.wearing), or nothing. hatStyle: a world's own hat pictures and head
   // positions ({ prefix: texture key prefix, anchor(heroId, hat, scale) }), like the Drawings World's drawn hats.
-  constructor(scene, character, x, y, { powerUps = [], look = character.id, scheme = 'solo', padIndex = 0, hat = null, hatStyle = null } = {}) {
+  // strawberry: true if this hero can eat magic strawberries from the bag (scene.save; not in 2 PLAYERS).
+  constructor(scene, character, x, y, { powerUps = [], look = character.id, scheme = 'solo', padIndex = 0, hat = null, hatStyle = null, strawberry = false } = {}) {
+    this.canEatStrawberry = strawberry;
+    this.magic = new Magic();
     this.hatStyle = hatStyle;
     this.scene = scene;
     this.character = character;
@@ -145,9 +149,37 @@ export class Player {
     return this.scene.time.now < this.mechaUntil;
   }
 
-  // Nothing can hurt you in shadow form or in the Mecha suit.
+  // Nothing can hurt you in shadow form, in the Mecha suit, or with a magic strawberry's rainbow magic.
   get unhurtable() {
-    return this.shadow || this.mecha;
+    return this.shadow || this.mecha || this.rainbow;
+  }
+
+  get rainbow() {
+    return this.magic.active(this.scene.time.now);
+  }
+
+  // B: eat the oldest magic strawberry in the bag (strawberry.js)
+  eatStrawberry() {
+    const berry = takeStrawberry(this.scene.save);
+    if (!berry) {
+      audio.play('error');
+      this.scene.flashMessage?.(t('strawberry.empty'));
+      return;
+    }
+    this.magic.start(berry, this.scene.time.now);
+    this.scene.flashMessage?.(t(berry === 'gold' ? 'strawberry.goldEaten' : 'strawberry.eaten'));
+  }
+
+  updateRainbow() {
+    const now = this.scene.time.now;
+    if (this.magic.update(now) === 'ended') this.restoreLook();
+    if (!this.rainbow) return;
+    this.sprite.setTint(rainbowColor(now), rainbowColor(now + 100), rainbowColor(now + 200), rainbowColor(now + 300)); // a rainbow across the hero
+    // Rainbow sparkles behind you
+    if (Math.random() < 0.4) {
+      const spark = this.scene.add.circle(this.x - this.facing * 20, this.y + Phaser.Math.Between(-15, 15), 4, rainbowColor(now + 600)).setDepth(1.9);
+      this.scene.tweens.add({ targets: spark, alpha: 0, scale: 0.2, duration: 400, onComplete: () => spark.destroy() });
+    }
   }
 
   // Back to the right look after blinking (see-through when invisible, dark purple in shadow form).
@@ -176,7 +208,9 @@ export class Player {
     if (this.hasMecha) {
       parts.push(this.mechaUsed && !this.mecha ? `R = ${t('game.mecha')}: ${t('game.used')}` : status('R', t('game.mecha'), this.mechaUntil, 0));
     }
-    return parts.join('     ');
+    if (this.rainbow) parts.push(`🌈 ${t('strawberry.magic')}! ${this.magic.secondsLeft(now)}`);
+    else if (this.canEatStrawberry) parts.push(bagText(this.scene.save));
+    return parts.filter(Boolean).join('     ');
   }
 
   // Jumped on a bad guy's head: bounce up off it.
@@ -201,7 +235,7 @@ export class Player {
     }
     const now = this.scene.time.now;
     const c = this.controls;
-    const speed = RUN_SPEED * (this.shadow ? SHADOW_SPEED : 1);
+    const speed = RUN_SPEED * (this.shadow ? SHADOW_SPEED : 1) * (this.rainbow ? MAGIC_SPEED : 1);
     const body = this.sprite.body;
     const onGround = body.blocked.down;
     const bouncing = now < this.hurtAt + BOUNCE_MS;
@@ -285,6 +319,8 @@ export class Player {
       this.freezeReadyAt = this.scene.time.now + FREEZE_WAIT_MS;
     }
     if (this.mechaUntil && !this.mecha) this.endMecha();
+    if (this.canEatStrawberry && c.justPressed('strawberry')) this.eatStrawberry();
+    this.updateRainbow();
     this.steerMoons();
     this.updateTongue();
     if (this.aura) this.aura.setPosition(this.x, this.y + 6);

@@ -17,6 +17,7 @@ import { MagicPencil } from '../magicPencil.js';
 import { drawingMode, applySketch, useDrawnHeroes } from '../sketch.js';
 import { showDisco, heroPicture } from '../disco.js';
 import { drawDiscoProp } from '../art/discoSpots.js';
+import { discoReward } from '../strawberry.js';
 
 // Everything the side-scrolling worlds (1 and 3) share: the hero, hearts, bolts, bad guys,
 // getting hurt, the boss health bar, the key and winning.
@@ -114,6 +115,7 @@ export class SideScrollerScene extends Phaser.Scene {
           padIndex: i,
           hat: this.save.wearing?.[id] ?? null,
           hatStyle: this.hatStyle ?? null, // (a world's own hats, like the Drawings World)
+          strawberry: !this.team, // magic strawberries (strawberry.js); TEAM has no power-ups
         }),
     );
     this.player = this.players[0];
@@ -156,7 +158,10 @@ export class SideScrollerScene extends Phaser.Scene {
 
     // The magic pencil (won in the Drawings World): E / ✏️ pauses the game to draw a bomb
     this.magicPencil = this.save.magicPencil && !this.team ? new MagicPencil(this) : null;
-    this.events.once('shutdown', () => this.magicPencil?.destroy());
+    this.events.once('shutdown', () => {
+      this.magicPencil?.destroy();
+      for (const player of this.players) player.magic.stop(); // (the strawberry song ends with the level)
+    });
 
     if (this.save.touch) {
       const container = this.game.canvas.parentElement;
@@ -253,6 +258,12 @@ export class SideScrollerScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(10);
+  }
+
+  // A short message in the middle of the screen that fades away (like "MAGIC STRAWBERRY!")
+  flashMessage(text, color = '#ffd23f') {
+    const message = this.bigMessage(text, color).setScale(0.55).setY(150);
+    this.tweens.add({ targets: message, alpha: 0, y: 120, delay: 1100, duration: 500, onComplete: () => message.destroy() });
   }
 
   // ---------- Bolts ----------
@@ -353,9 +364,9 @@ export class SideScrollerScene extends Phaser.Scene {
     }
   }
 
-  // Ultra Capybara's fire aura and the Mecha suit smash whatever they touch.
+  // Ultra Capybara's fire aura, the Mecha suit and a magic strawberry's rainbow smash whatever they touch.
   smashesOnTouch(player) {
-    return player.character.fireAura || player.mecha;
+    return player.character.fireAura || player.mecha || player.rainbow;
   }
 
   touchedBadGuy(badGuy, player = this.player) {
@@ -568,6 +579,7 @@ export class SideScrollerScene extends Phaser.Scene {
         hero: heroPicture(textures, `${this.heroLook?.(id) ?? heroKey(id, this.palette)}-idle`),
         capybara: heroPicture(textures, `${heroKey('supa-capybara', 0)}-idle`),
         music: audio.wantedSong,
+        reward: discoReward(this.save, this.scene.key),
         onDone: () => {
           if (!this.scene.isActive()) return;
           this.disco = null;

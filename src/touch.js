@@ -15,6 +15,7 @@ const KEYS = {
   KeyQ: { key: 'q', keyCode: 81 },
   KeyZ: { key: 'z', keyCode: 90 },
   KeyE: { key: 'e', keyCode: 69 },
+  KeyB: { key: 'b', keyCode: 66 },
   Escape: { key: 'Escape', keyCode: 27 },
   // Two players: player 1 uses A D W F G, player 2 uses the arrows, ENTER and SHIFT (see controls.js)
   KeyA: { key: 'a', keyCode: 65 },
@@ -78,6 +79,7 @@ export function showTouchControls(container, buttons, labels) {
     buttons.swap && ['KeyQ', '🔄'],
     buttons.freeze && ['KeyZ', '❄️'],
     buttons.pencil && ['KeyE', '✏️'],
+    buttons.strawberry && ['KeyB', '🍓'],
   ].filter(Boolean);
   powers.forEach(([code, emoji], i) => add(code, emoji, { right: `${20 + i * 72}px`, bottom: '140px', ...size(62), fontSize: '26px' }));
 
@@ -229,5 +231,6 @@ export function touchButtonsFor(character, powerUps, threeD) {
     freeze: powerUps.includes('freeze'),
     shield: powerUps.includes('shield'),
     fly,
+    strawberry: true, // the magic strawberry (it says so if your bag is empty)
   };
 }

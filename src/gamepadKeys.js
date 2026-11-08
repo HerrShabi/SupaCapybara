@@ -16,7 +16,7 @@ const BUTTON_KEYS = {
   6: 'KeyR', // L2: Mecha
   7: 'KeyQ', // R2: switch attack
   8: 'Escape', // SELECT: back / menu
-  9: 'Enter', // START
+  9: ['Enter', 'KeyB'], // START (and eat a magic strawberry in the 3D worlds)
   10: 'KeyZ', // press the left stick: Freeze Ray
   12: 'ArrowUp',
   13: 'ArrowDown',
@@ -33,9 +33,9 @@ export function startGamepadKeys(isQuiet) {
     const pad = navigator.getGamepads?.().find(Boolean);
     const wanted = new Set();
     if (pad && !isQuiet()) {
-      for (const [index, code] of Object.entries(BUTTON_KEYS)) {
+      for (const [index, codes] of Object.entries(BUTTON_KEYS)) {
         const button = pad.buttons[index];
-        if (button && (button.pressed || button.value > 0.5)) wanted.add(code);
+        if (button && (button.pressed || button.value > 0.5)) for (const code of [codes].flat()) wanted.add(code);
       }
       const [x = 0, y = 0] = pad.axes;
       if (x < -STICK) wanted.add('ArrowLeft');

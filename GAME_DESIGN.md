@@ -110,6 +110,7 @@ When you beat the Lava Dragon:
 
 Ethan's own idea: a 3D world that looks like **Pokémon Quest**, where everything is made of cubes.
 - **How to get there:** a **secret portal** in World 1, floating above the second water tower (near the end of the city). It's faint until you get close, then it glows.
+- **New (2026-11-08): the portal opens with a keypad** (Ethan's drawing: `concept-art/portal-keypad.jpeg`, the photo is upside down). The keypad has 1 2 3 / 4 5 6 / 7 8 9 / ✓ 0 ✗, with a screen that shows what you typed. The secret code is **8725**, written on a little **paper note stuck right on the keypad**, crooked over its corner (like in the drawing). Type the code and press ✓ to open the portal. Type a **wrong** code and the keypad says **"NOOOOOOOPE!"** (then you can try again). **In the game.** The screen is under the buttons, like in the drawing. After the code, the portal stays open until you leave World 1.
 - **Base camp:** the **cooking pot** and 3 **launch pads** that send you on missions: ☀️ Sunny Beach, ❄️ Frosty Forest and 🐉 Dragon Island. Each island has a pad back to base. Every visit is a new mission, so the food and bad guys come back.
 - **Food:** find it on the islands, and blocky robot bad guys drop it when you beat them. 🍓 red berries, 🍄 blue mushrooms, 🌽 yellow corn.
 - **Cooking:** walk up to the pot with 3 food. The color you have the most of decides the baby (red berries → red baby).
@@ -388,7 +389,7 @@ Ethan's idea: an easter egg in **every world**. An easter egg is something **wel
 
 - The easter egg is the **same in every world**: a hidden capybara **disco party** with dancing capybaras and flashing lights.
 - How you get in: a little **crack** in a wall or tower. **Attack it**, it breaks, and disco music bursts out.
-- When you find it, your hero **joins the party and dances**, then the capybaras wave goodbye and you keep playing. (No prize: the fun is finding it.)
+- When you find it, your hero **joins the party and dances**, then the capybaras wave goodbye and you keep playing. They give you a **magic strawberry** 🍓 (see below).
 - **World 1 (city):** the disco is inside a water tower.
 - **World 2 (space):** inside the **rocket**.
 - **World 3 (volcano):** a crack in the wall just above a **lava pit**: jump at it and attack it in mid-air.
@@ -398,6 +399,19 @@ Ethan's idea: an easter egg in **every world**. An easter egg is something **wel
 - **World 6 (Jungle):** a crack in a **hollow tree trunk**, way up high.
 - **World 7 (Castle):** a cracked **brick** in the wall right behind a swinging axe.
 - **World 8 (Throne Room):** a crack hidden **behind one of the King's purple banners**.
+
+## The magic strawberry (in the game since 2026-11-08)
+
+Buttons: **B** (keyboard), **START** (controller), **🍓** (iPad) eat the oldest strawberry in your bag.
+
+Ethan's mom's idea: a **magic strawberry** 🍓.
+- It's a **power-up you find hidden in a level**. Eat it and something magic happens to your hero.
+- Eating it: your hero turns **rainbow**, gets **super fast**, and is **invincible** (nothing can hurt you). Touching bad guys **pops** them.
+- It lasts as long as its own **magic strawberry song** plays (about **15 seconds**). The song **speeds up** right before the magic ends, so you know. (Our own song, not a copy of any other game's.)
+- Where you find it: **in the secret capybara disco**! After the party, the capybaras give you a magic strawberry. (Ethan: "yayyyyy")
+- You **keep** it in your bag **forever** (even in other worlds) until you use it, with a button. You can carry **up to 3**.
+- **Every** disco party gives a strawberry (if your bag has room). The **first** party in each world gives a **golden strawberry** instead: its magic lasts **twice as long** (about 30 seconds).
+- Where you can use one: **everywhere you play a hero** (STORY, the Bad Guy King places, ADVENTURE, Cube Islands, Training), **except 2 PLAYERS BATTLE** (not fair against a friend).
 
 ## Accounts (in the game since 2026-11-08)
 

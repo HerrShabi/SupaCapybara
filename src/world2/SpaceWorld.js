@@ -1,4 +1,5 @@
 import { showDisco } from '../disco.js';
+import { discoReward, Magic, MAGIC_SPEED, takeStrawberry, bagText, rainbowColor } from '../strawberry.js';
 import * as THREE from 'three';
 import { t } from '../i18n.js';
 import { audio } from '../audio.js';
@@ -99,6 +100,7 @@ export class SpaceWorld {
     this.container = container;
     this.discoPictures = discoPictures;
     this.disco = false;
+    this.magic = new Magic(); // the magic strawberry (strawberry.js)
     this.save = save;
     this.onExit = onExit;
     this.character = getCharacter(save.selected);
@@ -433,6 +435,36 @@ export class SpaceWorld {
     return this.now < this.player.mechaUntil;
   }
 
+  // A magic strawberry's rainbow magic: super fast, nothing hurts you, touching bad guys pops them
+  get rainbow() {
+    return this.magic.active(this.now);
+  }
+
+  eatStrawberry() {
+    const berry = takeStrawberry(this.save);
+    if (!berry) {
+      audio.play('error');
+      this.hud.message(t('strawberry.empty'), '', 2000);
+      return;
+    }
+    this.magic.start(berry, this.now);
+    this.hud.message(t(berry === 'gold' ? 'strawberry.goldEaten' : 'strawberry.eaten'), '', 1500);
+  }
+
+  // The rainbow glow around the hero while the magic lasts
+  updateRainbow() {
+    this.magic.update(this.now);
+    if (!this.rainbowGlow) {
+      this.rainbowGlow = new THREE.Mesh(new THREE.SphereGeometry(1.15, 16, 12), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.35, depthWrite: false }));
+      this.scene.add(this.rainbowGlow);
+    }
+    this.rainbowGlow.visible = this.rainbow;
+    if (!this.rainbow) return;
+    this.rainbowGlow.position.copy(this.playerBody());
+    this.rainbowGlow.material.color.setHex(rainbowColor(this.now));
+    this.rainbowGlow.scale.setScalar(1 + Math.sin(this.now / 80) * 0.08);
+  }
+
   // ---------- Every frame ----------
 
   loop(time) {
@@ -503,7 +535,7 @@ export class SpaceWorld {
     const bouncing = this.now < p.hurtAt + BOUNCE_MS;
     const jumpPressed = this.pressed('Space');
 
-    const runSpeed = RUN_SPEED * (this.shadow ? SHADOW_SPEED : 1);
+    const runSpeed = RUN_SPEED * (this.shadow ? SHADOW_SPEED : 1) * (this.rainbow ? MAGIC_SPEED : 1);
     if (this.flying) {
       // Flying: no gravity. Hold SPACE to go up; let go to hover.
       const rise = this.down('Space') ? FLY_SPEED * 0.7 : 0;
@@ -655,6 +687,9 @@ export class SpaceWorld {
       audio.play('mecha');
     }
 
+    if (this.pressed('KeyB')) this.eatStrawberry();
+    this.updateRainbow();
+
     if (this.hasFreeze && this.pressed('KeyZ')) this.useFreezeRay(this.enemies);
     this.meltIce(this.enemies);
 
@@ -686,7 +721,9 @@ export class SpaceWorld {
     if (this.hasMecha) {
       parts.push(p.mechaUsed && !this.mecha ? `R = ${t('game.mecha')}: ${t('game.used')}` : status('R', t('game.mecha'), p.mechaUntil, 0));
     }
-    this.hud.setPower(parts.join('     '));
+    if (this.rainbow) parts.push(`🌈 ${t('strawberry.magic')}! ${this.magic.secondsLeft(this.now)}`);
+    else parts.push(bagText(this.save));
+    this.hud.setPower(parts.filter(Boolean).join('     '));
   }
 
   becomeVisible() {
@@ -782,6 +819,7 @@ export class SpaceWorld {
       showDisco({
         ...this.discoPictures,
         music: audio.wantedSong,
+        reward: discoReward(this.save, 'World2'),
         onDone: () => (this.disco = false),
       });
     }, 450);
@@ -979,7 +1017,7 @@ export class SpaceWorld {
         if (falling && !p.onGround && p.pos.distanceTo(enemy.planet.center) > position.distanceTo(enemy.planet.center)) {
           this.defeat(enemy);
           this.stompBounce();
-        } else if (this.character.fireAura || this.mecha) {
+        } else if (this.character.fireAura || this.mecha || this.rainbow) {
           this.defeat(enemy);
         } else if (!this.invisible) {
           this.hurt(position);
@@ -1046,7 +1084,7 @@ export class SpaceWorld {
 
   hurt(fromPos) {
     const p = this.player;
-    if (this.won || this.invisible || this.shadow || this.mecha || this.now < p.safeUntil) return;
+    if (this.won || this.invisible || this.shadow || this.mecha || this.rainbow || this.now < p.safeUntil) return;
     audio.play('hurt');
     if (!this.loseHeart()) return;
     const up = this.upAt(p.planet, p.pos);
@@ -1408,7 +1446,7 @@ export class SpaceWorld {
       this.hitBoss(1);
       this.stompBounce();
     } else if (body.distanceTo(this.bossCenter()) < 2.3) {
-      if (this.character.fireAura || this.mecha) {
+      if (this.character.fireAura || this.mecha || this.rainbow) {
         if (this.now > (boss.burnReadyAt ?? 0)) {
           boss.burnReadyAt = this.now + 300;
           this.hitBoss(1);
@@ -1866,6 +1904,7 @@ export class SpaceWorld {
 
   destroy() {
     this.ended = true;
+    this.magic.stop();
     clearInterval(this.discoFlash);
     cancelAnimationFrame(this.frame);
     clearTimeout(this.exitTimer);

@@ -1,3 +1,4 @@
+import { Magic, MAGIC_SPEED, takeStrawberry, bagText, rainbowColor } from '../strawberry.js';
 import * as THREE from 'three';
 import { t } from '../i18n.js';
 import { audio } from '../audio.js';
@@ -74,13 +75,14 @@ export const KEYS = {
     mecha: ['KeyR'],
     swap: ['KeyQ'],
     freeze: ['KeyZ'],
+    strawberry: ['KeyB'],
   },
   p1: { left: ['KeyA'], right: ['KeyD'], up: ['KeyW'], down: ['KeyS'], jump: ['Space'], attack: ['KeyF'], special: ['KeyG'], swap: ['KeyT'] },
   p2: { left: ['ArrowLeft'], right: ['ArrowRight'], up: ['ArrowUp'], down: ['ArrowDown'], jump: ['ShiftRight'], attack: ['Enter'], special: ['Slash'], swap: ['Backspace'] },
 };
 
 // Game controller buttons (standard layout, the same as gamepadKeys.js), for players this world reads itself.
-const PAD_BUTTONS = { 0: 'jump', 1: 'attack', 2: 'attack', 3: 'special', 4: 'shield', 5: 'fly', 6: 'mecha', 7: 'swap', 8: 'back', 10: 'freeze', 12: 'up', 13: 'down', 14: 'left', 15: 'right' };
+const PAD_BUTTONS = { 0: 'jump', 1: 'attack', 2: 'attack', 3: 'special', 4: 'shield', 5: 'fly', 6: 'mecha', 7: 'swap', 8: 'back', 9: 'strawberry', 10: 'freeze', 12: 'up', 13: 'down', 14: 'left', 15: 'right' };
 
 function orient(object, forward) {
   object.rotation.set(0, Math.atan2(forward.x, forward.z), 0);
@@ -615,7 +617,34 @@ export class AdventureWorld {
   }
 
   active(power, p = this.player) {
+    if (power === 'rainbow') return Boolean(p.magic?.active(this.now)); // a magic strawberry (strawberry.js)
     return this.now < (p.until[power] ?? 0);
+  }
+
+  // B: eat a magic strawberry from the bag (one player only: TEAM has no power-ups)
+  eatStrawberry(p) {
+    const berry = takeStrawberry(this.save);
+    if (!berry) {
+      audio.play('error');
+      this.hud.message('', t('strawberry.empty'), 2000);
+      return;
+    }
+    p.magic.start(berry, this.now);
+    this.hud.message('', t(berry === 'gold' ? 'strawberry.goldEaten' : 'strawberry.eaten'), 1500);
+  }
+
+  updateRainbow(p) {
+    p.magic.update(this.now);
+    if (!p.rainbowGlow) {
+      p.rainbowGlow = new THREE.Mesh(new THREE.SphereGeometry(1.15, 16, 12), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.35, depthWrite: false }));
+      this.scene.add(p.rainbowGlow);
+    }
+    const on = this.active('rainbow', p);
+    p.rainbowGlow.visible = on;
+    if (!on) return;
+    p.rainbowGlow.position.copy(this.bodyOf(p));
+    p.rainbowGlow.material.color.setHex(rainbowColor(this.now));
+    p.rainbowGlow.scale.setScalar(1 + Math.sin(this.now / 80) * 0.08);
   }
 
   bodyOf(p) {
@@ -697,7 +726,7 @@ export class AdventureWorld {
     const zone = this.zoneAt(p.pos.x, p.pos.z);
     const inSpace = zone === 'space';
     const bouncing = this.now < p.hurtAt + 300;
-    const speed = RUN_SPEED * (this.active('shadow', p) ? SHADOW_SPEED : 1);
+    const speed = RUN_SPEED * (this.active('shadow', p) ? SHADOW_SPEED : 1) * (this.active('rainbow', p) ? MAGIC_SPEED : 1);
     const flying = this.active('fly', p);
     const previousY = p.pos.y;
 
@@ -880,6 +909,9 @@ export class AdventureWorld {
       this.startPower(p, 'mecha', 'mecha');
     }
     if (this.wasPressed(p, 'freeze') && p.powerUps.includes('freeze')) this.useFreezeRay(this.guards);
+    p.magic ??= new Magic();
+    if (this.players.length === 1 && this.wasPressed(p, 'strawberry')) this.eatStrawberry(p);
+    this.updateRainbow(p);
     if (this.wasPressed(p, 'swap') && character.attacks) {
       p.attackIndex = (p.attackIndex + 1) % character.attacks.length;
       audio.play('click');
@@ -919,7 +951,9 @@ export class AdventureWorld {
     if (p.powerUps.includes('mecha-capybara')) {
       parts.push(p.mechaUsed && !this.active('mecha', p) ? `R = ${t('game.mecha')}: ${t('game.used')}` : status('R', t('game.mecha'), 'mecha'));
     }
-    this.hud.setPower(this.players.length > 1 ? '' : parts.join('     '));
+    if (this.active('rainbow', p)) parts.push(`🌈 ${t('strawberry.magic')}! ${p.magic.secondsLeft(this.now)}`);
+    else parts.push(bagText(this.save));
+    this.hud.setPower(this.players.length > 1 ? '' : parts.filter(Boolean).join('     '));
   }
 
   currentAttack(p = this.player) {
@@ -928,7 +962,7 @@ export class AdventureWorld {
   }
 
   isUnhurtable(p = this.player) {
-    return this.active('invisible', p) || this.active('shadow', p) || this.active('mecha', p);
+    return this.active('invisible', p) || this.active('shadow', p) || this.active('mecha', p) || this.active('rainbow', p);
   }
 
   // ---------- Attacks ----------
@@ -1103,7 +1137,7 @@ export class AdventureWorld {
           this.defeatGuard(guard);
           p.vel.y = JUMP_SPEED * 0.8;
           audio.play('stomp');
-        } else if (this.character.fireAura || this.active('mecha')) {
+        } else if (this.character.fireAura || this.active('mecha') || this.active('rainbow')) {
           this.defeatGuard(guard);
         } else {
           this.hurt(guard.pos);
@@ -1330,7 +1364,7 @@ export class AdventureWorld {
       this.hitBoss(1);
       p.vel.y = JUMP_SPEED * 0.8;
       audio.play('stomp');
-    } else if (this.character.fireAura || this.active('mecha')) {
+    } else if (this.character.fireAura || this.active('mecha') || this.active('rainbow')) {
       if (this.now > (boss.burnReadyAt ?? 0)) {
         boss.burnReadyAt = this.now + 300;
         this.hitBoss(1);
@@ -1626,6 +1660,7 @@ export class AdventureWorld {
 
   destroy() {
     this.ended = true;
+    for (const p of this.players ?? []) p.magic?.stop();
     cancelAnimationFrame(this.frame);
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup', this.onKeyUp);
