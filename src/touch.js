@@ -22,6 +22,7 @@ const KEYS = {
   KeyD: { key: 'd', keyCode: 68 },
   KeyW: { key: 'w', keyCode: 87 },
   KeyG: { key: 'g', keyCode: 71 },
+  KeyT: { key: 't', keyCode: 84 },
   Enter: { key: 'Enter', keyCode: 13 },
   ShiftLeft: { key: 'Shift', keyCode: 16 },
 };
@@ -81,6 +82,7 @@ export function showTouchControls(container, buttons, labels) {
     buttons.pencil && ['KeyE', '✏️'],
     buttons.strawberry && ['KeyB', '🍓'],
     buttons.mega && ['KeyG', '🌈'],
+    buttons.sniper && ['KeyT', '🎯'],
   ].filter(Boolean);
   powers.forEach(([code, emoji], i) => add(code, emoji, { right: `${20 + i * 72}px`, bottom: '140px', ...size(62), fontSize: '26px' }));
 
@@ -217,7 +219,7 @@ function makeRoot(container) {
 
 // Which buttons a hero needs. `threeD` adds up/down (World 2 walks forward and back).
 export function touchButtonsFor(character, powerUps, threeD) {
-  const attack = { laser: '👀', superLaser: '👀', scratch: '🐾', tongue: '👅', moon: '🌕', goldLaser: '✨' }[character.attack];
+  const attack = { laser: '👀', superLaser: '👀', scratch: '🐾', tongue: '👅', moon: '🌕', goldLaser: '✨', cuffs: '🔗' }[character.attack];
   const fly = powerUps.includes('fly');
   return {
     left: true,
@@ -232,6 +234,7 @@ export function touchButtonsFor(character, powerUps, threeD) {
     freeze: powerUps.includes('freeze'),
     shield: powerUps.includes('shield'),
     fly,
+    sniper: powerUps.includes('supa-sniper'),
     strawberry: true, // the magic strawberry (it says so if your bag is empty)
   };
 }

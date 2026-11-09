@@ -14,6 +14,7 @@ import { createItemTextures } from '../art/items.js';
 import { tipWanted, markTipSeen, tipText, TIP_MIN_MS } from '../tips.js';
 import { drawComicBubble } from '../comicBubble.js';
 import { MagicPencil } from '../magicPencil.js';
+import { SupaSniper } from '../supaSniper.js';
 import { drawingMode, applySketch, useDrawnHeroes } from '../sketch.js';
 import { showDisco, heroPicture } from '../disco.js';
 import { drawDiscoProp } from '../art/discoSpots.js';
@@ -160,8 +161,11 @@ export class SideScrollerScene extends Phaser.Scene {
 
     // The magic pencil (won in the Drawings World): E / ✏️ pauses the game to draw a bomb
     this.magicPencil = this.save.magicPencil && !this.team ? new MagicPencil(this) : null;
+    // The SUPA SNIPER (supaSniper.js): T / 🎯 looks through the hero's eyes for one super strong shot
+    this.sniper = this.powerUps.includes('supa-sniper') && !this.team ? new SupaSniper(this) : null;
     this.events.once('shutdown', () => {
       this.magicPencil?.destroy();
+      this.sniper?.destroy();
       for (const player of this.players) player.magic.stop(); // (the strawberry song ends with the level)
     });
 
@@ -341,7 +345,7 @@ export class SideScrollerScene extends Phaser.Scene {
     for (const player of this.players) {
       this.physics.add.overlap(player.sprite, this.badGuys, (sprite, badGuy) => this.touchedBadGuy(badGuy, player));
       this.physics.add.overlap(player.lasers, this.badGuys, (laser, badGuy) => {
-        this.defeat(badGuy);
+        this.defeat(badGuy, { arrest: laser.getData('cuffs') }); // (COPYBARA's handcuffs arrest it)
         laser.destroy();
         player.landedHit();
       });
@@ -628,7 +632,8 @@ export class SideScrollerScene extends Phaser.Scene {
     return this.time.now < (this.bossSlowUntil ?? 0);
   }
 
-  defeat(badGuy) {
+  // arrest: COPYBARA's handcuffs got it: it's locked in a little jail, then goes POOF.
+  defeat(badGuy, { arrest = false } = {}) {
     if (!badGuy.body.enable) return;
     badGuy.disableBody(true, false);
     const frozen = this.time.now < (this.frozenUntil ?? 0);
@@ -645,6 +650,10 @@ export class SideScrollerScene extends Phaser.Scene {
       this.addBolts(BAD_GUY_REWARD, badGuy.x, badGuy.y - 30);
     }
     this.tweens.killTweensOf(badGuy);
+    if (arrest) {
+      this.arrest(badGuy);
+      return;
+    }
     this.tweens.add({
       targets: badGuy,
       scale: 3,
@@ -652,6 +661,37 @@ export class SideScrollerScene extends Phaser.Scene {
       angle: 180,
       duration: 300,
       onComplete: () => badGuy.destroy(),
+    });
+  }
+
+  // Handcuffs on it, jail bars drop over it, it shakes... POOF! Off to jail.
+  arrest(badGuy) {
+    const { x, y } = badGuy;
+    const cuffs = this.add.image(x, y + 6, 'handcuffs').setDepth(5);
+    const jail = this.add.graphics().setDepth(5).setPosition(x, y - 120);
+    jail.fillStyle(0x455a64);
+    jail.fillRect(-34, -40, 68, 8);
+    jail.fillRect(-34, 32, 68, 8);
+    for (let i = 0; i < 6; i++) jail.fillRect(-32 + i * 12, -36, 5, 72);
+    audio.play('click');
+    this.tweens.add({
+      targets: jail,
+      y,
+      duration: 220,
+      ease: 'Bounce.easeOut',
+      onComplete: () => {
+        this.tweens.add({ targets: [jail, badGuy, cuffs], x: '+=4', duration: 50, yoyo: true, repeat: 4 });
+        this.time.delayedCall(500, () => {
+          audio.play('pop');
+          for (let i = 0; i < 6; i++) {
+            const puff = this.add.circle(x + Phaser.Math.Between(-30, 30), y + Phaser.Math.Between(-30, 30), 14, 0xeceff1).setDepth(6);
+            this.tweens.add({ targets: puff, scale: 2.2, alpha: 0, duration: 400, onComplete: () => puff.destroy() });
+          }
+          jail.destroy();
+          cuffs.destroy();
+          badGuy.destroy();
+        });
+      },
     });
   }
 
@@ -955,6 +995,10 @@ export class SideScrollerScene extends Phaser.Scene {
       this.magicPencil.update();
       return;
     }
+    if (this.sniper?.aiming || this.sniper?.firing) {
+      this.sniper.update();
+      return;
+    }
     this.updateScenery(time, delta);
     if (this.won) return;
     if (this.cutscene) {
@@ -970,7 +1014,8 @@ export class SideScrollerScene extends Phaser.Scene {
     for (const player of this.players) player.update();
     this.magicPencil?.afterPlayers();
     if (this.magicPencil && this.player.controls.justPressed('pencil')) this.magicPencil.open();
-    this.powerText.setText(this.team ? '' : [this.player.powerStatus, this.magicPencil?.status].filter(Boolean).join('     '));
+    if (this.sniper && this.player.controls.justPressed('sniper')) this.sniper.open();
+    this.powerText.setText(this.team ? '' : [this.player.powerStatus, this.magicPencil?.status, this.sniper?.status].filter(Boolean).join('     '));
     this.powerText.setScale(Math.min(1, (VIEW_WIDTH - 40) / Math.max(1, this.powerText.width))); // (lots of power-ups: shrink to fit)
     if (this.team) this.followTeam();
 

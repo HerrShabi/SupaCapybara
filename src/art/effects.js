@@ -165,6 +165,15 @@ export function createPowerTextures(scene) {
     g.fillTriangle(34, 3, 40, 8, 34, 13);
   });
 
+  // COPYBARA's handcuffs: two silver rings with a chain
+  make(scene, 'handcuffs', 40, 20, (g) => {
+    g.lineStyle(4, 0xcfd8dc);
+    g.strokeCircle(9, 10, 6);
+    g.strokeCircle(31, 10, 6);
+    g.fillStyle(0x90a4ae);
+    for (const x of [16, 20, 24]) g.fillCircle(x, 10, 2);
+  });
+
   make(scene, 'red-moon', 34, 34, (g) => {
     g.fillStyle(0xff1744, 0.35);
     g.fillCircle(17, 17, 17);

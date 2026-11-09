@@ -1,10 +1,10 @@
-import { drawCape, drawSuitBolt, CAPE } from './heroParts.js';
+import { drawCape, drawSuitBolt, drawSuitBadge, CAPE } from './heroParts.js';
 
 const FUR = 0x9b6b3d;
 const FUR_DARK = 0x6e4a2a;
 
-export function drawCapybara(g, { legOffset = 0, capeFlying = false }, { suit, suitDark, cape = CAPE }) {
-  drawCape(g, capeFlying, cape);
+export function drawCapybara(g, { legOffset = 0, capeFlying = false }, { suit, suitDark, cape = CAPE, badge = false, noCape = false }) {
+  if (!noCape) drawCape(g, capeFlying, cape); // (COPYBARA doesn't wear one)
 
   // Legs (suit)
   g.fillStyle(suitDark);
@@ -14,7 +14,8 @@ export function drawCapybara(g, { legOffset = 0, capeFlying = false }, { suit, s
   // Body (suit) with the lightning bolt
   g.fillStyle(suit);
   g.fillEllipse(32, 29, 42, 24);
-  drawSuitBolt(g, 24, 19);
+  if (badge) drawSuitBadge(g, 25, 20); // COPYBARA's police badge
+  else drawSuitBolt(g, 24, 19);
 
   // Head
   g.fillStyle(FUR);
@@ -29,6 +30,7 @@ export function drawCapybara(g, { legOffset = 0, capeFlying = false }, { suit, s
   g.fillCircle(60, 17, 1.5); // nose
 
   // Cape collar
+  if (noCape) return;
   g.fillStyle(cape);
   g.fillRect(37, 14, 6, 10);
 }

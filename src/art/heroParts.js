@@ -36,3 +36,17 @@ export function drawSuitBolt(g, x, y) {
     true,
   );
 }
+
+// COPYBARA's gold police badge (instead of the lightning bolt), drawn with its top at (x, y).
+export function drawSuitBadge(g, x, y) {
+  g.fillStyle(0xffd23f);
+  g.fillPoints(
+    [
+      { x: x + 6, y }, { x: x + 12, y: y + 2 }, { x: x + 12, y: y + 11 },
+      { x: x + 6, y: y + 18 }, { x, y: y + 11 }, { x, y: y + 2 },
+    ],
+    true,
+  );
+  g.fillStyle(0xb8860b);
+  g.fillCircle(x + 6, y + 8, 3);
+}

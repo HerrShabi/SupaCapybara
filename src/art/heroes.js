@@ -22,6 +22,7 @@ const HEROES = {
   'supa-cat': { draw: drawCat, suit: 0xb5452f, suitDark: 0x7f2c1d },
   'bloodmoon-cat': { draw: drawCat, suit: 0x6a1b4d, suitDark: 0x400f2e, fur: 0xf3e5f5 },
   'supa-chameleon': { draw: drawChameleon, suit: 0xf06292, suitDark: 0xf06292 },
+  copybara: { draw: drawCapybara, suit: 0x1a3a8a, suitDark: 0x0d1f4f, badge: true, noCape: true },
 };
 
 // Secret colors, unlocked by beating the Lava Dragon. Palette 0 is each hero's normal colors.

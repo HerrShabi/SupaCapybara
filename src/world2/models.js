@@ -35,6 +35,7 @@ const HERO_LOOKS = {
   'supa-cat': { animal: 'cat', suit: 0xb5452f, suitDark: 0x7f2c1d, fur: 0xffffff },
   'bloodmoon-cat': { animal: 'cat', suit: 0x6a1b4d, suitDark: 0x400f2e, fur: 0xf3e5f5 },
   'supa-chameleon': { animal: 'chameleon', suit: 0xf06292, suitDark: 0x3e7d1f },
+  copybara: { animal: 'capybara', suit: 0x1a3a8a, suitDark: 0x0d1f4f, badge: true, noCape: true },
 };
 
 function boltShape() {
@@ -143,7 +144,10 @@ export function makeHero(id, palette = 0, hat = null, colors = null) {
   // Body in the suit, with a lightning bolt on each side
   group.add(box(0.7, 0.5, 1.0, look.suit, 0, 0.58, 0));
   for (const side of [-1, 1]) {
-    const bolt = new THREE.Mesh(boltShape(), new THREE.MeshBasicMaterial({ color: BOLT, side: THREE.DoubleSide }));
+    // (COPYBARA wears a gold police badge instead)
+    const bolt = look.badge
+      ? new THREE.Mesh(new THREE.CircleGeometry(0.15, 6), new THREE.MeshBasicMaterial({ color: BOLT, side: THREE.DoubleSide }))
+      : new THREE.Mesh(boltShape(), new THREE.MeshBasicMaterial({ color: BOLT, side: THREE.DoubleSide }));
     bolt.position.set(side * 0.36, 0.6, 0);
     bolt.rotation.y = side * Math.PI / 2;
     group.add(bolt);
@@ -187,6 +191,7 @@ export function makeHero(id, palette = 0, hat = null, colors = null) {
   cape.geometry.translate(0, -0.45, 0);
   cape.position.set(0, 0.88, -0.1);
   cape.rotation.x = 0.5;
+  cape.visible = !look.noCape; // (COPYBARA doesn't wear one)
   group.add(cape);
 
   if (hat) {
@@ -498,5 +503,41 @@ export function makeRedButton() {
   const button = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.3, 20), mat(0xff1744, { emissive: 0x550000 }));
   button.position.y = 0.45;
   group.add(button);
+  return group;
+}
+
+// COPYBARA's handcuffs (his attack in 3D): two silver rings and a little chain.
+export function makeHandcuffs() {
+  const group = new THREE.Group();
+  const metal = new THREE.MeshStandardMaterial({ color: 0xcfd8dc, metalness: 0.6, roughness: 0.3, emissive: 0x37474f });
+  for (const x of [-0.28, 0.28]) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.05, 8, 16), metal);
+    ring.position.x = x;
+    group.add(ring);
+  }
+  for (const x of [-0.07, 0, 0.07]) {
+    const link = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 4), metal);
+    link.position.x = x;
+    group.add(link);
+  }
+  return group;
+}
+
+// The little jail a bad guy goes to when COPYBARA's handcuffs hit it: a box of bars.
+export function makeJail() {
+  const group = new THREE.Group();
+  const bars = new THREE.MeshStandardMaterial({ color: 0x455a64 });
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.6, 6), bars);
+    bar.position.set(Math.cos(angle) * 0.7, 0, Math.sin(angle) * 0.7);
+    group.add(bar);
+  }
+  for (const y of [-0.8, 0.8]) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.06, 6, 16), bars);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = y;
+    group.add(ring);
+  }
   return group;
 }

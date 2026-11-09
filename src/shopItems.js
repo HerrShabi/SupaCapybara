@@ -1,13 +1,12 @@
 import { POWER_UPS, DANCES } from './characters.js';
 import { SHOP_HATS, SHOP_HAT_PRICE } from './art/hats.js';
-import { megaBeamCount, MAX_MEGA_BEAMS } from './megaBeam.js';
 
 // Everything the supermarket sells (SupermarketScene), aisle by aisle: power-ups, new hats, win dances.
 // Each item: { kind: 'powerUp' | 'hat' | 'dance', id, price, icon (emoji, or null for hats: they show the hat), needs?, usedUp? }
 // Names are the same i18n keys as everywhere else ('powerUp.<id>', 'hat.<id>', 'dance.<id>'); the shelf
 // descriptions are 'shopInfo.<id>'.
 
-const POWER_UP_ICONS = { shield: '🛡️', 'multi-direction': '🫧', fly: '🕊️', double: '💰', freeze: '❄️', 'mecha-capybara': '🤖', 'mega-beam': '🌈' };
+const POWER_UP_ICONS = { shield: '🛡️', 'multi-direction': '🫧', fly: '🕊️', double: '💰', freeze: '❄️', 'mecha-capybara': '🤖', 'mega-beam': '🌈', 'supa-sniper': '🎯', 'sniper-ammo': '🔫' };
 
 export const AISLES = [
   { id: 'powerUps', items: POWER_UPS.filter((p) => p.ready).map((p) => ({ kind: 'powerUp', icon: POWER_UP_ICONS[p.id] ?? '⚡', ...p })) },
@@ -19,7 +18,12 @@ export function itemName(t, item) {
   return t(`${item.kind}.${item.id}`);
 }
 
-// Already yours? (MEGA BEAMs are never "owned": you can always buy more, up to MAX_MEGA_BEAMS.)
+// How many used-up things (MEGA BEAMs, sniper shots) of this kind you have.
+export function stockOf(save, item) {
+  return save[item.stock] ?? 0;
+}
+
+// Already yours? (Used-up things are never "owned": you can always buy more, up to item.most.)
 export function owns(save, item) {
   if (item.usedUp) return false;
   if (item.kind === 'powerUp') return save.powerUps.includes(item.id);
@@ -30,7 +34,7 @@ export function owns(save, item) {
 // How many of this item can still go in the cart (0 = none). `cart` is the list of items in the cart.
 export function roomFor(save, item, cart) {
   const inCart = cart.filter((c) => c === item).length;
-  if (item.usedUp) return Math.max(0, MAX_MEGA_BEAMS - megaBeamCount(save) - inCart);
+  if (item.usedUp) return Math.max(0, Math.floor((item.most - stockOf(save, item)) / (item.pack ?? 1)) - inCart);
   return owns(save, item) || inCart ? 0 : 1;
 }
 
@@ -43,7 +47,7 @@ export function missingNeed(save, item, cart) {
 // Pays for one item and makes it yours (the caller checks the bolts first).
 export function buyItem(save, item) {
   save.bolts -= item.price;
-  if (item.usedUp) save.megaBeams = megaBeamCount(save) + 1;
+  if (item.usedUp) save[item.stock] = stockOf(save, item) + (item.pack ?? 1);
   else if (item.kind === 'powerUp') save.powerUps.push(item.id);
   else if (item.kind === 'hat') (save.hats ??= []).push(item.id);
   else (save.dances ??= []).push(item.id);

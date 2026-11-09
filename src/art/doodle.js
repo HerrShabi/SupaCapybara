@@ -100,6 +100,7 @@ const HERO_LOOKS = {
   'supa-cat': { animal: 'cat' },
   'bloodmoon-cat': { animal: 'cat', suit: 0x6a1b4d, fur: 0xf3e5f5 },
   'supa-chameleon': { animal: 'chameleon' },
+  copybara: { animal: 'capybara', suit: 0x1a3a8a, noCape: true },
 };
 const POSES = { idle: [0, false], run1: [3, true], run2: [-3, true], jump: [2, true] };
 
@@ -118,7 +119,7 @@ function drawDoodleHero(g, look, [legs, flying]) {
     // Standing up, like Ethan's clay SuperCapybara: big head with a white snout, suit, legs, cape behind
     const c = { ...CLAY.capybara, ...look };
     const capePoints = flying ? [[28, 16], [3, 8], [8, 20], [2, 32], [24, 30]] : [[28, 16], [14, 26], [12, 42], [26, 38]];
-    shape(g, capePoints, c.cape);
+    if (!c.noCape) shape(g, capePoints, c.cape);
     shape(g, ellipsePoints(25 + legs * 0.7, 43, 6, 4.5), c.fur); // legs
     shape(g, ellipsePoints(38 - legs * 0.7, 43, 6, 4.5), c.fur);
     shape(g, ellipsePoints(31, 30, 13, 12), c.suit); // body

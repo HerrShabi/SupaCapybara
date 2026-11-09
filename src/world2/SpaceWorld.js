@@ -11,6 +11,8 @@ import { tipWanted, markTipSeen, tipText, TIP_MIN_MS } from '../tips.js';
 import { drawingMode, ThreeSketch } from '../sketch.js';
 import { PLANETS, START_PLANET, FORCE_FIELD_RADIUS, JUMPS, BOLT_RINGS, BAD_GUYS, SAUCERS, SHIP } from './level.js';
 import * as models from './models.js';
+import { SpaceMegaBeam } from './spaceMegaBeam.js';
+import { SpaceSniper } from './spaceSniper.js';
 
 // World 2: 3D space. Each little planet pulls you toward its center, so you can walk all the way around it.
 // Jumping is floaty (moon jumps); jump from the yellow rings to reach the next planet.
@@ -26,7 +28,7 @@ const BOUNCE_MS = 300;
 
 const LASER_SPEED = 30;
 const LASER_LIFE = 0.8; // seconds
-const ATTACK_COOLDOWN_MS = { laser: 250, superLaser: 220, goldLaser: 220, scratch: 300, tongue: 450, moon: 400, rocket: 300 };
+const ATTACK_COOLDOWN_MS = { laser: 250, superLaser: 220, goldLaser: 220, scratch: 300, tongue: 450, moon: 400, rocket: 300, cuffs: 400 };
 const SCRATCH_REACH = 2.4;
 const TONGUE_REACH = 6;
 const TONGUE_MS = 260;
@@ -68,6 +70,7 @@ const ATTACK_NAMES = {
   tongue: 'game.attack.tongue',
   moon: 'game.attack.moon',
   goldLaser: 'game.attack.goldLaser',
+  cuffs: 'game.attack.cuffs',
 };
 
 const vec = (array) => new THREE.Vector3(...array);
@@ -101,6 +104,8 @@ export class SpaceWorld {
     this.discoPictures = discoPictures;
     this.disco = false;
     this.magic = new Magic(); // the magic strawberry (strawberry.js)
+    this.megaBeam = new SpaceMegaBeam(this); // the MEGA BEAM (spaceMegaBeam.js)
+    this.sniper = save.powerUps.includes('supa-sniper') ? new SpaceSniper(this) : null; // the SUPA SNIPER (spaceSniper.js)
     this.save = save;
     this.onExit = onExit;
     this.character = getCharacter(save.selected);
@@ -370,7 +375,10 @@ export class SpaceWorld {
     this.onKeyDown = (event) => {
       if (!this.keysDown.has(event.code)) this.keysPressed.add(event.code);
       this.keysDown.add(event.code);
-      if (event.code === 'Escape') this.exit();
+      if (event.code === 'Escape') {
+        if (this.sniper?.aiming) this.sniper.close(); // ESC only puts the SUPA SNIPER away
+        else if (!this.sniper?.busy) this.exit();
+      }
       if (event.code === 'KeyM') {
         this.save.muted = !this.save.muted;
         writeSave(this.save);
@@ -473,7 +481,7 @@ export class SpaceWorld {
   loop(time) {
     if (this.ended) return;
     const dt = Math.min((time - this.lastFrame) / 1000, 0.05);
-    if (this.tip || this.disco) this.pausedFor += time - this.lastFrame; // frozen: the clock stops too
+    if (this.tip || this.disco || this.sniper?.busy) this.pausedFor += time - this.lastFrame; // frozen: the clock stops too
     this.lastFrame = time;
     this.now = performance.now() - this.pausedFor;
 
@@ -484,6 +492,14 @@ export class SpaceWorld {
       return;
     }
 
+    if (this.sniper?.busy) {
+      // Looking through SupaCapybara's eyes with the SUPA SNIPER: everything else waits
+      this.sniper.update(dt);
+      this.keysPressed.clear();
+      this.draw();
+      this.frame = requestAnimationFrame((next) => this.loop(next));
+      return;
+    }
     if (this.tip) {
       this.updateTip(dt);
       this.keysPressed.clear();
@@ -691,6 +707,9 @@ export class SpaceWorld {
     }
 
     if (this.pressed('KeyB')) this.eatStrawberry();
+    if (this.pressed('KeyG')) this.megaBeam.start();
+    if (this.sniper && this.pressed('KeyT')) this.sniper.open();
+    this.megaBeam.update();
     this.updateRainbow();
 
     if (this.hasFreeze && this.pressed('KeyZ')) this.useFreezeRay(this.enemies);
@@ -724,6 +743,8 @@ export class SpaceWorld {
     if (this.hasMecha) {
       parts.push(p.mechaUsed && !this.mecha ? `R = ${t('game.mecha')}: ${t('game.used')}` : status('R', t('game.mecha'), p.mechaUntil, 0));
     }
+    parts.push(this.megaBeam.status());
+    if (this.sniper) parts.push(this.sniper.status());
     if (this.rainbow) parts.push(`🌈 ${t('strawberry.magic')}! ${this.magic.secondsLeft(this.now)}`);
     else parts.push(bagText(this.save));
     this.hud.setPower(parts.filter(Boolean).join('     '));
@@ -747,6 +768,10 @@ export class SpaceWorld {
       audio.play('rocketShot');
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 1.4), new THREE.MeshBasicMaterial({ color: 0xff7043 }));
       this.addShot({ mesh, planet: p.planet, start: start.addScaledVector(this.upAt(p.planet, p.pos), 1), dir: p.forward, speed: LASER_SPEED * 0.8, life: LASER_LIFE * 1.3, damage: 3, fromPlayer: true });
+    } else if (kind === 'cuffs') {
+      // COPYBARA: spinning handcuffs that send a bad guy to jail
+      audio.play('laser');
+      this.addShot({ mesh: models.makeHandcuffs(), planet: p.planet, start, dir: p.forward, speed: LASER_SPEED * 0.7, life: LASER_LIFE * 1.2, damage: 2, fromPlayer: true, cuffs: true });
     } else if (kind === 'moon') {
       // Bloodmoon Cat: a red moon that flies to the nearest bad guy by itself
       audio.play('moon');
@@ -829,12 +854,14 @@ export class SpaceWorld {
     this.discoFlash = flash;
   }
 
-  addShot({ mesh, planet, start, dir, speed, life, damage = 1, fromPlayer, homing = false }) {
+  // mega: a MEGA BEAM laser (its damage to Grape Boss counts toward the beam's limit)
+  // cuffs: COPYBARA's handcuffs (they spin, and a bad guy they beat goes to jail)
+  addShot({ mesh, planet, start, dir, speed, life, damage = 1, fromPlayer, homing = false, mega = false, cuffs = false }) {
     const offset = start.clone().sub(planet.center);
     const up = offset.clone().normalize();
     const heading = dir.clone().addScaledVector(up, -dir.dot(up)).normalize();
     this.scene.add(mesh);
-    this.shots.push({ mesh, planet, offset, heading, speed, life, damage, fromPlayer, homing });
+    this.shots.push({ mesh, planet, offset, heading, speed, life, damage, fromPlayer, homing, mega, cuffs });
   }
 
   scratch() {
@@ -927,6 +954,7 @@ export class SpaceWorld {
       shot.heading.applyAxisAngle(axis, angle).normalize();
       shot.mesh.position.copy(shot.planet.center).add(shot.offset);
       shot.mesh.lookAt(shot.mesh.position.clone().add(shot.heading));
+      if (shot.cuffs) shot.mesh.rotateY(this.now / 60);
 
       if (shot.fromPlayer && this.discoCrack && this.discoSpot().distanceTo(shot.mesh.position) < 1.2) {
         shot.life = 0;
@@ -934,11 +962,13 @@ export class SpaceWorld {
       } else if (shot.fromPlayer) {
         const enemy = this.enemies.find((e) => e.alive && this.enemyPosition(e).distanceTo(shot.mesh.position) < (e.hitRadius ?? 1));
         if (enemy) {
+          if (shot.cuffs && (enemy.hp ?? 0) <= shot.damage) this.sendToJail(this.enemyPosition(enemy), this.upAt(enemy.planet, this.enemyPosition(enemy)));
           this.defeat(enemy, shot.damage);
           shot.life = 0;
           this.landedHit();
         } else if (this.bossIsHittable() && this.bossCenter().distanceTo(shot.mesh.position) < 2.6) {
-          this.hitBoss(shot.damage);
+          if (shot.mega) this.megaBeam.hitBoss(shot.damage);
+          else this.hitBoss(shot.damage);
           shot.life = 0;
           this.landedHit();
         }
@@ -954,6 +984,17 @@ export class SpaceWorld {
     }
     for (const shot of this.shots.filter((s) => s.life <= 0)) this.scene.remove(shot.mesh);
     this.shots = this.shots.filter((s) => s.life > 0);
+  }
+
+  // COPYBARA's arrest: a little jail drops over the spot, shakes, and goes POOF.
+  sendToJail(position, up) {
+    const jail = models.makeJail();
+    this.addEffect(jail, 0.7, (mesh, k) => {
+      mesh.position.copy(position).addScaledVector(up, Math.max(0, 1 - k * 4) * 3);
+      mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), up);
+      mesh.scale.setScalar(k > 0.85 ? 1 + (k - 0.85) * 6 : 1);
+      if (k > 0.3 && k < 0.85) mesh.position.addScaledVector(new THREE.Vector3(1, 0, 0), Math.sin(k * 80) * 0.06);
+    });
   }
 
   // Turns a homing shot toward the closest bad guy (or Grape Boss) on its planet.
@@ -1149,7 +1190,7 @@ export class SpaceWorld {
     }
     const position = this.enemyPosition(saucer);
     if (this.beam?.saucer !== saucer) {
-      const hunting = p.planet === saucer.planet && !this.invisible && !this.inShip;
+      const hunting = p.planet === saucer.planet && !this.invisible && !this.inShip && !this.megaBeam.active(); // no grabbing during the MEGA BEAM
       const playerDir = this.upAt(saucer.planet, p.pos);
       const distance = saucer.dir.angleTo(playerDir) * saucer.planet.radius;
       if (hunting) this.turnToward(saucer, playerDir, dt * 2);
@@ -1541,6 +1582,7 @@ export class SpaceWorld {
   defeatBoss() {
     const boss = this.boss;
     boss.state = 'defeated';
+    this.megaBeam.stop();
     if (boss.jump?.marker) this.scene.remove(boss.jump.marker);
     if (boss.wave) this.scene.remove(boss.wave.ring);
     audio.stopMusic();
@@ -1908,6 +1950,8 @@ export class SpaceWorld {
   destroy() {
     this.ended = true;
     this.magic.stop();
+    this.megaBeam.stop();
+    this.sniper?.destroy();
     clearInterval(this.discoFlash);
     cancelAnimationFrame(this.frame);
     clearTimeout(this.exitTimer);

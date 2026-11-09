@@ -48,6 +48,7 @@ Normal players (you can pick them from the start):
 Locked players: first you **beat a boss** to unlock them, **then you buy them** with ⚡.
 - **Ultra Capybara**: unlocked by beating Pizza Boss, costs **2000 ⚡**. X = **super lasers** (bigger, double damage). Pink **fire aura**: bad guys that touch him get burned, and touching them doesn't hurt him (blaster shots still do).
 - **Bloodmoon Cat**: a cat with a pink aura and a red moon. Unlocked by beating **Grape Boss** (World 2). Powers: X = **moon blast** (shoots a big red moon that **flies to the nearest bad guy** by itself) and **shadow form** (turns into a shadow: super fast, and nothing can hit him; press C, it lasts **5 seconds**, then wait **30 seconds**). Costs **3000 ⚡**. **In the game.**
+- **COPYBARA** 👮 (Ethan's drawing: `concept-art/hero-copybara.jpeg`, 2026-11-09, **in the game**): a **cop** capybara (cop + capybara!) in a dark blue police suit with a **gold badge** instead of the lightning bolt, and **no cape**. X = **HANDCUFFS**: he throws spinning handcuffs; the bad guy they hit gets **arrested**: jail bars drop over it, it shakes, and **POOF**, off to jail (2 damage on bosses). Unlocked by beating **Pizza Boss**, costs **2000 ⚡** (Claude picked these; Ethan can change them). Works in every mode, 2D and 3D.
 
 ## Controls
 
@@ -76,9 +77,31 @@ Click one in the shop to buy it. The ones still being decided say "soon" and can
 | Fly | 800 ⚡ | Press a button (F) to **fly for 10 seconds**, then wait **30 seconds** (like the Shield). While flying, the arrow keys move you **any direction** (up, down, left, right). **In the game.** In World 2: hold SPACE to go up, and press F again to stop flying early |
 | Double | 1000 ⚡ | **Double ⚡**: everything you earn is worth twice as much (bolts 20 instead of 10, and the rewards for beating bad guys and bosses too). **In the game.** |
 | Mecha Capybara | 1750 ⚡ | A **giant robot suit** you climb into for **15 seconds**: big, super strong, shoots **rockets**, and nothing can hurt you. Button: R (for Robot). **Once per level.** Touching bad guys smashes them. **In the game.** |
+| SUPA SNIPER 🎯 | 1500 ⚡ | **New** (Ethan's drawing, 2026-11-09, **in the game**): press **T**: the game freezes and you look through SupaCapybara's **eyes**, with his blaster at the bottom. Aim the target, fire **one super strong shot**: a bad guy goes POP, a boss loses a big chunk. Then wait **30 seconds**. Every shot needs **ammo**: **100 ⚡ for 5 shots** in the supermarket (you need the SUPA SNIPER first) |
 | Freeze Ray ❄️ | 1200 ⚡ | **New** (2026-10-24): freezes bad guys so they can't move or shoot. Press a button: **ALL bad guys on the screen freeze for 5 seconds**, then wait 30 seconds. Bosses are too strong to freeze: they just **slow down** for those 5 seconds. Button: **Z**. Hitting a frozen bad guy **shatters** it for **double bolts**. **In the game** in every world. (Ice-block stairs from frozen bad guys: maybe a future update.) |
 
-**MEGA BEAM 🌈 (Ethan, 2026-11-09, in the game in the side-scrollers; not yet in the 3D worlds):** press **G** (🌈 on touch, the left stick on a controller). For **10 seconds you can do everything**. It's **used up** after that, so you have to **buy it again** (unlike the others, which you keep forever). What you do: an **everything-laser**, one giant laser that has every hero's power mixed in. It looks like **both**: a giant **rainbow beam** 🌈 straight across the whole screen (with fire, lightning and moons swirling around it), **plus lots of lasers** in every color shooting in **every direction** 💥. Price: **1000 ⚡** each time. Name: **MEGA BEAM**.
+**MEGA BEAM 🌈 (Ethan, 2026-11-09, in the game in the side-scrollers and World 2; not yet in ADVENTURE or Cube Islands):** press **G** (🌈 on touch, the left stick on a controller). For **10 seconds you can do everything**. It's **used up** after that, so you have to **buy it again** (unlike the others, which you keep forever). What you do: an **everything-laser**, one giant laser that has every hero's power mixed in. It looks like **both**: a giant **rainbow beam** 🌈 straight across the whole screen (with fire, lightning and moons swirling around it), **plus lots of lasers** in every color shooting in **every direction** 💥. Price: **1000 ⚡** each time. Name: **MEGA BEAM**.
+
+**Next up (Ethan, 2026-11-09, round 13):** (1) the **MEGA BEAM in World 2** (3D, **in the game**), and (2) a **brand new power-up** that Ethan will **draw** first: the **SUPA SNIPER** 🎯 (**in the game** in the side-scrollers and World 2, 2026-11-09). How it plays: T opens the eyes view; the target starts on the nearest bad guy; arrows move it (or tap where to shoot); X fires; T, ESC or ✕ puts it away without using ammo. A boss shot takes **30%** of the boss's health. On a controller: **A + Y** together. Not in 2 PLAYERS TEAM, ADVENTURE or Cube Islands yet.
+- Q1: in World 2 the MEGA BEAM looks **the same as in 2D**: a giant rainbow beam straight ahead (it bends around the planet), plus lots of lasers in every direction.
+- Q2: the MEGA BEAM does **big damage** to Grape Boss (a big chunk of his health), but **not** an instant win.
+- Q3: flying saucers 🛸: while the MEGA BEAM is on, their **tractor beam can't grab you**, and the beam and lasers **blast them** too.
+- Q4: you can fire it **anywhere**: on the ground, while jumping or while flying.
+- Q5: **same buttons** as in 2D: G, the 🌈 touch button, and pressing the left stick.
+- Q6: you only get it **in the supermarket** (no extra way to find one in World 2).
+- **The new power-up drawing** (`concept-art/power-up-blaster.jpeg`): SuperCapybara (⚡ suit, cape flying) holding a **big blaster**, with a **target/crosshair** ⊕ above it.
+- Q7: it's a **sniper** 🎯: a target shows up, you aim it at a bad guy, and the blaster fires **one super strong shot** from far away.
+- Q8: aiming: the game **freezes**, you move the target with the **arrow keys**, then press **attack** to fire. And the view **changes to SupaCapybara's view** (you look through his eyes / the scope).
+- Q9: it's an **eyes view** (first person): you see the level from where SupaCapybara stands, looking **the way his eyes point**, with his blaster at the bottom of the screen.
+- Q10: you **keep it forever** and wait **30 seconds** between shots (like the Shield), **but** each shot needs **ammo** 🔫 that you **buy** in the supermarket.
+- Q11: its name is **SUPA SNIPER** 🎯.
+- Q12: prices: the SUPA SNIPER costs **1500 ⚡**, and ammo costs **100 ⚡ for 5 shots**.
+- Q13: one shot makes a **bad guy go POP**, and takes a **big chunk** of a **boss's** health (like the MEGA BEAM, not an instant win).
+- Q14: it works **everywhere at once**: the 2D worlds (side-scrollers) **and** World 2 (3D).
+- Q15: button: **T for Target** (🎯 on touch; Claude picks the controller button).
+- Q18: COPYBARA's handcuffs **arrest** bad guys (locked up, then POOF to jail). Badge: yes. Cape: **no**.
+- Q16: next up: a **new hero** (Ethan made room for more heroes in the menu when the SHOP button replaced the small shop list). Ethan will **draw** it.
+- **The new hero's drawing** (`concept-art/hero-copybara.jpeg`): **COPYBARA**, a capybara with a **badge-like symbol** on his suit, holding **HANDCUFFS** (the two rings with the chain). He's a **COP** capybara (cop + capybara = COPYBARA 👮).
 
 **The supermarket (Ethan, 2026-11-09, in the game):** a **SHOP button** to see the power-ups. Bigger than the small shop, with a **short description** under each power-up. And it's a shop **like a supermarket (like EDEKA)**: you walk around and **look for** the power-ups on the shelves yourself. You put them in a **shopping cart** 🛒 and pay with your bolts at the **checkout**, where the cashier, a **cute cat** 🐱, goes *beep beep!* (Claude draws the cat with the game's code; Ethan picks the colors.) The cat's fur is **rainbow** 🌈. You get there with a **SHOP button** in the STORY menu, **where the small shop is now** (it replaces the small shop list), and you walk your hero in. Besides the power-ups, the supermarket also sells **hats and win dances** 🎩💃, so everything is in one place. The hats from ADVENTURE chests **stay special** (only in chests), and the supermarket sells **new hats**: a **Viking helmet** ⚔️, an **astronaut helmet** 🚀 and a **top hat** 🎩. Each new hat costs **670 ⚡**. (Win dances move from the wardrobe to the supermarket.)
 
@@ -435,7 +458,7 @@ Ethan's idea: **other accounts**, so friends each have their own save (bolts, he
 - The hero's hat (and fire glow) got left behind on the helipad when jumping into the rocket. Now they go into the rocket too.
 - After Boss Rush, World 1 and World 3 kept starting at the boss. Now they start normally.
 - Golden Capybara was too strong: his SWITCH button now has 2 attacks instead of 4.
-- Game controllers (like the **ANBERNIC RG 477V**) now work in the menus and the 3D worlds too, not only in the 2D levels. Buttons: A jump/pick, B or X attack, Y power, L1 shield, R1 fly, L2 Mecha, R2 switch, SELECT back, press the stick for the Freeze Ray.
+- Game controllers (like the **ANBERNIC RG 477V**) now work in the menus and the 3D worlds too, not only in the 2D levels. Buttons: A jump/pick, B or X attack, Y power, L1 shield, R1 fly, L2 Mecha, R2 switch, SELECT back, press the stick for the Freeze Ray. (Since 2026-11-09: pressing the left stick fires the MEGA BEAM, and the Freeze Ray is B + Y together, the same as in the 2D levels.)
 
 ## Future updates (Ethan wants these later; don't forget!)
 

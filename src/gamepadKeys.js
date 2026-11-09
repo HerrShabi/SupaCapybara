@@ -17,7 +17,7 @@ const BUTTON_KEYS = {
   7: 'KeyQ', // R2: switch attack
   8: 'Escape', // SELECT: back / menu
   9: ['Enter', 'KeyB'], // START (and eat a magic strawberry in the 3D worlds)
-  10: 'KeyZ', // press the left stick: Freeze Ray
+  10: 'KeyG', // press the left stick: MEGA BEAM
   12: 'ArrowUp',
   13: 'ArrowDown',
   14: 'ArrowLeft',
@@ -37,6 +37,8 @@ export function startGamepadKeys(isQuiet) {
         const button = pad.buttons[index];
         if (button && (button.pressed || button.value > 0.5)) for (const code of [codes].flat()) wanted.add(code);
       }
+      if (pad.buttons[1]?.pressed && pad.buttons[3]?.pressed) wanted.add('KeyZ'); // B + Y together: Freeze Ray (like the 2D levels)
+      if (pad.buttons[0]?.pressed && pad.buttons[3]?.pressed) wanted.add('KeyT'); // A + Y together: SUPA SNIPER
       const [x = 0, y = 0] = pad.axes;
       if (x < -STICK) wanted.add('ArrowLeft');
       if (x > STICK) wanted.add('ArrowRight');

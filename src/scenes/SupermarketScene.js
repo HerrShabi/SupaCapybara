@@ -9,8 +9,7 @@ import { createBoltTexture } from '../art/bolt.js';
 import { addBackButton } from '../backButton.js';
 import { showTouchControls } from '../touch.js';
 import { rainbowColor } from '../strawberry.js';
-import { megaBeamCount } from '../megaBeam.js';
-import { AISLES, itemName, owns, roomFor, missingNeed, buyItem } from '../shopItems.js';
+import { AISLES, itemName, owns, roomFor, missingNeed, buyItem, stockOf } from '../shopItems.js';
 
 // THE SUPERMARKET (Ethan's design, 2026-11-09): the shop is a supermarket "like EDEKA". The SHOP button in the
 // STORY menu brings you here. Walk your hero along the shelves and look for what you want: every item has a sign
@@ -271,7 +270,7 @@ export class SupermarketScene extends Phaser.Scene {
     if (!spot) return this.info.setVisible(false);
     const item = spot.item;
     this.info.setVisible(true).setPosition(Phaser.Math.Clamp(spot.x, this.cameras.main.scrollX + 160, this.cameras.main.scrollX + 800), 150);
-    const count = item.usedUp ? megaBeamCount(this.save) : 0;
+    const count = item.usedUp ? stockOf(this.save, item) : 0;
     this.infoName.setText(`${itemName(t, item)}  ${item.price} ⚡`);
     this.infoName.setScale(Math.min(1, 280 / this.infoName.width));
     this.infoText.setText(t(`shopInfo.${item.id}`));
@@ -320,7 +319,7 @@ export class SupermarketScene extends Phaser.Scene {
       return;
     } else if (roomFor(this.save, item, this.cart) <= 0) {
       audio.play('error');
-      this.flash(t('mega.full', { count: megaBeamCount(this.save) + this.cart.filter((c) => c === item).length }));
+      this.flash(t('mega.full', { count: stockOf(this.save, item) + this.cart.filter((c) => c === item).length * (item.pack ?? 1) }));
       return;
     } else {
       this.cart.push(item);

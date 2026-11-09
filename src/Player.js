@@ -21,6 +21,7 @@ const ATTACK_COOLDOWN_MS = {
   moon: 400,
   rocket: 300,
   goldLaser: 220,
+  cuffs: 400,
 };
 const LASER_SPEED = 900;
 const LASER_RANGE_MS = 700;
@@ -50,6 +51,9 @@ const ROCKET_DAMAGE = 3;
 
 const MOON_SPEED = 520;
 const MOON_RANGE_MS = 1600;
+const CUFFS_SPEED = 650;
+const CUFFS_RANGE_MS = 700;
+const CUFFS_DAMAGE = 2;
 const MOON_DAMAGE = 2;
 
 const FREEZE_MS = 5000;
@@ -358,6 +362,7 @@ export class Player {
 
     if (kind === 'rocket') this.fireRocket();
     if (kind === 'moon') this.fireMoon();
+    if (kind === 'cuffs') this.throwCuffs();
     if (kind === 'laser') this.fireLaser('laser', 1);
     if (kind === 'superLaser') this.fireLaser('super-laser', 2);
     if (kind === 'goldLaser') this.fireLaser('gold-laser', 2);
@@ -419,6 +424,17 @@ export class Player {
     moon.setVelocityX(this.facing * MOON_SPEED);
     this.scene.tweens.add({ targets: moon, angle: 360, duration: 600, repeat: -1 });
     this.scene.time.delayedCall(MOON_RANGE_MS, () => moon.destroy());
+  }
+
+  // COPYBARA: spinning handcuffs. The bad guy they hit gets arrested (scene.defeat sees the 'cuffs' data).
+  throwCuffs() {
+    audio.play('click');
+    audio.play('laser');
+    const cuffs = this.lasers.create(this.x + this.facing * 40, this.y - 8, 'handcuffs');
+    cuffs.setData({ damage: CUFFS_DAMAGE, cuffs: true });
+    cuffs.setVelocityX(this.facing * CUFFS_SPEED);
+    this.scene.tweens.add({ targets: cuffs, angle: 360 * this.facing, duration: 400, repeat: -1 });
+    this.scene.time.delayedCall(CUFFS_RANGE_MS, () => cuffs.destroy());
   }
 
   steerMoons() {

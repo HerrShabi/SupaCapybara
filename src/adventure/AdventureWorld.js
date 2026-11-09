@@ -45,7 +45,7 @@ const FLY_SPEED = 8;
 const RADIUS = 0.5; // how wide the hero is
 const HEIGHT = 1.2;
 
-const ATTACK_COOLDOWN_MS = { laser: 250, superLaser: 220, goldLaser: 220, scratch: 300, tongue: 450, moon: 400, rocket: 300 };
+const ATTACK_COOLDOWN_MS = { laser: 250, superLaser: 220, goldLaser: 220, scratch: 300, tongue: 450, moon: 400, rocket: 300, cuffs: 400 };
 const SHOT_SPEED = 28;
 const SHOT_LIFE = 0.9;
 const SCRATCH_REACH = 2.4;
@@ -986,13 +986,13 @@ export class AdventureWorld {
         goldLaser: [0xffd54f, 0.3, 1.8, 2, 'superLaser'],
         rocket: [0xff7043, 0.35, 1.4, 3, 'rocketShot'],
         moon: [0xd50000, 0.35, 0.7, 2, 'moon'],
+        cuffs: [0xcfd8dc, 0.3, 0.6, 2, 'laser'], // COPYBARA's handcuffs
       }[kind];
       const [color, thick, length, damage, sound] = look;
       audio.play(sound);
-      const mesh = new THREE.Mesh(
-        kind === 'moon' ? new THREE.SphereGeometry(thick, 12, 10) : new THREE.BoxGeometry(thick, thick, length),
-        new THREE.MeshBasicMaterial({ color }),
-      );
+      const mesh = kind === 'cuffs'
+        ? heroModels.makeHandcuffs()
+        : new THREE.Mesh(kind === 'moon' ? new THREE.SphereGeometry(thick, 12, 10) : new THREE.BoxGeometry(thick, thick, length), new THREE.MeshBasicMaterial({ color }));
       this.addShot({ mesh, pos: start, vel: p.forward.clone().multiplyScalar(kind === 'moon' ? 16 : SHOT_SPEED), life: kind === 'moon' ? 2 : SHOT_LIFE, damage, fromPlayer: true, homing: kind === 'moon' });
     }
   }
