@@ -4,6 +4,7 @@ import { t } from './i18n.js';
 import { audio } from './audio.js';
 import { Controls } from './controls.js';
 import { createHatTextures, hatAnchor } from './art/hats.js';
+import { MegaBeam } from './megaBeam.js';
 
 // The hero you control: running, jumping, and each hero's own powers.
 // The scene decides what got hit: scene.hitArea(area, damage, attacker), scene.nearestTarget(x, y, attacker), and overlaps on player.lasers.
@@ -60,7 +61,8 @@ export class Player {
   // hat: the hat this hero wears (from save.wearing), or nothing. hatStyle: a world's own hat pictures and head
   // positions ({ prefix: texture key prefix, anchor(heroId, hat, scale) }), like the Drawings World's drawn hats.
   // strawberry: true if this hero can eat magic strawberries from the bag (scene.save; not in 2 PLAYERS).
-  constructor(scene, character, x, y, { powerUps = [], look = character.id, scheme = 'solo', padIndex = 0, hat = null, hatStyle = null, strawberry = false } = {}) {
+  // megaBeam: true if this hero can fire MEGA BEAMs bought in the shop (scene.save, see megaBeam.js).
+  constructor(scene, character, x, y, { powerUps = [], look = character.id, scheme = 'solo', padIndex = 0, hat = null, hatStyle = null, strawberry = false, megaBeam = false } = {}) {
     this.canEatStrawberry = strawberry;
     this.magic = new Magic();
     this.hatStyle = hatStyle;
@@ -96,6 +98,7 @@ export class Player {
     this.freezeReadyAt = 0;
 
     this.lasers = scene.physics.add.group({ allowGravity: false });
+    this.megaBeam = megaBeam ? new MegaBeam(this) : null;
     this.tongueGraphics = scene.add.graphics().setDepth(3);
 
     // Shield: a wall in front of you, or a bubble all around you with the Multi Direction Upgrade.
@@ -208,6 +211,7 @@ export class Player {
     if (this.hasMecha) {
       parts.push(this.mechaUsed && !this.mecha ? `R = ${t('game.mecha')}: ${t('game.used')}` : status('R', t('game.mecha'), this.mechaUntil, 0));
     }
+    if (this.megaBeam) parts.push(this.megaBeam.status());
     if (this.rainbow) parts.push(`🌈 ${t('strawberry.magic')}! ${this.magic.secondsLeft(now)}`);
     else if (this.canEatStrawberry) parts.push(bagText(this.scene.save));
     return parts.filter(Boolean).join('     ');
@@ -320,6 +324,8 @@ export class Player {
     }
     if (this.mechaUntil && !this.mecha) this.endMecha();
     if (this.canEatStrawberry && c.justPressed('strawberry')) this.eatStrawberry();
+    if (this.megaBeam && c.justPressed('mega')) this.megaBeam.start();
+    this.megaBeam?.update();
     this.updateRainbow();
     this.steerMoons();
     this.updateTongue();

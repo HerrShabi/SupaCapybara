@@ -98,6 +98,27 @@ export function makeHat3D(hat) {
     cone.position.y = 0.2;
     group.add(cone);
     group.add(ball(0.06, 0xffeb3b, 0, 0.42, 0));
+  } else if (hat === 'viking') {
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat(0x90a4ae));
+    group.add(dome);
+    group.add(box(0.5, 0.06, 0.5, 0x795548, 0, 0.02, 0));
+    for (const side of [-1, 1]) {
+      const horn = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.25, 6), mat(0xeeeeee));
+      horn.position.set(side * 0.28, 0.14, 0);
+      horn.rotation.z = -side * 0.7;
+      group.add(horn);
+    }
+  } else if (hat === 'astronaut') {
+    group.add(ball(0.42, 0xe1f5fe, 0, -0.1, 0.15, { transparent: true, opacity: 0.3 }));
+    group.add(ball(0.05, 0xe53935, 0, 0.34, 0.15));
+  } else if (hat === 'tophat') {
+    group.add(box(0.46, 0.04, 0.46, 0x212121, 0, 0.02, 0));
+    const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.36, 12), mat(0x212121));
+    tube.position.y = 0.2;
+    group.add(tube);
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(0.165, 0.165, 0.06, 12), mat(0xd32f2f));
+    band.position.y = 0.08;
+    group.add(band);
   } else if (hat === 'shades') {
     group.add(box(0.5, 0.05, 0.04, 0x111111, 0, 0.06, 0));
     group.add(box(0.2, 0.12, 0.05, 0x111111, -0.13, 0, 0));
@@ -351,10 +372,11 @@ export function makePlanet(radius, color, seed) {
 }
 
 // Yellow ring on a planet: jump from here to reach the next planet.
-export function makeJumpRing() {
+// Yellow = jump to the next planet, purple = jump back to the one before.
+export function makeJumpRing(color = 0xffd23f) {
   return new THREE.Mesh(
     new THREE.TorusGeometry(1.1, 0.1, 6, 24),
-    new THREE.MeshBasicMaterial({ color: 0xffd23f }),
+    new THREE.MeshBasicMaterial({ color }),
   );
 }
 

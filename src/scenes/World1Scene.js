@@ -127,7 +127,7 @@ export class World1Scene extends SideScrollerScene {
       sunglasses: SUNGLASSES,
       apples: APPLES,
       robots: ROBOTS,
-      bossRushNext: 'World3',
+      bossRushNext: 'GrapeMoon', // (Grape Boss in 2D, on a moon)
     });
   }
 

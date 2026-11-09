@@ -223,6 +223,26 @@ export function createDoodleHatTextures(scene) {
     pen(g, [[4, 15], [12, 13]], { color: 0x40c4ff, width: 2, wobble: 0.4 });
     pencil(g, ellipsePoints(8, 3, 2.6, 2.6, 8), 0xffeb3b, { strokes: false });
   });
+  hat('viking', 30, 16, (g) => {
+    pencil(g, [[0, 2], [7, 12], [9, 7]], 0xeeeeee, { strokes: false });
+    pencil(g, [[30, 2], [23, 12], [21, 7]], 0xeeeeee, { strokes: false });
+    const dome = ellipsePoints(15, 15, 10, 9, 10).filter(([, y]) => y <= 15);
+    pencil(g, dome, 0x90a4ae, { strokes: false });
+    pen(g, dome, { closed: true, ...thin });
+    pencil(g, rectPoints(4, 13, 22, 3), 0x8d6e63, { strokes: false });
+  });
+  hat('astronaut', 30, 26, (g) => {
+    const bubble = ellipsePoints(15, 15, 13, 13, 14);
+    pencil(g, bubble, 0xe1f5fe, { strokes: false });
+    pen(g, bubble, { closed: true, ...thin });
+    g.fillStyle(0xe53935).fillCircle(15, 2, 1.8);
+  });
+  hat('tophat', 20, 22, (g) => {
+    const points = [[4, 1], [16, 1], [16, 18], [19, 18], [19, 21], [1, 21], [1, 18], [4, 18]];
+    pencil(g, points, 0x37474f, { strokes: false });
+    pen(g, points, { closed: true, ...thin });
+    pen(g, [[4, 14], [16, 14]], { color: 0xd32f2f, width: 2, wobble: 0.3 });
+  });
   hat('shades', 22, 8, (g) => {
     pen(g, [[0, 1], [22, 1]], { width: 1.6, wobble: 0.3 });
     pencil(g, rectPoints(1, 2, 9, 5), 0x111111, { strokes: false });

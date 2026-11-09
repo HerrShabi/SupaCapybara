@@ -18,6 +18,7 @@ import { drawingMode, applySketch, useDrawnHeroes } from '../sketch.js';
 import { showDisco, heroPicture } from '../disco.js';
 import { drawDiscoProp } from '../art/discoSpots.js';
 import { discoReward } from '../strawberry.js';
+import { megaBeamCount } from '../megaBeam.js';
 
 // Everything the side-scrolling worlds (1 and 3) share: the hero, hearts, bolts, bad guys,
 // getting hurt, the boss health bar, the key and winning.
@@ -116,6 +117,7 @@ export class SideScrollerScene extends Phaser.Scene {
           hat: this.save.wearing?.[id] ?? null,
           hatStyle: this.hatStyle ?? null, // (a world's own hats, like the Drawings World)
           strawberry: !this.team, // magic strawberries (strawberry.js); TEAM has no power-ups
+          megaBeam: !this.team, // MEGA BEAMs bought in the shop (megaBeam.js)
         }),
     );
     this.player = this.players[0];
@@ -167,7 +169,7 @@ export class SideScrollerScene extends Phaser.Scene {
       const container = this.game.canvas.parentElement;
       const touch = this.team
         ? showTwoPlayerTouch(container)
-        : showTouchControls(container, { ...touchButtonsFor(this.character, this.powerUps, false), ...this.extraTouchButtons, pencil: Boolean(this.magicPencil) }, { jump: t('touch.jump') });
+        : showTouchControls(container, { ...touchButtonsFor(this.character, this.powerUps, false), ...this.extraTouchButtons, pencil: Boolean(this.magicPencil), mega: megaBeamCount(this.save) > 0 }, { jump: t('touch.jump') });
       this.events.once('shutdown', () => touch.destroy());
     }
 
@@ -732,6 +734,7 @@ export class SideScrollerScene extends Phaser.Scene {
   // Boss Rush only: out of hearts means it's over.
   gameOver() {
     this.won = true; // stops the level
+    for (const player of this.players) player.megaBeam?.stop();
     this.updateHearts();
     for (const player of this.players) player.sprite.setVisible(false).body.enable = false;
     audio.stopMusic();
@@ -857,6 +860,7 @@ export class SideScrollerScene extends Phaser.Scene {
 
   // Win dances: once everyone has landed, each hero does their dance, then `done` runs (the key drops).
   danceThen(done) {
+    for (const player of this.players) player.megaBeam?.stop();
     const dances = this.players.map((player) => pickDance(this.save, player.id));
     if (!dances.some(Boolean)) return done();
     this.dancing = { dances, done, startBy: this.time.now + 1500, started: false };
@@ -894,7 +898,10 @@ export class SideScrollerScene extends Phaser.Scene {
   win() {
     if (this.won) return;
     this.won = true;
-    for (const player of this.players) player.sprite.setVelocity(0, 0);
+    for (const player of this.players) {
+      player.sprite.setVelocity(0, 0);
+      player.megaBeam?.stop();
+    }
     audio.play('key');
     this.time.delayedCall(400, () => audio.play('win'));
 

@@ -80,6 +80,7 @@ export function showTouchControls(container, buttons, labels) {
     buttons.freeze && ['KeyZ', '❄️'],
     buttons.pencil && ['KeyE', '✏️'],
     buttons.strawberry && ['KeyB', '🍓'],
+    buttons.mega && ['KeyG', '🌈'],
   ].filter(Boolean);
   powers.forEach(([code, emoji], i) => add(code, emoji, { right: `${20 + i * 72}px`, bottom: '140px', ...size(62), fontSize: '26px' }));
 

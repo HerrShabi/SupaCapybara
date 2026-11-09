@@ -174,15 +174,18 @@ export class SpaceWorld {
     this.planet = (id) => this.planets.find((p) => p.id === id);
     this.bossPlanet = this.planet('boss');
 
-    for (const [fromId, toId] of JUMPS) {
+    // Purple rings point back the way you came (only where there's no yellow ring for it already)
+    const has = (a, b) => JUMPS.some(([from, to]) => from === a && to === b);
+    const backJumps = JUMPS.filter(([from, to]) => !has(to, from)).map(([from, to]) => [to, from, true]);
+    for (const [fromId, toId, back] of [...JUMPS, ...backJumps]) {
       const from = this.planet(fromId);
       const dir = this.planet(toId).center.clone().sub(from.center).normalize();
-      const ring = models.makeJumpRing();
+      const ring = back ? models.makeJumpRing(0xb388ff) : models.makeJumpRing();
       ring.position.copy(this.pointOn(from, dir, 0.05));
       ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
       this.scene.add(ring);
       (this.rings ??= []).push(ring);
-      from.jumpDir ??= dir;
+      if (!back) from.jumpDir ??= dir;
     }
 
     // Rocket that brought you here, next to where you start

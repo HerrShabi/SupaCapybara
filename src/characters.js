@@ -57,6 +57,7 @@ export const KEYS = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ id: `world${n}` }));
 
 // ready: it works and can be bought. The others are still being decided with Ethan.
 // needs: another power-up you must own before you can buy this one.
+// usedUp: you don't keep it; each one you buy is used once (counted in the save, like save.megaBeams).
 export const POWER_UPS = [
   { id: 'shield', price: 500, ready: true },
   { id: 'multi-direction', price: 650, ready: true, needs: 'shield' },
@@ -64,6 +65,7 @@ export const POWER_UPS = [
   { id: 'double', price: 1000, ready: true },
   { id: 'freeze', price: 1200, ready: true },
   { id: 'mecha-capybara', price: 1750, ready: true },
+  { id: 'mega-beam', price: 1000, ready: true, usedUp: true }, // see megaBeam.js
 ];
 
 // Win dances: after beating a boss, your hero dances before the key drops. Bought and picked in the wardrobe.

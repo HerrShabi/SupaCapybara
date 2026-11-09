@@ -377,6 +377,9 @@ class GameAudio {
         this.noise({ length: 0.25, volume: 0.35, filter: 'highpass', frequency: 4000 });
         this.notes(['E7', 'G7'], { wave: 'triangle', gap: 0.04, length: 0.15, volume: 0.08 });
         break;
+      case 'beep': // the supermarket checkout scanner
+        this.tone({ from: 1760, length: 0.09, volume: 0.1, wave: 'square' });
+        break;
       case 'click':
         this.tone({ from: 880, length: 0.05, volume: 0.08 });
         break;

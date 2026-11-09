@@ -1,7 +1,10 @@
-// Hats and costumes you find in ADVENTURE treasure chests. Heroes wear them in every world.
+// Hats and costumes. The first ones are found in ADVENTURE treasure chests (they stay special); SHOP_HATS are
+// sold in the supermarket (SupermarketScene). Heroes wear them in every world.
 // Names are in i18n.js as 'hat.<id>'. Which hero wears which hat is save.wearing[heroId].
 
-export const HATS = ['crown', 'pirate', 'wizard', 'party', 'shades', 'champion'];
+export const SHOP_HATS = ['viking', 'astronaut', 'tophat'];
+export const SHOP_HAT_PRICE = 670;
+export const HATS = ['crown', 'pirate', 'wizard', 'party', 'shades', 'champion', ...SHOP_HATS];
 // 'champion': the golden champion crown, only for beating THE BAD GUY KING story.
 
 // Where the top of the head (and the eyes, for shades) is in each animal's 64x48 hero frame.
@@ -85,6 +88,38 @@ export function createHatTextures(scene) {
     g.fillStyle(0xd500f9);
     g.fillCircle(6, 13, 2);
     g.fillCircle(20, 13, 2);
+  });
+  make(scene, 'hat-viking', 30, 16, (g) => {
+    g.fillStyle(0xeeeeee); // horns
+    g.fillTriangle(0, 2, 7, 12, 9, 7);
+    g.fillTriangle(30, 2, 23, 12, 21, 7);
+    g.fillStyle(0x90a4ae);
+    g.slice(15, 16, 10, Math.PI, 0, false);
+    g.fillPath();
+    g.fillStyle(0x795548);
+    g.fillRect(4, 13, 22, 3);
+    g.fillStyle(0xcfd8dc);
+    g.fillCircle(11, 10, 1.3);
+    g.fillCircle(19, 10, 1.3);
+  });
+  make(scene, 'hat-astronaut', 30, 26, (g) => {
+    g.fillStyle(0xffffff, 0.25);
+    g.fillCircle(15, 15, 14);
+    g.lineStyle(2, 0xeceff1);
+    g.strokeCircle(15, 15, 13);
+    g.fillStyle(0xffffff, 0.8);
+    g.fillEllipse(9, 9, 5, 3);
+    g.fillStyle(0xb0bec5);
+    g.fillRect(3, 23, 24, 3);
+    g.fillStyle(0xe53935);
+    g.fillCircle(15, 2, 2); // antenna light
+  });
+  make(scene, 'hat-tophat', 20, 22, (g) => {
+    g.fillStyle(0x212121);
+    g.fillRect(4, 0, 12, 18);
+    g.fillRect(0, 18, 20, 4);
+    g.fillStyle(0xd32f2f);
+    g.fillRect(4, 13, 12, 3);
   });
   make(scene, 'hat-shades', 22, 8, (g) => {
     g.fillStyle(0x111111);

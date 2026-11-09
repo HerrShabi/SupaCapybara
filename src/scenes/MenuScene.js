@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { CHARACTERS, KEYS, POWER_UPS, DANCES } from '../characters.js';
+import { CHARACTERS, KEYS, DANCES } from '../characters.js';
 import { t, setLanguage, getLanguage, LANGUAGES } from '../i18n.js';
 import { DIFFICULTIES, DIFFICULTY_ORDER } from '../difficulty.js';
 import { audio } from '../audio.js';
@@ -349,7 +349,7 @@ export class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
   }
 
-  // ---------- Wardrobe: pick the hat (hats come from ADVENTURE chests) and buy and pick the win dance ----------
+  // ---------- Wardrobe: pick the hat and the win dance (both are found in ADVENTURE chests or bought in the supermarket) ----------
 
   createWardrobeButton() {
     const x = this.secretsUnlocked ? 386 : 236;
@@ -434,7 +434,7 @@ export class MenuScene extends Phaser.Scene {
       });
     }
 
-    // Win dances: buy one by clicking it, then click to pick it for this hero. 🎲 = a random one you own.
+    // Win dances: click one you own to pick it for this hero (buy them in the supermarket). 🎲 = a random one you own.
     label(480, 292, t('menu.dances'), 16, '#b9f6ca', 400);
     const owned = this.save.dances ?? [];
     const picked = this.save.dancing?.[character.id] ?? null;
@@ -445,7 +445,7 @@ export class MenuScene extends Phaser.Scene {
       card(x, 360, 120, 100, has && (dance?.id ?? null) === picked, () => this.pickDance(character, dance));
       add(this.add.text(x, 334, dance ? dance.icon : '🎲', { fontSize: '30px' }).setOrigin(0.5)).setAlpha(has ? 1 : 0.5);
       label(x, 370, dance ? t(`dance.${dance.id}`) : t('menu.randomDance'), 14, '#ffffff', 110);
-      const status = !dance ? '' : has ? t('menu.owned') : t('menu.buy', { price: `${dance.price} ⚡` });
+      const status = !dance ? '' : has ? t('menu.owned') : `🛒 ${dance.price} ⚡`;
       if (status) label(x, 394, status, 12, has ? '#b9f6ca' : '#ffd23f', 110);
     });
     label(480, 440, note || t('menu.danceHint'), 14, note ? '#ff8a80' : '#cccccc', 680);
@@ -455,14 +455,10 @@ export class MenuScene extends Phaser.Scene {
     const owned = (this.save.dances ??= []);
     this.save.dancing ??= {};
     if (dance && !owned.includes(dance.id)) {
-      if (this.save.bolts < dance.price) {
-        audio.play('error');
-        this.openWardrobe(t('menu.needBolts', { count: dance.price - this.save.bolts }));
-        return;
-      }
-      this.save.bolts -= dance.price;
-      owned.push(dance.id);
-      this.boltText.setText(String(this.save.bolts));
+      // (Dances are bought in the supermarket now)
+      audio.play('error');
+      this.openWardrobe(t('menu.danceInShop'));
+      return;
     }
     if (dance) this.save.dancing[character.id] = dance.id;
     else delete this.save.dancing[character.id];
@@ -555,61 +551,31 @@ export class MenuScene extends Phaser.Scene {
 
   // ---------- Shop (bottom right) and keys (under it) ----------
 
+  // The big SHOP button: it opens the supermarket (SupermarketScene), where you walk around with a cart.
   createShop() {
     const top = 192;
-    this.add.rectangle(RIGHT, top, RIGHT_WIDTH, 210, 0x2c2c54).setOrigin(0, 0).setStrokeStyle(3, 0xffd23f);
-    this.add.text(RIGHT + 12, top + 8, `🛒 ${t('menu.shop')}`, { fontFamily: FONT, fontSize: '17px', color: '#ffd23f' });
-    const hint = this.add.text(RIGHT + RIGHT_WIDTH - 10, top + 12, t('menu.clickToBuy'), { fontFamily: 'Arial', fontSize: '11px', color: '#aaaaaa' }).setOrigin(1, 0);
-    hint.setScale(Math.min(1, 140 / hint.width));
-
-    POWER_UPS.forEach((powerUp, i) => {
-      const x = RIGHT + 14;
-      const y = top + 50 + i * 26;
-      const owned = this.save.powerUps.includes(powerUp.id);
-      const right = RIGHT + RIGHT_WIDTH - 14;
-
-      const parts = [this.add.text(x, y, t(`powerUp.${powerUp.id}`), { fontFamily: 'Arial', fontSize: '14px', color: '#ffffff' }).setOrigin(0, 0.5)];
-      if (owned) {
-        parts.push(this.add.text(right, y, t('menu.owned'), { fontFamily: FONT, fontSize: '12px', color: '#b9f6ca' }).setOrigin(1, 0.5));
-      } else {
-        parts.push(this.add.text(right - 18, y, String(powerUp.price), { fontFamily: FONT, fontSize: '13px', color: '#ffd23f' }).setOrigin(1, 0.5));
-        parts.push(this.add.image(right - 6, y, 'bolt').setScale(0.55));
-      }
-
-      if (!powerUp.ready) {
-        parts.forEach((part) => part.setAlpha(0.4));
-      } else if (!owned) {
-        this.add
-          .rectangle(RIGHT + 6, y, RIGHT_WIDTH - 12, 24, 0xffffff, 0.08)
-          .setOrigin(0, 0.5)
-          .setInteractive({ useHandCursor: true })
-          .on('pointerdown', () => this.buyPowerUp(powerUp));
-      }
-    });
+    const height = 64;
+    this.add
+      .rectangle(RIGHT, top, RIGHT_WIDTH, height, 0xc62828)
+      .setOrigin(0, 0)
+      .setStrokeStyle(4, 0xffd23f)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => this.openShop());
+    this.add.text(RIGHT + 40, top + height / 2, '🛒', { fontSize: '34px' }).setOrigin(0.5);
+    const title = this.add.text(RIGHT + 72, top + 20, t('menu.shopButton'), { fontFamily: FONT, fontSize: '22px', color: '#ffd23f' }).setStroke('#000000', 5).setOrigin(0, 0.5);
+    title.setScale(Math.min(1, (RIGHT_WIDTH - 84) / title.width));
+    const what = this.add.text(RIGHT + 72, top + 46, t('menu.shopWhat'), { fontFamily: 'Arial', fontSize: '12px', color: '#ffffff' }).setOrigin(0, 0.5);
+    what.setScale(Math.min(1, (RIGHT_WIDTH - 84) / what.width));
   }
 
-  buyPowerUp(powerUp) {
-    if (powerUp.needs && !this.save.powerUps.includes(powerUp.needs)) {
-      this.message.setText(t('menu.buyFirst', { name: t(`powerUp.${powerUp.needs}`) }));
-      audio.play('error');
-      this.cameras.main.shake(150, 0.005);
-      return;
-    }
-    if (this.save.bolts < powerUp.price) {
-      this.message.setText(t('menu.needBolts', { count: powerUp.price - this.save.bolts }));
-      audio.play('error');
-      this.cameras.main.shake(150, 0.005);
-      return;
-    }
-    audio.play('buy');
-    this.save.bolts -= powerUp.price;
-    this.save.powerUps.push(powerUp.id);
-    writeSave(this.save);
-    this.scene.restart();
+  openShop() {
+    const character = this.characters[this.selectedIndex];
+    audio.play('click');
+    this.scene.start('Supermarket', { hero: this.owns(character) ? character.id : this.save.selected });
   }
 
   createKeys() {
-    const top = 410;
+    const top = 268;
     this.add.rectangle(RIGHT, top, RIGHT_WIDTH, 60, 0x2c2c54).setOrigin(0, 0).setStrokeStyle(3, 0x9aa0aa);
     this.add.text(RIGHT + 12, top + 14, `🔑 ${t('menu.keys')}`, { fontFamily: FONT, fontSize: '13px', color: '#ffffff' }).setOrigin(0, 0.5);
     KEYS.forEach((key, i) => {

@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 
 // Who controls a hero: which keys, and which game controller.
 // Actions: left, right, up, down, jump, attack, special (C: invisible/shadow), shield, fly, mecha, swap (Golden Capybara's switch), freeze,
-// pencil (the magic pencil from the Drawings World), strawberry (eat a magic strawberry, see strawberry.js).
+// pencil (the magic pencil from the Drawings World), strawberry (eat a magic strawberry, see strawberry.js), mega (MEGA BEAM, see megaBeam.js).
 //
 // solo: one player. p1 / p2: two players on one keyboard (left side and right side).
 // Touch buttons (touch.js) press these same keys, so they work too.
@@ -23,8 +23,9 @@ export const SCHEMES = {
     freeze: ['Z'],
     pencil: ['E'],
     strawberry: ['B'],
+    mega: ['G'],
   },
-  p1: { left: ['A'], right: ['D'], up: ['W'], down: ['S'], jump: ['W'], attack: ['F'], special: ['G'], shield: [], fly: [], mecha: [], swap: ['T'], freeze: [], pencil: [], strawberry: [] },
+  p1: { left: ['A'], right: ['D'], up: ['W'], down: ['S'], jump: ['W'], attack: ['F'], special: ['G'], shield: [], fly: [], mecha: [], swap: ['T'], freeze: [], pencil: [], strawberry: [], mega: [] },
   p2: {
     left: ['LEFT'],
     right: ['RIGHT'],
@@ -40,6 +41,7 @@ export const SCHEMES = {
     freeze: [],
     pencil: [],
     strawberry: [],
+    mega: [],
   },
 };
 
@@ -59,6 +61,7 @@ const PAD = {
   freeze: (pad) => pad.B && pad.Y,
   pencil: (pad) => Boolean(pad.buttons?.[11]?.pressed), // press the right stick
   strawberry: (pad) => Boolean(pad.buttons?.[9]?.pressed), // START
+  mega: (pad) => Boolean(pad.buttons?.[10]?.pressed), // press the left stick
 };
 
 export class Controls {
