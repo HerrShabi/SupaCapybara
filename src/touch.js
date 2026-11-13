@@ -220,7 +220,7 @@ function makeRoot(container) {
 
 // Which buttons a hero needs. `threeD` adds up/down (World 2 walks forward and back).
 export function touchButtonsFor(character, powerUps, threeD) {
-  const attack = { laser: '👀', superLaser: '👀', scratch: '🐾', tongue: '👅', moon: '🌕', goldLaser: '✨', cuffs: '🔗', snowball: '❄️' }[character.attack];
+  const attack = { laser: '👀', superLaser: '👀', scratch: '🐾', tongue: '👅', moon: '🌕', goldLaser: '✨', cuffs: '🔗', snowball: '❄️', gadget: '💣' }[character.attack];
   const fly = powerUps.includes('fly');
   return {
     left: true,

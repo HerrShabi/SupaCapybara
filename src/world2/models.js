@@ -37,6 +37,7 @@ const HERO_LOOKS = {
   'supa-chameleon': { animal: 'chameleon', suit: 0xf06292, suitDark: 0x3e7d1f },
   copybara: { animal: 'capybara', suit: 0x1a3a8a, suitDark: 0x0d1f4f, badge: true, noCape: true },
   'captain-waddle': { animal: 'penguin', cape: 0xff8f00 },
+  'agent-whiskers': { animal: 'cat', suit: 0x16161c, suitDark: 0x050507, fur: 0xb0bec5, noCape: true, agent: true },
 };
 
 function boltShape() {
@@ -146,7 +147,7 @@ export function makeHero(id, palette = 0, hat = null, colors = null) {
 
   // Body in the suit, with a lightning bolt on each side
   group.add(box(0.7, 0.5, 1.0, look.suit, 0, 0.58, 0));
-  for (const side of [-1, 1]) {
+  for (const side of look.agent ? [] : [-1, 1]) {
     // (COPYBARA wears a gold police badge instead)
     const bolt = look.badge
       ? new THREE.Mesh(new THREE.CircleGeometry(0.15, 6), new THREE.MeshBasicMaterial({ color: BOLT, side: THREE.DoubleSide }))
@@ -172,6 +173,14 @@ export function makeHero(id, palette = 0, hat = null, colors = null) {
       group.add(ball(0.05, 0x000000, side * 0.12, 1.02, 0.9));
     }
     group.add(ball(0.05, 0xff6f9c, 0, 0.93, 0.93)); // nose
+    if (look.agent) {
+      // AGENT WHISKERS: sunglasses, and a white shirt with a pink tie under her chin
+      const shades = makeHat3D('shades');
+      shades.position.set(...HEAD_3D.cat.eyes);
+      group.add(shades);
+      group.add(box(0.26, 0.3, 0.02, 0xffffff, 0, 0.5, 0.51));
+      group.add(box(0.09, 0.28, 0.03, 0xff2d95, 0, 0.5, 0.53));
+    }
     const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.7), mat(look.fur));
     tail.position.set(0, 0.95, -0.55);
     tail.rotation.x = -0.4;
@@ -250,6 +259,48 @@ function makePenguin(look, hat) {
     group.add(hatMesh);
   }
   return { group, legs, cape };
+}
+
+// AGENT WHISKERS' spy gadget: a little black ball with a blinking red light on top.
+export function makeGadget() {
+  const group = new THREE.Group();
+  group.add(new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), new THREE.MeshStandardMaterial({ color: 0x263238, metalness: 0.5, roughness: 0.4 })));
+  const band = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.04, 6, 16), new THREE.MeshBasicMaterial({ color: 0xff2d95 }));
+  band.rotation.x = Math.PI / 2;
+  group.add(band);
+  const light = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff1744 }));
+  light.position.y = 0.22;
+  group.add(light);
+  group.userData.light = light;
+  return group;
+}
+
+// The cardboard box AGENT WHISKERS hides in (World 2), with her sunglasses peeking out of the top. Sits on y = 0.
+export function makeAgentBox() {
+  const group = new THREE.Group();
+  const cardboard = 0xc19a6b;
+  group.add(box(1.3, 1.0, 1.3, cardboard, 0, 0.5, 0));
+  group.add(box(1.32, 0.12, 0.2, 0xd7b98e, 0, 0.7, 0)); // tape
+  // Flaps, a little open
+  for (const side of [-1, 1]) {
+    const flap = box(0.62, 0.04, 1.3, 0xb08a5b, side * 0.33, 1.02, 0);
+    flap.rotation.z = side * 0.35;
+    group.add(flap);
+  }
+  // Her eyes in sunglasses and the tips of her ears, peeking out
+  const peek = new THREE.Group();
+  peek.add(ball(0.3, 0xb0bec5, 0, 0.98, 0.15));
+  for (const side of [-1, 1]) {
+    const ear = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.22, 4), mat(0xb0bec5));
+    ear.position.set(side * 0.17, 1.28, 0.1);
+    peek.add(ear);
+  }
+  const shades = makeHat3D('shades');
+  shades.position.set(0, 1.08, 0.43);
+  peek.add(shades);
+  group.add(peek);
+  group.userData.peek = peek;
+  return group;
 }
 
 // CAPTAIN WADDLE's snowball (his attack in 3D)

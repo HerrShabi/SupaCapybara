@@ -29,7 +29,7 @@ const BOUNCE_MS = 300;
 
 const LASER_SPEED = 30;
 const LASER_LIFE = 0.8; // seconds
-const ATTACK_COOLDOWN_MS = { laser: 250, superLaser: 220, goldLaser: 220, scratch: 300, tongue: 450, moon: 400, rocket: 300, cuffs: 400, snowball: 300 };
+const ATTACK_COOLDOWN_MS = { laser: 250, superLaser: 220, goldLaser: 220, scratch: 300, tongue: 450, moon: 400, rocket: 300, cuffs: 400, snowball: 300, gadget: 450 };
 const SCRATCH_REACH = 2.4;
 const TONGUE_REACH = 6;
 const TONGUE_MS = 260;
@@ -73,7 +73,13 @@ const ATTACK_NAMES = {
   goldLaser: 'game.attack.goldLaser',
   cuffs: 'game.attack.cuffs',
   snowball: 'game.attack.snowball',
+  gadget: 'game.attack.gadget',
 };
+// AGENT WHISKERS' spy gadgets: they fly a short way, land, blink, and explode
+const GADGET_FUSE = 0.5; // seconds
+const GADGET_BLAST = 2.6;
+// Her cardboard box hideout on the secret planet (see createAgentBox)
+const AGENT_BOX_TOUCH = 1.7;
 // CAPTAIN WADDLE's WADDLE SLIDE (C): a fast belly slide that knocks over bad guys in front of him
 const SLIDE_MS = 520;
 const SLIDE_WAIT_MS = 1200;
@@ -210,6 +216,7 @@ export class SpaceWorld {
     this.scene.add(rocket);
     this.parkedRocket = rocket; // it flies over to pick you up after Grape Boss
     this.createDiscoCrack(rocket);
+    this.createAgentBox();
 
     this.crystals = this.planets
       .filter((p) => p.crystal)
@@ -529,6 +536,7 @@ export class SpaceWorld {
       this.updatePowers();
       this.updateEnemies(dt);
       this.updateShip();
+      this.updateAgentBox();
       this.updateBoss(dt);
       this.checkTips();
     }
@@ -827,6 +835,10 @@ export class SpaceWorld {
       // CAPTAIN WADDLE: a snowball that flies far
       audio.play('snowball');
       this.addShot({ mesh: models.makeSnowball(), planet: p.planet, start, dir: p.forward, speed: LASER_SPEED * 0.8, life: LASER_LIFE * 1.4, damage: 1, fromPlayer: true });
+    } else if (kind === 'gadget') {
+      // AGENT WHISKERS: a spy gadget that lands a little way ahead and explodes (landGadget)
+      audio.play('gadget');
+      this.addShot({ mesh: models.makeGadget(), planet: p.planet, start, dir: p.forward, speed: LASER_SPEED * 0.4, life: 0.35, damage: 2, fromPlayer: true, gadget: true });
     } else if (kind === 'moon') {
       // Bloodmoon Cat: a red moon that flies to the nearest bad guy by itself
       audio.play('moon');
@@ -849,6 +861,8 @@ export class SpaceWorld {
     }
     // Right next to the disco crack, any attack breaks it (scratches and tongues too)
     if (this.discoCrack && this.discoSpot().distanceTo(this.playerBody()) < 2.4) this.openDisco();
+    // ...and the same for AGENT WHISKERS' cardboard box
+    if (this.agentBox && this.agentBoxCenter().distanceTo(this.playerBody()) < 2.6) this.findAgent();
   }
 
   // ---------- The secret capybara disco (the easter egg, see disco.js): a crack on the back of the parked rocket ----------
@@ -909,14 +923,119 @@ export class SpaceWorld {
     this.discoFlash = flash;
   }
 
+  // ---------- AGENT WHISKERS' hideout: a wobbly cardboard box on the secret planet (level.js 'hideout') ----------
+
+  createAgentBox() {
+    const planet = this.planets.find((p) => p.agentBox);
+    if (!planet || this.save.owned.includes('agent-whiskers')) return; // (already found her: the box is gone)
+    const up = vec(planet.agentBox).normalize();
+    const box = models.makeAgentBox();
+    box.position.copy(this.pointOn(planet, up, 0));
+    orient(box, up, anyTangent(up));
+    this.scene.add(box);
+    this.agentBox = box;
+    this.agentBoxUp = up;
+    this.agentBoxBase = box.position.clone();
+    this.agentBoxForward = anyTangent(up);
+  }
+
+  agentBoxCenter() {
+    return this.agentBox.position.clone().addScaledVector(this.agentBoxUp, 0.6);
+  }
+
+  // Every couple of seconds the box hops and wiggles, and her sunglasses peek up and duck down.
+  // Walking into it finds her too.
+  updateAgentBox() {
+    if (!this.agentBox) return;
+    const box = this.agentBox;
+    const phase = (this.now / 1000) % 2.6;
+    const hop = phase < 0.45 ? Math.sin((phase / 0.45) * Math.PI) * 0.3 : 0;
+    box.position.copy(this.agentBoxBase).addScaledVector(this.agentBoxUp, hop);
+    orient(box, this.agentBoxUp, this.agentBoxForward);
+    if (phase < 0.9) box.rotateY(Math.sin(phase * 25) * 0.12 * (1 - phase / 0.9));
+    box.userData.peek.position.y = Math.max(-0.12, Math.sin(this.now / 600) * 0.12);
+    if (this.agentBoxCenter().distanceTo(this.playerBody()) < AGENT_BOX_TOUCH) this.findAgent();
+  }
+
+  // The box pops open, AGENT WHISKERS jumps out, whispers, and joins your team (saved as an owned hero).
+  findAgent() {
+    if (!this.agentBox || this.won) return;
+    const box = this.agentBox;
+    const up = this.agentBoxUp;
+    const base = this.agentBoxBase;
+    this.agentBox = null;
+    this.scene.remove(box);
+    audio.play('agentBox');
+    this.pop(base.clone().addScaledVector(up, 0.6), 0xc19a6b, 2);
+    // Bits of cardboard fly off
+    for (let i = 0; i < 5; i++) {
+      const piece = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.05, 0.5), new THREE.MeshStandardMaterial({ color: 0xc19a6b }));
+      const out = new THREE.Vector3().randomDirection().addScaledVector(up, 1.5).normalize();
+      this.addEffect(piece, 0.8, (m, k) => {
+        m.position.copy(base).addScaledVector(out, k * 4).addScaledVector(up, Math.sin(k * Math.PI) * 1.5);
+        m.rotation.set(k * 9, k * 7, 0);
+        m.scale.setScalar(1 - k * 0.7);
+      });
+    }
+
+    if (!this.save.owned.includes('agent-whiskers')) this.save.owned.push('agent-whiskers');
+    writeSave(this.save);
+
+    // She jumps out, looks at you, and whispers in a comic bubble
+    const { group } = models.makeHero('agent-whiskers');
+    const toPlayer = this.player.pos.clone().sub(base);
+    toPlayer.addScaledVector(up, -toPlayer.dot(up));
+    const facing = toPlayer.lengthSq() > 1e-4 ? toPlayer.normalize() : anyTangent(up);
+    // She leaps out and lands next to you (off to the side, so the camera sees her), turned toward you
+    const p = this.player;
+    const planet = this.nearestPlanet(base).planet;
+    const right = new THREE.Vector3().crossVectors(p.forward, this.upAt(p.planet, p.pos)).normalize();
+    const landDir = p.pos.clone().addScaledVector(right, 2.2).addScaledVector(p.forward, 1.2).sub(planet.center).normalize();
+    const land = this.pointOn(planet, landDir, 0);
+    const toHero = p.pos.clone().sub(land).addScaledVector(p.forward, -4);
+    toHero.addScaledVector(landDir, -toHero.dot(landDir));
+    orient(group, landDir, toHero.lengthSq() > 1e-4 ? toHero.normalize() : facing);
+    const bubble = document.createElement('div');
+    bubble.style.cssText =
+      'position:absolute;transform:translate(-50%,-100%);max-width:300px;padding:10px 16px;background:#fff;border:4px solid #000;border-radius:18px;' +
+      'font:18px "Comic Sans MS","Chalkboard SE",Arial,sans-serif;color:#000;text-align:center;pointer-events:none;z-index:20;visibility:hidden;';
+    bubble.innerHTML = '<div style="font:bold 13px Arial,sans-serif;color:#d81b60;margin-bottom:4px"></div><div></div>' +
+      '<div style="position:absolute;left:50%;bottom:-14px;width:20px;height:20px;margin-left:-10px;background:#fff;border-right:4px solid #000;border-bottom:4px solid #000;transform:rotate(45deg)"></div>';
+    bubble.children[0].textContent = `🕶️ ${t('name.agent-whiskers').toUpperCase()}`;
+    bubble.children[1].textContent = t('agent.shh');
+    this.container.append(bubble);
+    this.agentBubble = bubble;
+    const seconds = 5;
+    this.addEffect(group, seconds, (m, k) => {
+      const time = k * seconds;
+      const leap = Math.min(1, time / 0.7);
+      const jump = time < 0.7 ? Math.sin(leap * Math.PI) * 2.4 : Math.abs(Math.sin(time * 3)) * 0.08;
+      m.position.copy(base).lerp(land, leap).addScaledVector(landDir, jump);
+      if (time > 0.7 && bubble.isConnected) {
+        bubble.style.visibility = 'visible';
+        const head = this.toScreen(land.clone().addScaledVector(landDir, 1.9));
+        bubble.style.left = `${Math.min(Math.max(head.x, 160), this.container.clientWidth - 160)}px`;
+        bubble.style.top = `${Math.min(Math.max(head.y, bubble.offsetHeight + 10), this.container.clientHeight - 30)}px`;
+      }
+      if (k < 1) return;
+      // POOF: spies vanish
+      bubble.remove();
+      this.agentBubble = null;
+      this.pop(land.clone().addScaledVector(landDir, 0.6), 0x37474f, 1.5);
+      audio.play('key');
+      this.hud.message(t('agent.joined'), t('agent.pickHer'), 4500);
+    });
+  }
+
   // mega: a MEGA BEAM laser (its damage to Grape Boss counts toward the beam's limit)
   // cuffs: COPYBARA's handcuffs (they spin, and a bad guy they beat goes to jail)
-  addShot({ mesh, planet, start, dir, speed, life, damage = 1, fromPlayer, homing = false, mega = false, cuffs = false }) {
+  // gadget: AGENT WHISKERS' spy gadget (it lands and explodes when its life runs out or it bumps into something)
+  addShot({ mesh, planet, start, dir, speed, life, damage = 1, fromPlayer, homing = false, mega = false, cuffs = false, gadget = false }) {
     const offset = start.clone().sub(planet.center);
     const up = offset.clone().normalize();
     const heading = dir.clone().addScaledVector(up, -dir.dot(up)).normalize();
     this.scene.add(mesh);
-    this.shots.push({ mesh, planet, offset, heading, speed, life, damage, fromPlayer, homing, mega, cuffs });
+    this.shots.push({ mesh, planet, offset, heading, speed, life, damage, fromPlayer, homing, mega, cuffs, gadget });
   }
 
   scratch() {
@@ -1014,6 +1133,13 @@ export class SpaceWorld {
       if (shot.fromPlayer && this.discoCrack && this.discoSpot().distanceTo(shot.mesh.position) < 1.2) {
         shot.life = 0;
         this.openDisco();
+      } else if (shot.fromPlayer && this.agentBox && this.agentBoxCenter().distanceTo(shot.mesh.position) < 1.4) {
+        shot.life = 0;
+        if (!shot.gadget) this.findAgent();
+      } else if (shot.gadget) {
+        // Spy gadgets don't hit on the way: they stop when they bump into something, then explode (landGadget)
+        const bump = this.enemies.some((e) => e.alive && this.enemyPosition(e).distanceTo(shot.mesh.position) < (e.hitRadius ?? 1));
+        if (bump || (this.bossIsHittable() && this.bossCenter().distanceTo(shot.mesh.position) < 2.6)) shot.life = 0;
       } else if (shot.fromPlayer) {
         const enemy = this.enemies.find((e) => e.alive && this.enemyPosition(e).distanceTo(shot.mesh.position) < (e.hitRadius ?? 1));
         if (enemy) {
@@ -1037,8 +1163,51 @@ export class SpaceWorld {
         }
       }
     }
-    for (const shot of this.shots.filter((s) => s.life <= 0)) this.scene.remove(shot.mesh);
+    for (const shot of this.shots.filter((s) => s.life <= 0)) {
+      this.scene.remove(shot.mesh);
+      if (shot.gadget) this.landGadget(shot);
+    }
     this.shots = this.shots.filter((s) => s.life > 0);
+  }
+
+  // AGENT WHISKERS' spy gadget lands on the ground, blinks, and goes BOOM: everything close by gets hit.
+  landGadget(shot) {
+    const up = shot.offset.clone().normalize();
+    const pos = shot.planet.center.clone().addScaledVector(up, shot.planet.radius + 0.2);
+    const mesh = models.makeGadget();
+    mesh.position.copy(pos);
+    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), up);
+    audio.play('gadgetBeep');
+    let boomed = false;
+    this.addEffect(mesh, GADGET_FUSE, (m, k) => {
+      m.scale.setScalar(1 + Math.abs(Math.sin(k * Math.PI * 3)) * 0.4);
+      m.userData.light.visible = Math.floor(k * 8) % 2 === 0;
+      if (k < 1 || boomed) return;
+      boomed = true;
+      this.gadgetBoom(pos, shot.damage);
+    });
+  }
+
+  gadgetBoom(pos, damage) {
+    audio.play('gadgetBoom');
+    this.pop(pos, 0xff9100, 2.2);
+    this.pop(pos, 0xffea00, 1.2);
+    this.shakeUntil = this.now + 200;
+    if (this.won) return;
+    let hit = false;
+    for (const enemy of this.enemies) {
+      if (enemy.alive && this.enemyPosition(enemy).distanceTo(pos) < GADGET_BLAST + (enemy.hitRadius ?? 1) - 0.5) {
+        this.defeat(enemy, damage);
+        hit = true;
+      }
+    }
+    if (this.bossIsHittable() && this.bossCenter().distanceTo(pos) < GADGET_BLAST + 1.6) {
+      this.hitBoss(damage);
+      hit = true;
+    }
+    if (this.discoCrack && this.discoSpot().distanceTo(pos) < GADGET_BLAST) this.openDisco();
+    if (this.agentBox && this.agentBoxCenter().distanceTo(pos) < GADGET_BLAST) this.findAgent();
+    if (hit) this.landedHit();
   }
 
   // COPYBARA's arrest: a little jail drops over the spot, shakes, and goes POOF.
@@ -2016,6 +2185,7 @@ export class SpaceWorld {
     this.hud.destroy();
     this.curtain?.remove();
     this.tip?.bubble.remove();
+    this.agentBubble?.remove();
     this.sketch?.dispose();
     this.tip?.finger.remove();
     this.renderer.dispose();

@@ -1,10 +1,12 @@
 // Every hero you can pick, and every power-up in the shop. Ideas are Ethan's (see GAME_DESIGN.md).
 // Words the player sees (hero names, power descriptions, power-up names) are in i18n.js.
 //
-// attack: what X does. 'laser' | 'superLaser' | 'scratch' | 'tongue' | 'moon' | 'goldLaser' | 'cuffs' | 'snowball'
+// attack: what X does. 'laser' | 'superLaser' | 'scratch' | 'tongue' | 'moon' | 'goldLaser' | 'cuffs' | 'snowball' | 'gadget'
 // secret: the card only shows up once unlockKey is yours (and then you own the hero)
 // unlockKey: the boss key you need before the hero can be bought.
 // jailed: not bought; you free him from the police station's jail cell in World 1 (World1Scene, a boss key opens it).
+// hidden: not bought; she hides in a cardboard box on a secret planet in World 2 (SpaceWorld.createAgentBox).
+// grapple: the double jump throws a grappling hook (Player.grappleFlick).
 // slide: C does the WADDLE SLIDE (a belly slide that knocks over bad guys, see Player.startSlide).
 
 export const CHARACTERS = [
@@ -53,6 +55,16 @@ export const CHARACTERS = [
     doubleJump: true,
     slide: true,
     jailed: true,
+  },
+  {
+    // AGENT WHISKERS (Ethan's design, 2026-11-13): a secret agent cat in a black suit, sunglasses and a pink tie.
+    // X throws SPY GADGETS that explode a moment after they land; the double jump is a grappling hook. No C move.
+    // She hides in a wobbly cardboard box on a little secret planet in World 2: touch or hit it to find her.
+    id: 'agent-whiskers',
+    attack: 'gadget',
+    doubleJump: true,
+    grapple: true,
+    hidden: true,
   },
   {
     // Secret: unlocked (for free) by beating the Lava Dragon. Has lots of powers at once.

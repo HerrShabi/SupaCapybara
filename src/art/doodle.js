@@ -102,6 +102,7 @@ const HERO_LOOKS = {
   'supa-chameleon': { animal: 'chameleon' },
   copybara: { animal: 'capybara', suit: 0x1a3a8a, noCape: true },
   'captain-waddle': { animal: 'penguin', cape: 0xff8f00 },
+  'agent-whiskers': { animal: 'cat', suit: 0x1c1c22, fur: 0xb0bec5, noCape: true, agent: true },
 };
 const POSES = { idle: [0, false], run1: [3, true], run2: [-3, true], jump: [2, true] };
 
@@ -132,12 +133,18 @@ function drawDoodleHero(g, look, [legs, flying]) {
     g.fillStyle(0x000000).fillCircle(38, 9, 2.4).fillCircle(52, 13, 1.6);
   } else if (animal === 'cat') {
     const c = { ...CLAY.cat, ...look };
-    cape(g, flying, c.cape);
+    if (!c.noCape) cape(g, flying, c.cape);
     shape(g, rectPoints(18 + legs, 34, 7, 11), c.fur);
     shape(g, rectPoints(40 - legs, 34, 7, 11), c.fur);
     pen(g, [[12, 26], [6, 18], [9, 10]], { width: 3 }); // tail
     shape(g, ellipsePoints(31, 28, 20, 11), c.suit);
-    shape(g, [[27, 19], [35, 19], [30, 27], [36, 27], [26, 38], [29, 29], [23, 29]], c.bolt, { strokes: false });
+    if (c.agent) {
+      // AGENT WHISKERS: white shirt and a pink tie
+      shape(g, [[35, 19], [46, 19], [40, 31]], 0xffffff, { strokes: false });
+      shape(g, [[39, 19], [42, 19], [43, 29], [40.5, 32], [38, 29]], 0xff2d95, { strokes: false });
+    } else {
+      shape(g, [[27, 19], [35, 19], [30, 27], [36, 27], [26, 38], [29, 29], [23, 29]], c.bolt, { strokes: false });
+    }
     shape(g, ellipsePoints(50, 18, 11, 10), c.fur); // head
     shape(g, [[42, 12], [44, 1], [49, 9]], c.fur); // ears
     shape(g, [[52, 9], [57, 1], [58, 12]], c.fur);
@@ -146,6 +153,11 @@ function drawDoodleHero(g, look, [legs, flying]) {
     pen(g, [[50, 21], [52, 23], [54, 21]], { width: 1.5 });
     pen(g, [[56, 21], [63, 19]], { width: 1.2 }); // whiskers
     pen(g, [[56, 23], [63, 24]], { width: 1.2 });
+    if (c.agent) {
+      // her sunglasses
+      g.fillStyle(0x111111).fillRoundedRect(44, 13, 7, 6, 2).fillRoundedRect(52, 13, 7, 6, 2);
+      pen(g, [[42, 15], [60, 15]], { width: 1.5 });
+    }
   } else if (animal === 'penguin') {
     // CAPTAIN WADDLE: a standing penguin, orange cape, beak and feet, the bolt on his white belly
     cape(g, flying, look.cape);

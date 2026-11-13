@@ -45,7 +45,7 @@ const FLY_SPEED = 8;
 const RADIUS = 0.5; // how wide the hero is
 const HEIGHT = 1.2;
 
-const ATTACK_COOLDOWN_MS = { laser: 250, superLaser: 220, goldLaser: 220, scratch: 300, tongue: 450, moon: 400, rocket: 300, cuffs: 400, snowball: 300 };
+const ATTACK_COOLDOWN_MS = { laser: 250, superLaser: 220, goldLaser: 220, scratch: 300, tongue: 450, moon: 400, rocket: 300, cuffs: 400, snowball: 300, gadget: 450 };
 const SHOT_SPEED = 28;
 const SHOT_LIFE = 0.9;
 const SCRATCH_REACH = 2.4;
@@ -55,6 +55,9 @@ const SLIDE_WAIT_MS = 1200;
 const SLIDE_SPEED = 2.6; // times running speed
 const SLIDE_REACH = 1.9;
 const TONGUE_REACH = 6;
+// AGENT WHISKERS' spy gadgets: thrown in an arc, they land, blink, and explode
+const GADGET_FUSE = 0.5; // seconds
+const GADGET_BLAST = 2.6; // how far the explosion reaches
 const POWER_MS = { invisible: 10000, shadow: 5000, shield: 10000, fly: 10000, mecha: 15000 };
 // (The Freeze Ray has its own timers: see useFreezeRay.)
 const POWER_WAIT_MS = 30000;
@@ -1024,6 +1027,10 @@ export class AdventureWorld {
     } else if (kind === 'tongue') {
       audio.play('tongue');
       p.tongue = { startedAt: this.now, hit: false };
+    } else if (kind === 'gadget') {
+      audio.play('gadget');
+      const vel = p.forward.clone().multiplyScalar(11).addScaledVector(UP, 6);
+      this.addShot({ mesh: heroModels.makeGadget(), pos: start, vel, life: 1.2, damage: 2, fromPlayer: true, gadget: true });
     } else {
       const look = {
         laser: [0xff2020, 0.14, 1.3, 1, 'laser'],
@@ -1114,6 +1121,7 @@ export class AdventureWorld {
           shot.vel.lerp(nearest.point.clone().sub(shot.pos).setLength(16), 0.12);
         }
       }
+      if (shot.gadget) shot.vel.y -= 22 * dt; // (gadgets fall in an arc)
       shot.pos.addScaledVector(shot.vel, dt);
       shot.mesh.position.copy(shot.pos);
       if (shot.vel.lengthSq() > 0) shot.mesh.lookAt(shot.pos.clone().add(shot.vel));
@@ -1139,8 +1147,34 @@ export class AdventureWorld {
         }
       }
     }
-    for (const shot of this.shots.filter((s) => s.life <= 0)) this.scene.remove(shot.mesh);
+    for (const shot of this.shots.filter((s) => s.life <= 0)) {
+      this.scene.remove(shot.mesh);
+      if (shot.gadget) this.landGadget(shot);
+    }
     this.shots = this.shots.filter((s) => s.life > 0);
+  }
+
+  // AGENT WHISKERS' spy gadget landed: it sits there blinking, then goes BOOM and hits everything close by.
+  landGadget(shot) {
+    const pos = shot.pos.clone();
+    pos.y = Math.max(pos.y, this.groundAt(pos.x, pos.z) + 0.2);
+    const mesh = heroModels.makeGadget();
+    mesh.position.copy(pos);
+    audio.play('gadgetBeep');
+    let boomed = false;
+    this.addEffect(mesh, GADGET_FUSE, (m, k) => {
+      m.scale.setScalar(1 + Math.abs(Math.sin(k * Math.PI * 3)) * 0.4);
+      m.userData.light.visible = Math.floor(k * 8) % 2 === 0;
+      if (k < 1 || boomed) return;
+      boomed = true;
+      audio.play('gadgetBoom');
+      this.pop(pos, 0xff9100, 2.2);
+      this.pop(pos, 0xffea00, 1.2);
+      this.shakeUntil = this.now + 200;
+      for (const target of this.targets()) {
+        if (target.point.distanceTo(pos) < GADGET_BLAST + target.radius - 0.5) target.hit(shot.damage, shot);
+      }
+    });
   }
 
   enemyShot(from, toward, speed, color = 0xffa000, size = 0.2) {

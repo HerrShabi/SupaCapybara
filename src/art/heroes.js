@@ -24,6 +24,7 @@ const HEROES = {
   'bloodmoon-cat': { draw: drawCat, suit: 0x6a1b4d, suitDark: 0x400f2e, fur: 0xf3e5f5 },
   'supa-chameleon': { draw: drawChameleon, suit: 0xf06292, suitDark: 0xf06292 },
   copybara: { draw: drawCapybara, suit: 0x1a3a8a, suitDark: 0x0d1f4f, badge: true, noCape: true },
+  'agent-whiskers': { draw: drawCat, suit: 0x16161c, suitDark: 0x050507, fur: 0xb0bec5, agent: true }, // (secret colors change her suit)
   'captain-waddle': { draw: drawPenguin, suit: 0x1c1c24, suitDark: 0x000000, cape: 0xff8f00, slide: true }, // (secret colors change his cape)
 };
 

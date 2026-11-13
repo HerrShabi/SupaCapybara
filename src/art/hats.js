@@ -16,7 +16,7 @@ const HEAD = {
 };
 
 export function animalOf(heroId) {
-  if (heroId.includes('cat')) return 'cat';
+  if (heroId.includes('cat') || heroId === 'agent-whiskers') return 'cat';
   if (heroId.includes('chameleon')) return 'chameleon';
   if (heroId === 'captain-waddle') return 'penguin';
   return 'capybara';

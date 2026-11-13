@@ -174,6 +174,31 @@ export function createPowerTextures(scene) {
     for (const x of [16, 20, 24]) g.fillCircle(x, 10, 2);
   });
 
+  // AGENT WHISKERS' spy gadget (a black ball with a pink band and a red light) and its little explosion
+  make(scene, 'gadget', 20, 20, (g) => {
+    g.fillStyle(0x263238);
+    g.fillCircle(10, 11, 8);
+    g.fillStyle(0xff2d95);
+    g.fillRect(2, 10, 16, 3);
+    g.fillStyle(0x90a4ae);
+    g.fillCircle(7, 7, 2);
+    g.fillStyle(0xff1744);
+    g.fillCircle(10, 3, 3);
+  });
+  make(scene, 'gadget-boom', 96, 96, (g) => {
+    g.fillStyle(0xff6d00, 0.5);
+    g.fillCircle(48, 48, 48);
+    g.fillStyle(0xffab00);
+    for (let i = 0; i < 10; i++) {
+      const angle = (i / 10) * Math.PI * 2;
+      g.fillTriangle(48 + Math.cos(angle) * 46, 48 + Math.sin(angle) * 46, 48 + Math.cos(angle + 0.3) * 22, 48 + Math.sin(angle + 0.3) * 22, 48 + Math.cos(angle - 0.3) * 22, 48 + Math.sin(angle - 0.3) * 22);
+    }
+    g.fillStyle(0xffea00);
+    g.fillCircle(48, 48, 26);
+    g.fillStyle(0xffffff);
+    g.fillCircle(48, 48, 12);
+  });
+
   // CAPTAIN WADDLE's snowball (and the snow that flies up when it splats or he slides)
   make(scene, 'snowball', 24, 24, (g) => {
     g.fillStyle(0xb3e5fc, 0.5);

@@ -23,6 +23,7 @@ const ATTACK_COOLDOWN_MS = {
   goldLaser: 220,
   cuffs: 400,
   snowball: 300,
+  gadget: 450,
 };
 const LASER_SPEED = 900;
 const LASER_RANGE_MS = 700;
@@ -64,6 +65,13 @@ const SLIDE_MS = 520;
 const SLIDE_SPEED = 640;
 const SLIDE_WAIT_MS = 1200;
 const SLIDE_HIT_EVERY_MS = 150;
+
+// AGENT WHISKERS: spy gadgets fly in a little arc, land, blink, and go BOOM half a second later.
+const GADGET_THROW_MS = 380;
+const GADGET_DISTANCE = 150;
+const GADGET_FUSE_MS = 500;
+const GADGET_BLAST = 70; // half the size of the blast square
+const GADGET_DAMAGE = 2;
 
 const FREEZE_MS = 5000;
 const FREEZE_WAIT_MS = 30000;
@@ -302,8 +310,9 @@ export class Player {
     } else if (jumpPressed && this.airJumpsLeft > 0) {
       this.airJumpsLeft -= 1;
       this.sprite.setVelocityY(-JUMP_SPEED);
-      this.puff();
-      audio.play('doubleJump');
+      if (this.character.grapple) this.grappleFlick();
+      else this.puff();
+      audio.play(this.character.grapple ? 'grapple' : 'doubleJump');
     }
     // Let go of jump early for a small hop.
     if (!jumpHeld && !bouncing && body.velocity.y < -200) {
@@ -389,6 +398,7 @@ export class Player {
     if (kind === 'moon') this.fireMoon();
     if (kind === 'cuffs') this.throwCuffs();
     if (kind === 'snowball') this.throwSnowball();
+    if (kind === 'gadget') this.throwGadget();
     if (kind === 'laser') this.fireLaser('laser', 1);
     if (kind === 'superLaser') this.fireLaser('super-laser', 2);
     if (kind === 'goldLaser') this.fireLaser('gold-laser', 2);
@@ -473,6 +483,81 @@ export class Player {
     this.scene.time.delayedCall(SNOWBALL_RANGE_MS, () => {
       if (ball.active) this.snowPuff(ball.x, ball.y, 4);
       ball.destroy();
+    });
+  }
+
+  // AGENT WHISKERS: a spy gadget flies forward in a little arc, lands by her feet's height, blinks, and goes BOOM,
+  // knocking out everything in a small square around it (scene.hitArea, so it works on bosses and in Battle too).
+  throwGadget() {
+    audio.play('gadget');
+    const scene = this.scene;
+    const dir = this.facing;
+    const fromX = this.x + dir * 26;
+    const fromY = this.y - 8;
+    const toX = this.x + dir * GADGET_DISTANCE;
+    const toY = this.y + 24;
+    const gadget = scene.add.image(fromX, fromY, 'gadget').setDepth(3).setScale(1.3);
+    scene.tweens.addCounter({
+      from: 0,
+      to: 1,
+      duration: GADGET_THROW_MS,
+      onUpdate: (tween) => {
+        const k = tween.getValue();
+        gadget.setPosition(fromX + (toX - fromX) * k, fromY + (toY - fromY) * k - 70 * 4 * k * (1 - k));
+        gadget.setAngle(k * 360 * dir);
+      },
+      onComplete: () => {
+        if (!gadget.active) return;
+        gadget.setAngle(0);
+        audio.play('gadgetBeep');
+        scene.tweens.add({ targets: gadget, scale: 1.6, duration: GADGET_FUSE_MS / 4, yoyo: true, repeat: 1 });
+        scene.time.delayedCall(GADGET_FUSE_MS, () => this.gadgetBoom(gadget));
+      },
+    });
+  }
+
+  gadgetBoom(gadget) {
+    if (!gadget.active) return;
+    const { x, y } = gadget;
+    gadget.destroy();
+    audio.play('gadgetBoom');
+    const boom = this.scene.add.image(x, y - 10, 'gadget-boom').setDepth(4).setScale(0.3);
+    this.scene.tweens.add({ targets: boom, scale: (GADGET_BLAST * 2) / 96, alpha: 0, duration: 380, ease: 'Cubic.easeOut', onComplete: () => boom.destroy() });
+    this.scene.cameras.main.shake(120, 0.006);
+    const area = new Phaser.Geom.Rectangle(x - GADGET_BLAST, y - GADGET_BLAST - 20, GADGET_BLAST * 2, GADGET_BLAST * 2);
+    if (this.scene.hitArea(area, GADGET_DAMAGE, this)) this.landedHit();
+  }
+
+  // AGENT WHISKERS' double jump: her grappling hook zips up, catches, and the rope fades away.
+  grappleFlick() {
+    const scene = this.scene;
+    const g = scene.add.graphics().setDepth(3);
+    const dir = this.facing;
+    scene.tweens.addCounter({
+      from: 0,
+      to: 1,
+      duration: 380,
+      onUpdate: (tween) => {
+        const k = tween.getValue();
+        const reach = Math.min(1, k * 2.5); // shoots up fast, then hangs there and fades
+        // (the hook stays above her, so it looks like the rope pulls her up)
+        const hookX = this.x + dir * (10 + 30 * reach);
+        const hookY = this.y - 10 - 130 * reach;
+        g.clear();
+        g.setAlpha(k < 0.5 ? 1 : 2 - k * 2);
+        g.lineStyle(6, 0xffffff, 0.8).lineBetween(this.x + dir * 10, this.y - 10, hookX, hookY);
+        g.lineStyle(3, 0x4e342e).lineBetween(this.x + dir * 10, this.y - 10, hookX, hookY);
+        // The hook: a shaft with two curved prongs, pointing up
+        g.lineStyle(5, 0x263238);
+        g.lineBetween(hookX, hookY + 4, hookX, hookY - 14);
+        g.beginPath();
+        g.arc(hookX - 9, hookY - 4, 9, 0, Math.PI / 2 + 1.2, false);
+        g.strokePath();
+        g.beginPath();
+        g.arc(hookX + 9, hookY - 4, 9, Math.PI / 2 - 1.2, Math.PI, false);
+        g.strokePath();
+      },
+      onComplete: () => g.destroy(),
     });
   }
 

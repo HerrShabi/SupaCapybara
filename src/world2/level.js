@@ -12,6 +12,9 @@ export const PLANETS = [
   { id: 'boss', center: [0, 4, -80], radius: 10, color: 0x7e57c2, spawn: [0, 0.4, 1], boss: true },
   { id: 'moon1', center: [-18, 6, -86], radius: 3.5, color: 0xbdbdbd, spawn: [0, 1, 0], boss: true },
   { id: 'moon2', center: [17, 2, -88], radius: 3.5, color: 0xbdbdbd, spawn: [0, 1, 0], boss: true },
+  // AGENT WHISKERS' secret hideout: a little green planet off to the side of the blue one (p3), with a
+  // suspicious cardboard box on it (agentBox: where the box sits)
+  { id: 'hideout', center: [-18.5, 7, -41], radius: 4, color: 0x66bb6a, spawn: [0, 1, 0], agentBox: [-0.35, 0.9, -0.25] },
 ];
 
 export const START_PLANET = 'p1';
@@ -27,6 +30,7 @@ export const JUMPS = [
   ['boss', 'moon2'],
   ['moon1', 'boss'],
   ['moon2', 'boss'],
+  ['p3', 'hideout'], // the side trip to AGENT WHISKERS' hideout (a purple ring brings you back)
 ];
 
 // Bolts in a ring around a planet: [planet, howMany, tilt of the ring]
@@ -35,6 +39,7 @@ export const BOLT_RINGS = [
   ['p2', 4, [0, 0, 1]],
   ['p3', 5, [1, 0.2, 0]],
   ['p4', 5, [0.3, 0, 1]],
+  ['hideout', 4, [0.2, 1, 0]],
 ];
 
 // Bad guys: [kind, planet, dir]. Robots walk around their planet.

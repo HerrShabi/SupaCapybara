@@ -169,6 +169,10 @@ export class MenuScene extends Phaser.Scene {
       // CAPTAIN WADDLE isn't bought: he's in jail in World 1's police station
       const jailHint = this.add.text(centerX, bottomY, t('menu.inJail'), { fontFamily: FONT, fontSize: '11px', color: '#ffb74d' }).setOrigin(0.5);
       jailHint.setScale(Math.min(1, (this.cardWidth - 12) / jailHint.width));
+    } else if (!owned && character.hidden) {
+      // AGENT WHISKERS isn't bought either: she's hiding in a box on a secret planet in World 2
+      const spaceHint = this.add.text(centerX, bottomY, t('menu.inSpace'), { fontFamily: FONT, fontSize: '11px', color: '#f48fb1' }).setOrigin(0.5);
+      spaceHint.setScale(Math.min(1, (this.cardWidth - 12) / spaceHint.width));
     } else if (!owned && this.save.keys.includes(character.unlockKey)) {
       this.add.text(centerX, bottomY, t('menu.soon'), { fontFamily: FONT, fontSize: '11px', color: '#aaaaaa' }).setOrigin(0.5);
     } else if (!owned) {

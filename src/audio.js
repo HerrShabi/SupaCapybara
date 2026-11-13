@@ -344,6 +344,28 @@ class GameAudio {
         this.noise({ length: 0.12, volume: 0.25, filter: 'bandpass', frequency: 1800 });
         this.tone({ wave: 'sine', from: 700, to: 300, length: 0.12, volume: 0.12 });
         break;
+      case 'gadget':
+        // AGENT WHISKERS throws a spy gadget (a little whoosh and a beep)
+        this.noise({ length: 0.1, volume: 0.2, filter: 'bandpass', frequency: 2200 });
+        this.tone({ wave: 'square', from: 1200, to: 1200, delay: 0.08, length: 0.05, volume: 0.06 });
+        break;
+      case 'gadgetBeep':
+        this.tone({ wave: 'square', from: 1500, to: 1500, length: 0.05, volume: 0.06 });
+        break;
+      case 'gadgetBoom':
+        this.noise({ length: 0.45, volume: 0.45, frequency: 1200 });
+        this.tone({ wave: 'sine', from: 160, to: 40, length: 0.4, volume: 0.3 });
+        break;
+      case 'grapple':
+        // the grappling hook flies up: a zip
+        this.tone({ wave: 'sawtooth', from: 300, to: 1400, length: 0.14, volume: 0.07 });
+        this.noise({ delay: 0.12, length: 0.04, volume: 0.25, filter: 'bandpass', frequency: 3500 });
+        break;
+      case 'agentBox':
+        // the box pops open
+        this.noise({ length: 0.25, volume: 0.35, filter: 'bandpass', frequency: 700 });
+        this.tone({ wave: 'triangle', from: 300, to: 900, delay: 0.05, length: 0.2, volume: 0.15 });
+        break;
       case 'slide':
         this.noise({ length: 0.5, volume: 0.3, filter: 'bandpass', frequency: 2400 });
         this.tone({ wave: 'triangle', from: 300, to: 900, length: 0.25, volume: 0.12 });

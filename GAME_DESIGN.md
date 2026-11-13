@@ -476,6 +476,16 @@ Ethan's answers in the design session:
 
 Ethan: "you should be able to choose power-up". Every power-up you own gets an **ON/OFF switch**, as many as you want on at once. A **POWER-UPS button** in the STORY menu opens a screen that shows all of them (so the menu stays tidy). Off power-ups don't work in the levels (and their touch buttons are hidden), but you keep them.
 
+## Agent Whiskers (new hero, designed 2026-11-13, in the game)
+
+Ethan's friend suggested "FBI Capybara" and "Secret Agent Cat". We make the cat first (FBI Capybara later; make him different from Copybara, e.g. suit, sunglasses, briefcase).
+- A secret agent **cat** named **Agent Whiskers**, in a **black suit with sunglasses** 🕶️ (a bright pop like a pink tie helps her stand out).
+- **X attack:** throws **spy gadgets** 💣 that explode a bit after they land.
+- **Double jump with a grappling hook** 🪝.
+- **No special (C) move.**
+- **How you get her:** she is **hiding on a planet in World 2** 🪐 (space). The clue: a suspicious **cardboard box** 📦 that moves a little, with her **sunglasses** sticking out. Touch or scratch it and she jumps out.
+- She says: **"Shh! How did you find me? Don't tell anyone!"** 🤫
+
 ## Future updates (Ethan wants these later; don't forget!)
 
 - More worlds: underwater 🌊, a spooky castle 🏰, candy land 🍭.
