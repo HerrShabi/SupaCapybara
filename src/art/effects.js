@@ -174,6 +174,22 @@ export function createPowerTextures(scene) {
     for (const x of [16, 20, 24]) g.fillCircle(x, 10, 2);
   });
 
+  // CAPTAIN WADDLE's snowball (and the snow that flies up when it splats or he slides)
+  make(scene, 'snowball', 24, 24, (g) => {
+    g.fillStyle(0xb3e5fc, 0.5);
+    g.fillCircle(12, 12, 12);
+    g.fillStyle(0xffffff);
+    g.fillCircle(12, 12, 9);
+    g.fillStyle(0xe1f5fe);
+    g.fillCircle(14, 15, 4);
+    g.fillStyle(0xffffff);
+    g.fillCircle(9, 8, 3);
+  });
+  make(scene, 'snowflake', 10, 10, (g) => {
+    g.fillStyle(0xffffff);
+    g.fillCircle(5, 5, 4);
+  });
+
   make(scene, 'red-moon', 34, 34, (g) => {
     g.fillStyle(0xff1744, 0.35);
     g.fillCircle(17, 17, 17);

@@ -5,7 +5,8 @@ import { t } from '../i18n.js';
 import { audio } from '../audio.js';
 import { getCharacter, pickDance } from '../characters.js';
 import { getDifficulty, BAD_GUY_REWARD, BOSS_REWARD } from '../difficulty.js';
-import { writeSave, addBaby } from '../save.js';
+import { writeSave, addBaby, activePowerUps } from '../save.js';
+import { megaBeamOn } from '../megaBeam.js';
 import { Hud } from './hud.js';
 import { tipWanted, markTipSeen, tipText, TIP_MIN_MS } from '../tips.js';
 import { drawingMode, ThreeSketch } from '../sketch.js';
@@ -28,7 +29,7 @@ const BOUNCE_MS = 300;
 
 const LASER_SPEED = 30;
 const LASER_LIFE = 0.8; // seconds
-const ATTACK_COOLDOWN_MS = { laser: 250, superLaser: 220, goldLaser: 220, scratch: 300, tongue: 450, moon: 400, rocket: 300, cuffs: 400 };
+const ATTACK_COOLDOWN_MS = { laser: 250, superLaser: 220, goldLaser: 220, scratch: 300, tongue: 450, moon: 400, rocket: 300, cuffs: 400, snowball: 300 };
 const SCRATCH_REACH = 2.4;
 const TONGUE_REACH = 6;
 const TONGUE_MS = 260;
@@ -71,7 +72,13 @@ const ATTACK_NAMES = {
   moon: 'game.attack.moon',
   goldLaser: 'game.attack.goldLaser',
   cuffs: 'game.attack.cuffs',
+  snowball: 'game.attack.snowball',
 };
+// CAPTAIN WADDLE's WADDLE SLIDE (C): a fast belly slide that knocks over bad guys in front of him
+const SLIDE_MS = 520;
+const SLIDE_WAIT_MS = 1200;
+const SLIDE_SPEED = 2.6; // times running speed
+const SLIDE_REACH = 1.9;
 
 const vec = (array) => new THREE.Vector3(...array);
 
@@ -105,7 +112,8 @@ export class SpaceWorld {
     this.disco = false;
     this.magic = new Magic(); // the magic strawberry (strawberry.js)
     this.megaBeam = new SpaceMegaBeam(this); // the MEGA BEAM (spaceMegaBeam.js)
-    this.sniper = save.powerUps.includes('supa-sniper') ? new SpaceSniper(this) : null; // the SUPA SNIPER (spaceSniper.js)
+    this.powerUps = activePowerUps(save); // the power-ups you own that are switched ON
+    this.sniper = this.powerUps.includes('supa-sniper') ? new SpaceSniper(this) : null; // the SUPA SNIPER (spaceSniper.js)
     this.save = save;
     this.onExit = onExit;
     this.character = getCharacter(save.selected);
@@ -331,14 +339,14 @@ export class SpaceWorld {
       mechaUsed: false,
       tongue: null,
     };
-    this.hasMecha = this.save.powerUps.includes('mecha-capybara');
-    this.hasFreeze = this.save.powerUps.includes('freeze');
+    this.hasMecha = this.powerUps.includes('mecha-capybara');
+    this.hasFreeze = this.powerUps.includes('freeze');
     this.mechaModel = models.makeMecha();
     this.mechaModel.visible = false;
     this.scene.add(this.mechaModel);
-    this.hasShield = this.save.powerUps.includes('shield');
-    this.shieldIsBubble = this.save.powerUps.includes('multi-direction');
-    this.hasFly = this.save.powerUps.includes('fly');
+    this.hasShield = this.powerUps.includes('shield');
+    this.shieldIsBubble = this.powerUps.includes('multi-direction');
+    this.hasFly = this.powerUps.includes('fly');
 
     if (this.character.fireAura) {
       this.aura = models.makeAura(this.character.auraColor);
@@ -444,6 +452,10 @@ export class SpaceWorld {
 
   get mecha() {
     return this.now < this.player.mechaUntil;
+  }
+
+  get sliding() {
+    return this.now < (this.player.slideUntil ?? 0);
   }
 
   // A magic strawberry's rainbow magic: super fast, nothing hurts you, touching bad guys pops them
@@ -561,7 +573,7 @@ export class SpaceWorld {
       p.vel.copy(p.forward).multiplyScalar(move * FLY_SPEED).addScaledVector(up, rise);
       p.onGround = false;
     } else if (p.onGround && !bouncing) {
-      p.vel.copy(p.forward).multiplyScalar(move * runSpeed);
+      p.vel.copy(p.forward).multiplyScalar(this.sliding ? runSpeed * SLIDE_SPEED : move * runSpeed);
       p.airJumpsLeft = this.character.doubleJump ? 1 : 0;
       if (jumpPressed) {
         p.vel.addScaledVector(up, JUMP_SPEED);
@@ -610,6 +622,7 @@ export class SpaceWorld {
     p.model.position.copy(p.pos);
     const target = new THREE.Object3D();
     orient(target, modelUp, p.forward);
+    if (this.sliding) target.rotateX(1.4); // flat on his belly, head first
     p.model.quaternion.slerp(target.quaternion, Math.min(1, dt * 12));
     const running = p.onGround && move !== 0;
     p.legs.forEach((leg, i) => (leg.rotation.x = running ? Math.sin(this.now / 60 + i * Math.PI) * 0.6 : 0));
@@ -700,6 +713,13 @@ export class SpaceWorld {
       p.shadowReadyAt = this.now + SHADOW_WAIT_MS;
     }
 
+    if (this.character.slide && this.pressed('KeyC') && !this.sliding && !this.flying && !this.mecha && this.now >= (p.slideReadyAt ?? 0)) {
+      p.slideUntil = this.now + SLIDE_MS;
+      p.nextSlideHitAt = 0;
+      audio.play('slide');
+    }
+    if (p.slideUntil) this.updateSlide();
+
     if (this.hasMecha && this.pressed('KeyR') && !this.mecha && !p.mechaUsed) {
       p.mechaUsed = true; // once per level
       p.mechaUntil = this.now + MECHA_MS;
@@ -707,7 +727,7 @@ export class SpaceWorld {
     }
 
     if (this.pressed('KeyB')) this.eatStrawberry();
-    if (this.pressed('KeyG')) this.megaBeam.start();
+    if (this.pressed('KeyG') && megaBeamOn(this.save)) this.megaBeam.start();
     if (this.sniper && this.pressed('KeyT')) this.sniper.open();
     this.megaBeam.update();
     this.updateRainbow();
@@ -738,16 +758,47 @@ export class SpaceWorld {
     if (this.character.invisibility) parts.push(status('C', t('game.invisible'), p.invisibleUntil, p.invisibleReadyAt));
     if (this.hasShield) parts.push(status('V', t('game.shield'), p.shieldUntil, p.shieldReadyAt));
     if (this.character.shadow) parts.push(status('C', t('game.shadow'), p.shadowUntil, p.shadowReadyAt));
+    if (this.character.slide) parts.push(status('C', t('game.slide'), p.slideUntil ?? 0, p.slideReadyAt ?? 0));
     if (this.hasFly) parts.push(status('F', t('game.fly'), p.flyUntil, p.flyReadyAt));
     if (this.hasFreeze) parts.push(status('Z', t('game.freeze'), this.freezeUntil ?? 0, this.freezeReadyAt ?? 0));
     if (this.hasMecha) {
       parts.push(p.mechaUsed && !this.mecha ? `R = ${t('game.mecha')}: ${t('game.used')}` : status('R', t('game.mecha'), p.mechaUntil, 0));
     }
-    parts.push(this.megaBeam.status());
+    if (megaBeamOn(this.save)) parts.push(this.megaBeam.status());
     if (this.sniper) parts.push(this.sniper.status());
     if (this.rainbow) parts.push(`🌈 ${t('strawberry.magic')}! ${this.magic.secondsLeft(this.now)}`);
     else parts.push(bagText(this.save));
     this.hud.setPower(parts.filter(Boolean).join('     '));
+  }
+
+  // The WADDLE SLIDE knocks over every bad guy right in front of him (a few times a slide, so bosses get bumped too)
+  updateSlide() {
+    const p = this.player;
+    if (!this.sliding) {
+      p.slideUntil = 0;
+      p.slideReadyAt = this.now + SLIDE_WAIT_MS;
+      return;
+    }
+    if (this.now < p.nextSlideHitAt) return;
+    p.nextSlideHitAt = this.now + 150;
+    const body = this.playerBody();
+    let hit = false;
+    for (const enemy of this.enemies) {
+      if (!enemy.alive) continue;
+      const to = this.enemyPosition(enemy).sub(body);
+      if (to.length() < SLIDE_REACH && to.dot(p.forward) > -0.3) {
+        this.defeat(enemy, 2);
+        hit = true;
+      }
+    }
+    if (this.bossIsHittable()) {
+      const to = this.bossCenter().sub(body);
+      if (to.length() < SLIDE_REACH + 1.4 && to.dot(p.forward) > -0.3) {
+        this.hitBoss(1);
+        hit = true;
+      }
+    }
+    if (hit) this.landedHit();
   }
 
   becomeVisible() {
@@ -772,6 +823,10 @@ export class SpaceWorld {
       // COPYBARA: spinning handcuffs that send a bad guy to jail
       audio.play('laser');
       this.addShot({ mesh: models.makeHandcuffs(), planet: p.planet, start, dir: p.forward, speed: LASER_SPEED * 0.7, life: LASER_LIFE * 1.2, damage: 2, fromPlayer: true, cuffs: true });
+    } else if (kind === 'snowball') {
+      // CAPTAIN WADDLE: a snowball that flies far
+      audio.play('snowball');
+      this.addShot({ mesh: models.makeSnowball(), planet: p.planet, start, dir: p.forward, speed: LASER_SPEED * 0.8, life: LASER_LIFE * 1.4, damage: 1, fromPlayer: true });
     } else if (kind === 'moon') {
       // Bloodmoon Cat: a red moon that flies to the nearest bad guy by itself
       audio.play('moon');
@@ -1128,7 +1183,7 @@ export class SpaceWorld {
 
   hurt(fromPos) {
     const p = this.player;
-    if (this.won || this.invisible || this.shadow || this.mecha || this.rainbow || this.now < p.safeUntil) return;
+    if (this.won || this.invisible || this.shadow || this.mecha || this.rainbow || this.sliding || this.now < p.safeUntil) return;
     audio.play('hurt');
     if (!this.loseHeart()) return;
     const up = this.upAt(p.planet, p.pos);
@@ -1392,7 +1447,7 @@ export class SpaceWorld {
 
   // Twice as much with the Double power-up.
   addBolts(amount) {
-    this.save.bolts += amount * (this.save.powerUps.includes('double') ? 2 : 1);
+    this.save.bolts += amount * (this.powerUps.includes('double') ? 2 : 1);
     writeSave(this.save);
     this.hud.setBolts(this.save.bolts);
   }

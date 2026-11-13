@@ -4,6 +4,10 @@ import { audio } from '../audio.js';
 import { SideScrollerScene, VIEW_WIDTH, VIEW_HEIGHT } from './SideScrollerScene.js';
 import { createPizzaBossTexture } from '../art/pizzaBoss.js';
 import { openKeypad, drawKeypadPost } from '../keypad.js';
+import { writeSave } from '../save.js';
+import { KEYS } from '../characters.js';
+import { heroKey } from '../art/heroes.js';
+import { drawComicBubble } from '../comicBubble.js';
 import { drawBuilding, drawBillboard, drawWaterTower, drawSkyline, createHelicopterTextures, createRocketTextures } from '../art/city.js';
 
 // World 1: the city. Jump across rooftops; the sky goes from day to sunset to night as you go.
@@ -58,6 +62,13 @@ const WASHER_SPEED = 60;
 const PORTAL = { x: 3605, y: 270 };
 const KEYPAD = { x: 3490, ground: 440 }; // on the roof, left of the water tower
 const PORTAL_GLOW_DISTANCE = 220;
+// The police station on the first roof (just scenery, you walk in front of it). CAPTAIN WADDLE sits in its jail cell:
+// Copybara locked him up by mistake (black and white, like the bad guys!). Walk up to the lock and press X: you try
+// your boss keys one by one until one fits (you need at least one). Then he's yours (save.owned).
+const STATION = { x: 140, width: 270, top: 250, ground: 440 };
+const CELL = { x: 285, width: 115, top: 330 }; // the cell, in the right part of the station
+const LOCK = { x: 292, y: 392 }; // the padlock on the cell's bars
+const STATION_DOOR = 190;
 
 // Lightning bolts to collect: [x, y, howMany]. Each row is spaced 40px apart.
 const BOLTS = [
@@ -155,6 +166,7 @@ export class World1Scene extends SideScrollerScene {
   createScenery() {
     this.createSky();
     this.createCity();
+    this.createPoliceStation();
   }
 
   updateScenery() {
@@ -162,7 +174,204 @@ export class World1Scene extends SideScrollerScene {
     if (!this.won) {
       this.updateSky();
       this.updatePortal();
+      this.updateJail();
     }
+  }
+
+  // ---------- The police station and CAPTAIN WADDLE's jail cell ----------
+
+  createPoliceStation() {
+    const { x, width, top, ground } = STATION;
+    const g = this.add.graphics();
+    // Walls, a roof edge and the big POLICE sign
+    g.fillStyle(0x1a237e).fillRect(x, top, width, ground - top);
+    g.fillStyle(0x283593).fillRect(x + 8, top + 34, width - 16, ground - top - 34);
+    g.fillStyle(0x0d1442).fillRect(x - 8, top - 8, width + 16, 12);
+    g.fillStyle(0xffffff).fillRect(x + 50, top + 8, width - 100, 24);
+    this.add.text(x + width / 2, top + 20, t('jail.sign'), { fontFamily: 'Arial Black, Arial', fontSize: '18px', color: '#1a237e' }).setOrigin(0.5);
+    // Windows
+    g.fillStyle(0x90caf9);
+    for (const wx of [x + 22, x + 82]) g.fillRect(wx, top + 50, 34, 26);
+    g.fillRect(x + 150, top + 50, 34, 26);
+    g.fillRect(x + 210, top + 50, 34, 26);
+    // The front door (Copybara comes out of it)
+    g.fillStyle(0x5d4037).fillRect(STATION_DOOR - 22, ground - 72, 44, 72);
+    g.fillStyle(0xffd23f).fillCircle(STATION_DOOR + 12, ground - 36, 3);
+    // The jail cell: dark inside, a little bench
+    g.fillStyle(0x263238).fillRect(CELL.x, CELL.top, CELL.width, ground - CELL.top);
+    g.fillStyle(0x455a64).fillRect(CELL.x, ground - 8, CELL.width, 8);
+    g.fillStyle(0x6d4c41).fillRect(CELL.x + 60, ground - 34, 48, 8);
+    g.fillStyle(0x90a4ae).fillRect(CELL.x, CELL.top, CELL.width, 6); // the bars' top rail
+    // Blinking police lights on the roof
+    const red = this.add.circle(x + width / 2 - 14, top - 14, 8, 0xff1744);
+    const blue = this.add.circle(x + width / 2 + 14, top - 14, 8, 0x2979ff).setAlpha(0.2);
+    this.tweens.add({ targets: red, alpha: 0.2, duration: 400, yoyo: true, repeat: -1 });
+    this.tweens.add({ targets: blue, alpha: 1, duration: 400, yoyo: true, repeat: -1 });
+
+    const freed = this.save.owned.includes('captain-waddle');
+    // Captain Waddle, sitting sadly behind the bars (only while he's still locked up)
+    if (!freed) {
+      this.waddle = this.add.sprite(CELL.x + 62, ground - 36, `${this.lookOf('captain-waddle')}-idle`).setScale(1.5).setFlipX(true);
+      this.tweens.add({ targets: this.waddle, scaleY: 1.42, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    }
+    // The bars (they slide up when the cell opens) and the padlock
+    this.bars = this.add.graphics();
+    this.bars.fillStyle(0x90a4ae);
+    for (let bx = CELL.x + 4; bx < CELL.x + CELL.width; bx += 14) this.bars.fillRect(bx, CELL.top, 5, ground - CELL.top);
+    this.bars.fillRect(CELL.x, ground - 40, CELL.width, 5);
+    if (freed) {
+      this.bars.setVisible(false);
+      this.add.text(CELL.x + CELL.width / 2, CELL.top + 40, t('jail.empty'), { fontFamily: 'Arial Black, Arial', fontSize: '14px', color: '#90a4ae' }).setOrigin(0.5);
+      return;
+    }
+    this.padlock = this.add.container(LOCK.x, LOCK.y, [
+      this.add.circle(0, -10, 9).setStrokeStyle(4, 0xb0bec5),
+      this.add.rectangle(0, 2, 24, 20, 0xffc107).setStrokeStyle(2, 0xb8860b),
+      this.add.circle(0, 1, 3, 0x5d4037),
+    ]);
+    this.jailPrompt = this.add
+      .text(LOCK.x, CELL.top - 18, t('jail.try'), { fontFamily: 'Arial Black, Arial', fontSize: '16px', color: '#ffd23f' })
+      .setStroke('#000000', 5)
+      .setOrigin(0.5)
+      .setDepth(6)
+      .setVisible(false);
+    this.tweens.add({ targets: this.jailPrompt, y: this.jailPrompt.y - 6, duration: 400, yoyo: true, repeat: -1 });
+    this.jailReadyAt = 0;
+  }
+
+  // A hero's look (texture prefix) in this level: secret colors, or the drawn heroes in drawing mode.
+  lookOf(id) {
+    return this.heroLook?.(id) ?? heroKey(id, this.palette);
+  }
+
+  // Walk up to the lock and press X (or ↑) to try your keys.
+  updateJail() {
+    if (!this.padlock || this.jail || this.bossRush) return;
+    const near = this.players.find((p) => Math.abs(p.x - (LOCK.x - 10)) < 75 && Math.abs(p.sprite.body.bottom - STATION.ground) < 12);
+    this.jailPrompt.setVisible(Boolean(near));
+    if (!near || this.time.now < this.jailReadyAt) return;
+    if (near.controls.justPressed('attack') || near.controls.justPressed('up')) this.tryKeys(near).catch((error) => console.error(error.stack));
+  }
+
+  // The level waits while the keys are tried (like the keypad). update() hands the frame to the jail instead.
+  wait(ms) {
+    return new Promise((resolve) => this.tweens.addCounter({ from: 0, to: 1, duration: ms, onComplete: resolve }));
+  }
+
+  // A comic bubble over someone's head; it goes away when you press JUMP or X.
+  say(text, who) {
+    const view = this.cameras.main.worldView;
+    const parts = drawComicBubble(this, text, { x: who.x, y: who.y - 6 }, view, who.x - view.x > 480 ? -1 : 1, t('tip.gotIt'));
+    audio.play('click');
+    return new Promise((resolve) => {
+      this.jail.waiting = { since: performance.now(), done: () => { parts.forEach((part) => part.destroy()); resolve(); } };
+    });
+  }
+
+  updateJailScene() {
+    const waiting = this.jail.waiting;
+    if (!waiting || performance.now() - waiting.since < 500) return;
+    if (this.players.some((p) => p.controls.justPressed('jump') || p.controls.justPressed('attack'))) {
+      this.jail.waiting = null;
+      waiting.done();
+    }
+  }
+
+  async tryKeys(player) {
+    this.jail = { waiting: null };
+    this.jailPrompt.setVisible(false);
+    player.sprite.setVelocity(0, 0);
+    player.sprite.anims.stop();
+    player.sprite.setTexture(`${player.look}-idle`);
+    player.lasers.clear(true, true);
+    player.nextAttackAt = this.time.now + 400; // (the X that tries the keys doesn't shoot too)
+    this.freezeWorld();
+    const owned = KEYS.filter((key) => this.save.keys.includes(key.id));
+
+    if (!owned.length) {
+      // No boss key yet: the lock just rattles
+      audio.play('error');
+      this.tweens.add({ targets: this.padlock, angle: { from: -15, to: 15 }, duration: 80, yoyo: true, repeat: 3, onComplete: () => this.padlock.setAngle(0) });
+      await this.say(t('jail.noKeys'), { x: LOCK.x, y: LOCK.y - 20 });
+      this.closeJail();
+      return;
+    }
+
+    // Try them one by one: the last one fits!
+    for (const [i, key] of owned.entries()) {
+      const last = i === owned.length - 1;
+      const icon = this.add.container(player.x, player.y - 50, [
+        this.add.image(0, 0, 'key').setScale(0.7),
+        this.add.text(-10, 0, key.id.replace('world', ''), { fontFamily: 'Arial Black, Arial', fontSize: '13px', color: '#5d4037' }).setOrigin(0.5),
+      ]).setDepth(7);
+      await new Promise((resolve) => this.tweens.add({ targets: icon, x: LOCK.x - 26, y: LOCK.y + 2, duration: 350, ease: 'Quad.easeOut', onComplete: resolve }));
+      audio.play('keyTry');
+      await new Promise((resolve) => this.tweens.add({ targets: icon, angle: { from: -20, to: 20 }, duration: 90, yoyo: true, repeat: 1, onComplete: resolve }));
+      if (!last) {
+        audio.play('error');
+        this.popWord(t('jail.nope'), '#ff5252');
+        await new Promise((resolve) => this.tweens.add({ targets: icon, y: icon.y + 70, alpha: 0, angle: 120, duration: 350, onComplete: resolve }));
+        icon.destroy();
+        continue;
+      }
+      // Click! It turns, the lock drops off and the bars slide up
+      await new Promise((resolve) => this.tweens.add({ targets: icon, angle: 90, duration: 250, onComplete: resolve }));
+      audio.play('key');
+      this.popWord(t('jail.fits'), '#69f0ae');
+      await this.wait(300);
+      this.tweens.add({ targets: [this.padlock, icon], y: `+=60`, alpha: 0, angle: 60, duration: 400 });
+      audio.play('forceField');
+      await new Promise((resolve) => this.tweens.add({ targets: this.bars, y: -40, alpha: 0, duration: 700, ease: 'Quad.easeIn', onComplete: resolve }));
+      this.padlock.destroy();
+      this.padlock = null;
+      icon.destroy();
+    }
+
+    // He waddles out...
+    const waddle = this.waddle;
+    this.tweens.killTweensOf(waddle);
+    waddle.setScale(1.5).setDepth(2.5).setTexture(`${this.lookOf('captain-waddle')}-jump`);
+    audio.play('doubleJump');
+    await new Promise((resolve) => this.tweens.add({ targets: waddle, y: waddle.y - 40, duration: 220, yoyo: true, onComplete: resolve }));
+    waddle.setFlipX(false).play(`${this.lookOf('captain-waddle')}-run`);
+    await new Promise((resolve) => this.tweens.add({ targets: waddle, x: CELL.x + CELL.width + 30, duration: 900, onComplete: resolve }));
+    waddle.anims.stop();
+    waddle.setTexture(`${this.lookOf('captain-waddle')}-idle`).setFlipX(true);
+    await this.say(t('jail.waddle'), waddle);
+
+    // ...and Copybara comes out of the station to say sorry
+    const copybara = this.add.sprite(STATION_DOOR, STATION.ground - 36, `${this.lookOf('copybara')}-idle`).setScale(1.5).setAlpha(0).setDepth(2.5);
+    await new Promise((resolve) => this.tweens.add({ targets: copybara, alpha: 1, duration: 300, onComplete: resolve }));
+    copybara.play(`${this.lookOf('copybara')}-run`);
+    await new Promise((resolve) => this.tweens.add({ targets: copybara, x: CELL.x + 45, duration: 700, onComplete: resolve }));
+    copybara.anims.stop();
+    copybara.setTexture(`${this.lookOf('copybara')}-idle`);
+    await this.say(t('name.copybara').toUpperCase() + ': ' + t('jail.sorry'), copybara);
+
+    // He's on your team now
+    if (!this.save.owned.includes('captain-waddle')) this.save.owned.push('captain-waddle');
+    writeSave(this.save);
+    audio.play('win');
+    this.flashMessage(t('jail.joined'), '#ffb74d');
+    this.add.text(CELL.x + CELL.width / 2, CELL.top + 40, t('jail.empty'), { fontFamily: 'Arial Black, Arial', fontSize: '14px', color: '#90a4ae' }).setOrigin(0.5);
+    // They both go into the station
+    for (const [hero, id] of [[waddle, 'captain-waddle'], [copybara, 'copybara']]) {
+      hero.setFlipX(true).play(`${this.lookOf(id)}-run`);
+      this.tweens.add({ targets: hero, x: STATION_DOOR, duration: Math.abs(hero.x - STATION_DOOR) * 4 + 100, onComplete: () => this.tweens.add({ targets: hero, alpha: 0, duration: 250, onComplete: () => hero.destroy() }) });
+    }
+    this.waddle = null;
+    this.closeJail();
+  }
+
+  popWord(text, color) {
+    const word = this.add.text(LOCK.x, LOCK.y - 50, text, { fontFamily: 'Arial Black, Arial', fontSize: '22px', color }).setStroke('#000000', 5).setOrigin(0.5).setDepth(8);
+    this.tweens.add({ targets: word, y: word.y - 30, alpha: 0, delay: 300, duration: 500, onComplete: () => word.destroy() });
+  }
+
+  closeJail() {
+    this.jail = null;
+    this.unfreezeWorld();
+    this.jailReadyAt = this.time.now + 2000; // step away before trying again
   }
 
   // ---------- The secret portal (to the Cube Islands) ----------
@@ -184,6 +393,10 @@ export class World1Scene extends SideScrollerScene {
   update(time, delta) {
     if (this.keypad) {
       this.keypad.update();
+      return;
+    }
+    if (this.jail) {
+      this.updateJailScene();
       return;
     }
     super.update(time, delta);

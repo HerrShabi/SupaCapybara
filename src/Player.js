@@ -22,6 +22,7 @@ const ATTACK_COOLDOWN_MS = {
   rocket: 300,
   goldLaser: 220,
   cuffs: 400,
+  snowball: 300,
 };
 const LASER_SPEED = 900;
 const LASER_RANGE_MS = 700;
@@ -55,6 +56,14 @@ const CUFFS_SPEED = 650;
 const CUFFS_RANGE_MS = 700;
 const CUFFS_DAMAGE = 2;
 const MOON_DAMAGE = 2;
+
+// CAPTAIN WADDLE: snowballs fly far (like a laser), and the WADDLE SLIDE (C) is a fast belly slide.
+const SNOWBALL_SPEED = 760;
+const SNOWBALL_RANGE_MS = 950;
+const SLIDE_MS = 520;
+const SLIDE_SPEED = 640;
+const SLIDE_WAIT_MS = 1200;
+const SLIDE_HIT_EVERY_MS = 150;
 
 const FREEZE_MS = 5000;
 const FREEZE_WAIT_MS = 30000;
@@ -100,6 +109,9 @@ export class Player {
     this.hasFreeze = powerUps.includes('freeze');
     this.freezeUntil = 0;
     this.freezeReadyAt = 0;
+    this.slideUntil = 0;
+    this.slideReadyAt = 0;
+    this.nextSlideHitAt = 0;
 
     this.lasers = scene.physics.add.group({ allowGravity: false });
     this.megaBeam = megaBeam ? new MegaBeam(this) : null;
@@ -156,9 +168,13 @@ export class Player {
     return this.scene.time.now < this.mechaUntil;
   }
 
-  // Nothing can hurt you in shadow form, in the Mecha suit, or with a magic strawberry's rainbow magic.
+  // Nothing can hurt you in shadow form, in the Mecha suit, with a magic strawberry's rainbow magic, or mid WADDLE SLIDE.
   get unhurtable() {
-    return this.shadow || this.mecha || this.rainbow;
+    return this.shadow || this.mecha || this.rainbow || this.sliding;
+  }
+
+  get sliding() {
+    return this.scene.time.now < this.slideUntil;
   }
 
   get rainbow() {
@@ -209,6 +225,7 @@ export class Player {
     if (this.character.attacks) parts.push(`Q = ${t('game.switch')}`);
     if (this.character.invisibility) parts.push(status('C', t('game.invisible'), this.invisibleUntil, this.invisibleReadyAt));
     if (this.character.shadow) parts.push(status('C', t('game.shadow'), this.shadowUntil, this.shadowReadyAt));
+    if (this.character.slide) parts.push(status('C', t('game.slide'), this.slideUntil, this.slideReadyAt));
     if (this.hasShield) parts.push(status('V', t('game.shield'), this.shieldUntil, this.shieldReadyAt));
     if (this.hasFly) parts.push(status('F', t('game.fly'), this.flyUntil, this.flyReadyAt));
     if (this.hasFreeze) parts.push(status('Z', t('game.freeze'), this.freezeUntil, this.freezeReadyAt));
@@ -250,7 +267,9 @@ export class Player {
 
     if (onGround) this.airJumpsLeft = this.character.doubleJump ? 1 : 0;
 
-    if (!bouncing) {
+    if (this.sliding) {
+      this.sprite.setVelocityX(this.slideDir * SLIDE_SPEED); // (no steering mid-slide)
+    } else if (!bouncing) {
       if (c.isDown('left')) {
         this.sprite.setVelocityX(-speed).setFlipX(true);
       } else if (c.isDown('right')) {
@@ -294,6 +313,10 @@ export class Player {
     if (this.mecha) {
       this.sprite.anims.stop();
       this.sprite.setTexture('mecha');
+    } else if (this.sliding) {
+      this.sprite.anims.stop();
+      const slideKey = `${this.look}-slide`;
+      this.sprite.setTexture(this.scene.textures.exists(slideKey) ? slideKey : `${this.look}-jump`);
     } else if (!onGround) {
       this.sprite.anims.stop();
       this.sprite.setTexture(`${this.look}-jump`);
@@ -316,6 +339,8 @@ export class Player {
     if (this.invisibleUntil && !this.invisible) this.becomeVisible();
     if (this.character.shadow && special) this.startShadow();
     if (this.shadowUntil && !this.shadow) this.endShadow();
+    if (this.character.slide && special) this.startSlide();
+    if (this.slideUntil) this.updateSlide();
     if (c.justPressed('shield') && this.hasShield) this.raiseShield();
     if (this.shieldUntil && !this.shielded) this.lowerShield();
     if (this.shielded) this.shield.setPosition(...this.shieldPosition());
@@ -348,7 +373,7 @@ export class Player {
       .setPosition(this.x + ax * Math.cos(turn) - anchor.y * Math.sin(turn), this.y + ax * Math.sin(turn) + anchor.y * Math.cos(turn))
       .setRotation(turn)
       .setFlipX(this.sprite.flipX)
-      .setVisible(!this.mecha && this.sprite.visible)
+      .setVisible(!this.mecha && !this.sliding && this.sprite.visible)
       .setAlpha(this.sprite.alpha);
   }
 
@@ -363,6 +388,7 @@ export class Player {
     if (kind === 'rocket') this.fireRocket();
     if (kind === 'moon') this.fireMoon();
     if (kind === 'cuffs') this.throwCuffs();
+    if (kind === 'snowball') this.throwSnowball();
     if (kind === 'laser') this.fireLaser('laser', 1);
     if (kind === 'superLaser') this.fireLaser('super-laser', 2);
     if (kind === 'goldLaser') this.fireLaser('gold-laser', 2);
@@ -435,6 +461,34 @@ export class Player {
     cuffs.setVelocityX(this.facing * CUFFS_SPEED);
     this.scene.tweens.add({ targets: cuffs, angle: 360 * this.facing, duration: 400, repeat: -1 });
     this.scene.time.delayedCall(CUFFS_RANGE_MS, () => cuffs.destroy());
+  }
+
+  // CAPTAIN WADDLE: a spinning snowball that flies far. It splats into snow when it melts away.
+  throwSnowball() {
+    audio.play('snowball');
+    const ball = this.lasers.create(this.x + this.facing * 34, this.y - 6, 'snowball');
+    ball.setData('damage', 1);
+    ball.setVelocityX(this.facing * SNOWBALL_SPEED);
+    this.scene.tweens.add({ targets: ball, angle: 360 * this.facing, duration: 500, repeat: -1 });
+    this.scene.time.delayedCall(SNOWBALL_RANGE_MS, () => {
+      if (ball.active) this.snowPuff(ball.x, ball.y, 4);
+      ball.destroy();
+    });
+  }
+
+  snowPuff(x, y, count) {
+    for (let i = 0; i < count; i++) {
+      const flake = this.scene.add.image(x, y, 'snowflake').setDepth(3);
+      this.scene.tweens.add({
+        targets: flake,
+        x: x + Phaser.Math.Between(-30, 30),
+        y: y + Phaser.Math.Between(-30, 10),
+        alpha: 0,
+        scale: 0.3,
+        duration: 350,
+        onComplete: () => flake.destroy(),
+      });
+    }
   }
 
   steerMoons() {
@@ -525,6 +579,34 @@ export class Player {
     this.sprite.setAlpha(1);
   }
 
+  // ---------- CAPTAIN WADDLE: the WADDLE SLIDE (C) ----------
+
+  // Down on his belly and WHOOSH: a fast slide forward that knocks over every bad guy it touches.
+  startSlide() {
+    const now = this.scene.time.now;
+    if (this.sliding || now < this.slideReadyAt || this.mecha || this.flying) return;
+    this.slideUntil = now + SLIDE_MS;
+    this.slideDir = this.facing;
+    this.nextSlideHitAt = 0;
+    audio.play('slide');
+  }
+
+  updateSlide() {
+    const now = this.scene.time.now;
+    if (!this.sliding) {
+      this.slideUntil = 0;
+      this.slideReadyAt = now + SLIDE_WAIT_MS;
+      return;
+    }
+    // Snow flies up behind him
+    if (Math.random() < 0.5) this.snowPuff(this.x - this.slideDir * 30, this.y + 22, 1);
+    if (now < this.nextSlideHitAt) return;
+    this.nextSlideHitAt = now + SLIDE_HIT_EVERY_MS;
+    const dir = this.slideDir;
+    const area = new Phaser.Geom.Rectangle(dir > 0 ? this.x - 20 : this.x - 60, this.y - 24, 80, 52);
+    if (this.scene.hitArea(area, 1, this)) this.landedHit();
+  }
+
   // ---------- Bloodmoon Cat: shadow form (C) ----------
 
   startShadow() {
@@ -593,6 +675,7 @@ export class Player {
     if (this.mecha) this.endMecha();
     if (this.invisible) this.becomeVisible();
     if (this.shadow) this.endShadow();
+    this.slideUntil = 0;
     this.tongue = null;
     this.tongueGraphics.clear();
     this.character = character;
@@ -630,6 +713,7 @@ export class Player {
     if (this.shielded) this.lowerShield();
     if (this.invisible) this.becomeVisible();
     if (this.shadow) this.endShadow();
+    this.slideUntil = 0;
     this.danceId = id;
     const scene = this.scene;
     const sprite = this.sprite;

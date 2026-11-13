@@ -101,6 +101,7 @@ const HERO_LOOKS = {
   'bloodmoon-cat': { animal: 'cat', suit: 0x6a1b4d, fur: 0xf3e5f5 },
   'supa-chameleon': { animal: 'chameleon' },
   copybara: { animal: 'capybara', suit: 0x1a3a8a, noCape: true },
+  'captain-waddle': { animal: 'penguin', cape: 0xff8f00 },
 };
 const POSES = { idle: [0, false], run1: [3, true], run2: [-3, true], jump: [2, true] };
 
@@ -145,6 +146,19 @@ function drawDoodleHero(g, look, [legs, flying]) {
     pen(g, [[50, 21], [52, 23], [54, 21]], { width: 1.5 });
     pen(g, [[56, 21], [63, 19]], { width: 1.2 }); // whiskers
     pen(g, [[56, 23], [63, 24]], { width: 1.2 });
+  } else if (animal === 'penguin') {
+    // CAPTAIN WADDLE: a standing penguin, orange cape, beak and feet, the bolt on his white belly
+    cape(g, flying, look.cape);
+    shape(g, ellipsePoints(27 + legs, 45, 6, 2.5), 0xff9800); // feet
+    shape(g, ellipsePoints(40 - legs, 45, 6, 2.5), 0xff9800);
+    shape(g, ellipsePoints(33, 28, 14, 17), 0x263238); // body
+    shape(g, ellipsePoints(37, 31, 8, 12), 0xffffff, { strokes: false }); // belly
+    shape(g, [[34, 22], [41, 22], [37, 29], [42, 29], [33, 39], [35, 31], [30, 31]], 0xffeb3b, { strokes: false });
+    shape(g, flying ? [[25, 24], [10, 12], [21, 31]] : [[25, 22], [17, 38], [27, 36]], 0x263238); // wing
+    shape(g, ellipsePoints(42, 12, 10, 10), 0x263238); // head
+    shape(g, ellipsePoints(46, 13, 5, 5), 0xffffff, { strokes: false });
+    shape(g, [[50, 10], [61, 14], [50, 17]], 0xff9800, { strokes: false }); // beak
+    g.fillStyle(0x000000).fillCircle(47, 11, 2);
   } else {
     const c = { ...CLAY.chameleon, ...look };
     cape(g, flying, look.cape ?? 0x1e88e5);
@@ -179,6 +193,7 @@ const DOODLE_HEADS = {
   capybara: { top: [35, 3], eyes: [40, 9] },
   cat: { top: [50, 9], eyes: [51, 16] },
   chameleon: { top: [52, 17], eyes: [55, 23] },
+  penguin: { top: [42, 2], eyes: [47, 11] },
 };
 
 export function doodleHatAnchor(heroId, hat, scale) {

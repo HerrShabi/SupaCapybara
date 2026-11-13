@@ -1,9 +1,11 @@
 // Every hero you can pick, and every power-up in the shop. Ideas are Ethan's (see GAME_DESIGN.md).
 // Words the player sees (hero names, power descriptions, power-up names) are in i18n.js.
 //
-// attack: what X does. 'laser' | 'superLaser' | 'scratch' | 'tongue' | 'moon' | 'goldLaser' | 'cuffs'
+// attack: what X does. 'laser' | 'superLaser' | 'scratch' | 'tongue' | 'moon' | 'goldLaser' | 'cuffs' | 'snowball'
 // secret: the card only shows up once unlockKey is yours (and then you own the hero)
 // unlockKey: the boss key you need before the hero can be bought.
+// jailed: not bought; you free him from the police station's jail cell in World 1 (World1Scene, a boss key opens it).
+// slide: C does the WADDLE SLIDE (a belly slide that knocks over bad guys, see Player.startSlide).
 
 export const CHARACTERS = [
   {
@@ -41,6 +43,16 @@ export const CHARACTERS = [
     attack: 'cuffs',
     price: 2000,
     unlockKey: 'world1',
+  },
+  {
+    // CAPTAIN WADDLE (Ethan's design, 2026-11-13): a penguin with an orange cape. X throws snowballs, he flaps
+    // his wings for a double jump, and C is the WADDLE SLIDE. Copybara locked him up by mistake (black and white,
+    // like the bad guys!): free him from the jail in World 1's police station with any boss key.
+    id: 'captain-waddle',
+    attack: 'snowball',
+    doubleJump: true,
+    slide: true,
+    jailed: true,
   },
   {
     // Secret: unlocked (for free) by beating the Lava Dragon. Has lots of powers at once.

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { loadSave } from '../save.js';
+import { loadSave, activePowerUps } from '../save.js';
 import { getCharacter } from '../characters.js';
 import { t, setLanguage } from '../i18n.js';
 import { showTouchControls, touchButtonsFor } from '../touch.js';
@@ -26,7 +26,7 @@ export class AdventureScene extends Phaser.Scene {
     });
     if (import.meta.env.DEV) window.adventure = this.world;
     const touch = save.touch
-      ? showTouchControls(this.game.canvas.parentElement, touchButtonsFor(getCharacter(save.selected), save.powerUps, true), { jump: t('touch.jump') })
+      ? showTouchControls(this.game.canvas.parentElement, touchButtonsFor(getCharacter(save.selected), activePowerUps(save), true), { jump: t('touch.jump') })
       : null;
 
     this.events.once('shutdown', () => {

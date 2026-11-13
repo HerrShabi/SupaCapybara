@@ -7,7 +7,7 @@ import { SideScrollerScene } from '../scenes/SideScrollerScene.js';
 import { heroKey } from '../art/heroes.js';
 import { touchButtonsFor } from '../touch.js';
 import { drawComicBubble } from '../comicBubble.js';
-import { loadSave, writeSave } from '../save.js';
+import { loadSave, writeSave, activePowerUps } from '../save.js';
 import { STORY_START_HERO, freeFriend } from './story.js';
 import { afterWorld } from '../trips/worlds.js';
 
@@ -37,7 +37,7 @@ export class StoryLevelScene extends SideScrollerScene {
     this.heroes = data.heroes?.length ? data.heroes : [STORY_START_HERO];
     this.heroIndex = 0;
     // Touch buttons for both heroes' powers, plus 🔄 to switch
-    const powerUps = loadSave().powerUps;
+    const powerUps = activePowerUps(loadSave());
     const both = this.heroes.map((id) => touchButtonsFor(getCharacter(id), powerUps, false));
     this.extraTouchButtons = Object.fromEntries(Object.keys(both[0]).filter((key) => key !== 'attack').map((key) => [key, both.some((b) => b[key])]));
     if (this.heroes.length > 1) this.extraTouchButtons.swap = true;

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { Player } from '../Player.js';
 import { getCharacter, pickDance } from '../characters.js';
-import { loadSave, writeSave } from '../save.js';
+import { loadSave, writeSave, activePowerUps } from '../save.js';
 import { t, setLanguage } from '../i18n.js';
 import { getDifficulty, BAD_GUY_REWARD, BOSS_REWARD } from '../difficulty.js';
 import { audio } from '../audio.js';
@@ -19,7 +19,7 @@ import { drawingMode, applySketch, useDrawnHeroes } from '../sketch.js';
 import { showDisco, heroPicture } from '../disco.js';
 import { drawDiscoProp } from '../art/discoSpots.js';
 import { discoReward } from '../strawberry.js';
-import { megaBeamCount } from '../megaBeam.js';
+import { megaBeamCount, megaBeamOn } from '../megaBeam.js';
 
 // Everything the side-scrolling worlds (1 and 3) share: the hero, hearts, bolts, bad guys,
 // getting hurt, the boss health bar, the key and winning.
@@ -86,7 +86,7 @@ export class SideScrollerScene extends Phaser.Scene {
     setLanguage(this.save.language);
     const heroes = this.team ? this.team.heroes : [data.hero ?? this.save.selected];
     // Power-ups: yours, none for two players, or any list the scene is started with (Training lets you try them all)
-    this.powerUps = data.powerUps ?? (this.team ? [] : this.save.powerUps);
+    this.powerUps = data.powerUps ?? (this.team ? [] : activePowerUps(this.save)); // (only the ones switched ON)
     this.exitScene = this.team ? 'Title' : this.level.exitTo ?? 'Menu';
     this.character = getCharacter(heroes[0]);
     // (data.difficulty: a mode can force one, like KING RUSH's EXTREME)
@@ -118,7 +118,7 @@ export class SideScrollerScene extends Phaser.Scene {
           hat: this.save.wearing?.[id] ?? null,
           hatStyle: this.hatStyle ?? null, // (a world's own hats, like the Drawings World)
           strawberry: !this.team, // magic strawberries (strawberry.js); TEAM has no power-ups
-          megaBeam: !this.team, // MEGA BEAMs bought in the shop (megaBeam.js)
+          megaBeam: !this.team && megaBeamOn(this.save), // MEGA BEAMs bought in the shop (megaBeam.js)
         }),
     );
     this.player = this.players[0];
@@ -173,7 +173,7 @@ export class SideScrollerScene extends Phaser.Scene {
       const container = this.game.canvas.parentElement;
       const touch = this.team
         ? showTwoPlayerTouch(container)
-        : showTouchControls(container, { ...touchButtonsFor(this.character, this.powerUps, false), ...this.extraTouchButtons, pencil: Boolean(this.magicPencil), mega: megaBeamCount(this.save) > 0 }, { jump: t('touch.jump') });
+        : showTouchControls(container, { ...touchButtonsFor(this.character, this.powerUps, false), ...this.extraTouchButtons, pencil: Boolean(this.magicPencil), mega: megaBeamCount(this.save) > 0 && megaBeamOn(this.save) }, { jump: t('touch.jump') });
       this.events.once('shutdown', () => touch.destroy());
     }
 
@@ -294,7 +294,7 @@ export class SideScrollerScene extends Phaser.Scene {
 
   // Adds ⚡ to the saved total (twice as much with the Double power-up). With `x, y`, a "+5" floats up from there.
   addBolts(base, x, y) {
-    const amount = base * (this.save.powerUps.includes('double') ? 2 : 1);
+    const amount = base * (activePowerUps(this.save).includes('double') ? 2 : 1);
     this.levelBolts += amount;
     this.save.bolts += amount;
     writeSave(this.save);
@@ -370,9 +370,9 @@ export class SideScrollerScene extends Phaser.Scene {
     }
   }
 
-  // Ultra Capybara's fire aura, the Mecha suit and a magic strawberry's rainbow smash whatever they touch.
+  // Ultra Capybara's fire aura, the Mecha suit, a magic strawberry's rainbow and CAPTAIN WADDLE's slide smash whatever they touch.
   smashesOnTouch(player) {
-    return player.character.fireAura || player.mecha || player.rainbow;
+    return player.character.fireAura || player.mecha || player.rainbow || player.sliding;
   }
 
   touchedBadGuy(badGuy, player = this.player) {

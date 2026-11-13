@@ -4,7 +4,7 @@ import { t } from '../i18n.js';
 import { audio } from '../audio.js';
 import { getCharacter } from '../characters.js';
 import { getDifficulty, BAD_GUY_REWARD, BOSS_REWARD } from '../difficulty.js';
-import { writeSave } from '../save.js';
+import { writeSave, activePowerUps } from '../save.js';
 import { Hud } from '../world2/hud.js';
 import * as heroModels from '../world2/models.js';
 import * as models from './models.js';
@@ -45,10 +45,15 @@ const FLY_SPEED = 8;
 const RADIUS = 0.5; // how wide the hero is
 const HEIGHT = 1.2;
 
-const ATTACK_COOLDOWN_MS = { laser: 250, superLaser: 220, goldLaser: 220, scratch: 300, tongue: 450, moon: 400, rocket: 300, cuffs: 400 };
+const ATTACK_COOLDOWN_MS = { laser: 250, superLaser: 220, goldLaser: 220, scratch: 300, tongue: 450, moon: 400, rocket: 300, cuffs: 400, snowball: 300 };
 const SHOT_SPEED = 28;
 const SHOT_LIFE = 0.9;
 const SCRATCH_REACH = 2.4;
+// CAPTAIN WADDLE's WADDLE SLIDE (C): a fast belly slide that knocks over what's in front of him
+const SLIDE_MS = 520;
+const SLIDE_WAIT_MS = 1200;
+const SLIDE_SPEED = 2.6; // times running speed
+const SLIDE_REACH = 1.9;
 const TONGUE_REACH = 6;
 const POWER_MS = { invisible: 10000, shadow: 5000, shield: 10000, fly: 10000, mecha: 15000 };
 // (The Freeze Ray has its own timers: see useFreezeRay.)
@@ -136,7 +141,7 @@ export class AdventureWorld {
     save.adventure ??= { opened: [], superBossBeaten: false };
     this.character = getCharacter(hero ?? save.selected);
     this.settings = getDifficulty(save.difficulty);
-    this.powerUps = save.powerUps;
+    this.powerUps = activePowerUps(save); // the power-ups you own that are switched ON
     this.keysDown = new Set();
     this.keysPressed = new Set();
     this.now = performance.now();
@@ -730,7 +735,10 @@ export class AdventureWorld {
     const flying = this.active('fly', p);
     const previousY = p.pos.y;
 
-    if (!bouncing) {
+    if (this.sliding(p)) {
+      p.vel.x = p.forward.x * speed * SLIDE_SPEED;
+      p.vel.z = p.forward.z * speed * SLIDE_SPEED;
+    } else if (!bouncing) {
       p.vel.x = p.forward.x * move * (flying ? FLY_SPEED : speed);
       p.vel.z = p.forward.z * move * (flying ? FLY_SPEED : speed);
     }
@@ -788,6 +796,7 @@ export class AdventureWorld {
     p.model.position.copy(p.pos);
     orient(p.model, p.forward);
     p.model.rotation.z = 0;
+    if (this.sliding(p)) p.model.rotateX(1.4); // WADDLE SLIDE: flat on his belly, head first
     p.legs.forEach((leg, i) => (leg.rotation.x = running ? Math.sin(this.now / 60 + i * Math.PI) * 0.6 : 0));
     if (p.cape) p.cape.rotation.x = running || !p.onGround ? 1.1 : 0.5;
     const blinking = this.now < p.safeUntil && Math.floor(this.now / 100) % 2 === 0;
@@ -902,6 +911,8 @@ export class AdventureWorld {
     const character = p.character;
     if (this.wasPressed(p, 'special') && character.invisibility) this.startPower(p, 'invisible', 'invisible');
     if (this.wasPressed(p, 'special') && character.shadow) this.startPower(p, 'shadow', 'shadow');
+    if (this.wasPressed(p, 'special') && character.slide) this.startSlide(p);
+    if (p.slideUntil) this.updateSlide(p);
     if (this.wasPressed(p, 'shield') && p.powerUps.includes('shield')) this.startPower(p, 'shield', 'shield');
     if (this.wasPressed(p, 'fly') && p.powerUps.includes('fly')) this.startPower(p, 'fly', 'fly');
     if (this.wasPressed(p, 'mecha') && p.powerUps.includes('mecha-capybara') && !p.mechaUsed) {
@@ -941,6 +952,11 @@ export class AdventureWorld {
     if (character.attacks) parts.push(`Q = ${t('game.switch')}`);
     if (character.invisibility) parts.push(status('C', t('game.invisible'), 'invisible'));
     if (character.shadow) parts.push(status('C', t('game.shadow'), 'shadow'));
+    if (character.slide) {
+      if (this.sliding(p)) parts.push(`${t('game.slide')}!`);
+      else if (this.now < (p.slideReadyAt ?? 0)) parts.push(`C = ${t('game.slide')}: ${t('game.wait', { seconds: seconds(p.slideReadyAt - this.now) })}`);
+      else parts.push(`C = ${t('game.slide')}: ${t('game.ready')}`);
+    }
     if (p.powerUps.includes('shield')) parts.push(status('V', t('game.shield'), 'shield'));
     if (p.powerUps.includes('fly')) parts.push(status('F', t('game.fly'), 'fly'));
     if (p.powerUps.includes('freeze')) {
@@ -962,7 +978,36 @@ export class AdventureWorld {
   }
 
   isUnhurtable(p = this.player) {
-    return this.active('invisible', p) || this.active('shadow', p) || this.active('mecha', p) || this.active('rainbow', p);
+    return this.active('invisible', p) || this.active('shadow', p) || this.active('mecha', p) || this.active('rainbow', p) || this.sliding(p);
+  }
+
+  // ---------- CAPTAIN WADDLE's WADDLE SLIDE (C) ----------
+
+  sliding(p) {
+    return this.now < (p.slideUntil ?? 0);
+  }
+
+  startSlide(p) {
+    if (this.sliding(p) || this.now < (p.slideReadyAt ?? 0) || this.active('fly', p) || this.active('mecha', p)) return;
+    p.slideUntil = this.now + SLIDE_MS;
+    p.nextSlideHitAt = 0;
+    audio.play('slide');
+  }
+
+  // Knocks over whatever is right in front of him, a few times a slide
+  updateSlide(p) {
+    if (!this.sliding(p)) {
+      p.slideUntil = 0;
+      p.slideReadyAt = this.now + SLIDE_WAIT_MS;
+      return;
+    }
+    if (this.now < p.nextSlideHitAt) return;
+    p.nextSlideHitAt = this.now + 150;
+    const body = this.bodyOf(p);
+    for (const target of this.targets()) {
+      const to = target.point.clone().sub(body);
+      if (to.length() < SLIDE_REACH + target.radius - 1 && to.dot(p.forward) > -0.3) target.hit(1);
+    }
   }
 
   // ---------- Attacks ----------
@@ -987,11 +1032,14 @@ export class AdventureWorld {
         rocket: [0xff7043, 0.35, 1.4, 3, 'rocketShot'],
         moon: [0xd50000, 0.35, 0.7, 2, 'moon'],
         cuffs: [0xcfd8dc, 0.3, 0.6, 2, 'laser'], // COPYBARA's handcuffs
+        snowball: [0xffffff, 0.25, 0.5, 1, 'snowball'], // CAPTAIN WADDLE's snowballs
       }[kind];
       const [color, thick, length, damage, sound] = look;
       audio.play(sound);
       const mesh = kind === 'cuffs'
         ? heroModels.makeHandcuffs()
+        : kind === 'snowball'
+        ? heroModels.makeSnowball()
         : new THREE.Mesh(kind === 'moon' ? new THREE.SphereGeometry(thick, 12, 10) : new THREE.BoxGeometry(thick, thick, length), new THREE.MeshBasicMaterial({ color }));
       this.addShot({ mesh, pos: start, vel: p.forward.clone().multiplyScalar(kind === 'moon' ? 16 : SHOT_SPEED), life: kind === 'moon' ? 2 : SHOT_LIFE, damage, fromPlayer: true, homing: kind === 'moon' });
     }
@@ -1210,7 +1258,7 @@ export class AdventureWorld {
 
     if (chest.reward === 'bolts') {
       this.addBolts(CHEST_BOLTS);
-      this.hud.message('', t('adv.gotBolts', { count: CHEST_BOLTS * (this.save.powerUps.includes('double') ? 2 : 1) }), 2500);
+      this.hud.message('', t('adv.gotBolts', { count: CHEST_BOLTS * (this.powerUps.includes('double') ? 2 : 1) }), 2500);
     } else if (chest.reward === 'piece') {
       const count = this.piecesFound;
       this.hud.setCrystals(count);
@@ -1234,7 +1282,7 @@ export class AdventureWorld {
   }
 
   addBolts(amount) {
-    this.save.bolts += amount * (this.save.powerUps.includes('double') ? 2 : 1);
+    this.save.bolts += amount * (this.powerUps.includes('double') ? 2 : 1);
     writeSave(this.save);
     this.hud.setBolts(this.save.bolts);
   }
@@ -1565,7 +1613,7 @@ export class AdventureWorld {
     this.save.adventure.superBossBeaten = true;
     writeSave(this.save);
     this.hud.hideBoss();
-    this.hud.message(t('adv.superBossBeaten'), t('adv.gotBolts', { count: BOSS_REWARD * 10 * (this.save.powerUps.includes('double') ? 2 : 1) }), 5000);
+    this.hud.message(t('adv.superBossBeaten'), t('adv.gotBolts', { count: BOSS_REWARD * 10 * (this.powerUps.includes('double') ? 2 : 1) }), 5000);
     setTimeout(() => {
       if (this.ended) return;
       audio.play('win');

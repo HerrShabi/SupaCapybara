@@ -209,6 +209,14 @@ export class StoryJungleScene extends StoryLevelScene {
       vine.end = end;
     }
     for (const player of this.players) {
+      for (const laser of player.lasers.getChildren()) {
+        const snake = this.vines.find((v) => v.snake && v.end && Phaser.Geom.Intersects.RectangleToRectangle(laser.getBounds(), this.snakeHead(v)));
+        if (snake) {
+          laser.destroy();
+          this.killSnake(snake);
+          player.landedHit();
+        }
+      }
       if (player.vine) this.swing(player, delta);
       else this.tryGrab(player);
     }
@@ -225,12 +233,10 @@ export class StoryJungleScene extends StoryLevelScene {
       const across = Math.abs(dx * Math.cos(vine.angle) - dy * Math.sin(vine.angle));
       if (along < vine.length * 0.55 || along > vine.length + 45 || across > GRAB_REACH) continue;
       if (vine.snake) {
-        // HISS! It's a snake. Off you go.
+        // HISS! A live snake bites: you lose a heart and bounce away. Attack it to beat it!
         audio.play('hiss');
         player.regrabAt = this.time.now + 700;
-        player.sprite.setVelocity(player.sprite.body.velocity.x * 0.3, 120);
-        const words = this.add.text(vine.end.x, vine.end.y - 30, t('story.hiss'), { fontFamily: 'Arial Black, Arial', fontSize: '20px', color: '#c6ff00' }).setStroke('#000000', 5).setOrigin(0.5).setDepth(6);
-        this.tweens.add({ targets: words, y: words.y - 40, alpha: 0, duration: 900, onComplete: () => words.destroy() });
+        this.hurt(vine.end.x, player);
         return;
       }
       // Grab it! Start swinging from where you are, with the speed you had.
@@ -391,7 +397,27 @@ export class StoryJungleScene extends StoryLevelScene {
         hit = true;
       }
     }
+    for (const vine of this.vines) {
+      if (vine.snake && vine.end && Phaser.Geom.Intersects.RectangleToRectangle(area, this.snakeHead(vine))) {
+        this.killSnake(vine);
+        hit = true;
+      }
+    }
     return super.hitArea(area, damage) || hit;
+  }
+
+  snakeHead(vine) {
+    return new Phaser.Geom.Rectangle(vine.end.x - 30, vine.end.y - 30, 60, 60);
+  }
+
+  // Beat a snake: POOF, it turns into a normal vine you can swing on
+  killSnake(vine) {
+    vine.snake = false;
+    audio.play('bonk');
+    for (let i = 0; i < 6; i++) {
+      const puff = this.add.circle(vine.end.x + Phaser.Math.Between(-18, 18), vine.end.y + Phaser.Math.Between(-18, 18), 10, 0xeceff1).setDepth(6);
+      this.tweens.add({ targets: puff, scale: 2.2, alpha: 0, duration: 400, onComplete: () => puff.destroy() });
+    }
   }
 
   // CHOMP! The neck stretches out toward you and snaps back

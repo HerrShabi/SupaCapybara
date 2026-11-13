@@ -6,6 +6,7 @@ import { HERO_WIDTH, HERO_HEIGHT } from './heroParts.js';
 import { drawCapybara } from './capybara.js';
 import { drawCat } from './cat.js';
 import { drawChameleon } from './chameleon.js';
+import { drawPenguin } from './penguin.js';
 
 const POSES = {
   idle: { legOffset: 0, capeFlying: false },
@@ -23,6 +24,7 @@ const HEROES = {
   'bloodmoon-cat': { draw: drawCat, suit: 0x6a1b4d, suitDark: 0x400f2e, fur: 0xf3e5f5 },
   'supa-chameleon': { draw: drawChameleon, suit: 0xf06292, suitDark: 0xf06292 },
   copybara: { draw: drawCapybara, suit: 0x1a3a8a, suitDark: 0x0d1f4f, badge: true, noCape: true },
+  'captain-waddle': { draw: drawPenguin, suit: 0x1c1c24, suitDark: 0x000000, cape: 0xff8f00, slide: true }, // (secret colors change his cape)
 };
 
 // Secret colors, unlocked by beating the Lava Dragon. Palette 0 is each hero's normal colors.
@@ -48,6 +50,13 @@ export function createHeroTextures(scene, palette = 0) {
       const g = scene.make.graphics({ add: false });
       hero.draw(g, pose, colors);
       g.generateTexture(key, HERO_WIDTH, HERO_HEIGHT);
+      g.destroy();
+    }
+    // (CAPTAIN WADDLE also has a 'slide' frame: lying on his belly for the WADDLE SLIDE)
+    if (hero.slide && !scene.textures.exists(`${prefix}-slide`)) {
+      const g = scene.make.graphics({ add: false });
+      hero.draw(g, { slide: true, capeFlying: true }, colors);
+      g.generateTexture(`${prefix}-slide`, HERO_WIDTH, HERO_HEIGHT);
       g.destroy();
     }
     if (!scene.anims.exists(`${prefix}-run`)) {

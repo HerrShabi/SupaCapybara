@@ -74,6 +74,7 @@ export function showTouchControls(container, buttons, labels) {
   const powers = [
     buttons.invisible && ['KeyC', '👻'],
     buttons.shadow && ['KeyC', '🌑'],
+    buttons.slide && ['KeyC', '🛷'],
     buttons.shield && ['KeyV', '🛡️'],
     buttons.fly && ['KeyF', '🕊️'],
     buttons.mecha && ['KeyR', '🤖'],
@@ -219,7 +220,7 @@ function makeRoot(container) {
 
 // Which buttons a hero needs. `threeD` adds up/down (World 2 walks forward and back).
 export function touchButtonsFor(character, powerUps, threeD) {
-  const attack = { laser: '👀', superLaser: '👀', scratch: '🐾', tongue: '👅', moon: '🌕', goldLaser: '✨', cuffs: '🔗' }[character.attack];
+  const attack = { laser: '👀', superLaser: '👀', scratch: '🐾', tongue: '👅', moon: '🌕', goldLaser: '✨', cuffs: '🔗', snowball: '❄️' }[character.attack];
   const fly = powerUps.includes('fly');
   return {
     left: true,
@@ -229,6 +230,7 @@ export function touchButtonsFor(character, powerUps, threeD) {
     attack,
     invisible: character.invisibility,
     shadow: character.shadow,
+    slide: character.slide, // CAPTAIN WADDLE's WADDLE SLIDE
     mecha: powerUps.includes('mecha-capybara'),
     swap: Boolean(character.attacks),
     freeze: powerUps.includes('freeze'),

@@ -460,6 +460,22 @@ Ethan's idea: **other accounts**, so friends each have their own save (bolts, he
 - Golden Capybara was too strong: his SWITCH button now has 2 attacks instead of 4.
 - Game controllers (like the **ANBERNIC RG 477V**) now work in the menus and the 3D worlds too, not only in the 2D levels. Buttons: A jump/pick, B or X attack, Y power, L1 shield, R1 fly, L2 Mecha, R2 switch, SELECT back, press the stick for the Freeze Ray. (Since 2026-11-09: pressing the left stick fires the MEGA BEAM, and the Freeze Ray is B + Y together, the same as in the 2D levels.)
 
+## Captain Waddle (new hero, designed 2026-11-13, in the game)
+
+Ethan's answers in the design session:
+- A **penguin** 🐧 named **Captain Waddle**, with an **orange cape** 🧡.
+- **X attack:** throws **snowballs** ❄️ (flies far, like a laser).
+- **Double jump** (flaps its wings 🪽).
+- **Special move: WADDLE SLIDE** 🛷, a belly slide into bad guys (up close).
+- **How you get him:** he is locked in a **prison in the police station in the city** 🚓. You try your boss keys 🔑 on the cell until one opens it.
+- **Why he's in prison:** Copybara arrested him by mistake because he looks like a bad guy (black and white, like the bad guys' clothes). Copybara says sorry at the end ("Sorry about that, Captain!").
+- When freed he says: **"Captain Waddle reporting for duty! Anyone got fish?"** 🫡🐟
+- German name for Copybara: **Polizei-Capybara** (Ethan's friend said it).
+
+## Power-up switches (designed 2026-11-13, in the game)
+
+Ethan: "you should be able to choose power-up". Every power-up you own gets an **ON/OFF switch**, as many as you want on at once. A **POWER-UPS button** in the STORY menu opens a screen that shows all of them (so the menu stays tidy). Off power-ups don't work in the levels (and their touch buttons are hidden), but you keep them.
+
 ## Future updates (Ethan wants these later; don't forget!)
 
 - More worlds: underwater 🌊, a spooky castle 🏰, candy land 🍭.

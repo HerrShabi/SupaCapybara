@@ -21,6 +21,7 @@ import { World2Scene } from './world2/World2Scene.js';
 import { World3Scene } from './scenes/World3Scene.js';
 import { GrapeMoonScene } from './scenes/GrapeMoonScene.js';
 import { SupermarketScene } from './scenes/SupermarketScene.js';
+import { PowerUpsScene } from './scenes/PowerUpsScene.js';
 import { EndingScene } from './scenes/EndingScene.js';
 import { DrawingsScene } from './scenes/DrawingsScene.js';
 import { SketchPipeline } from './sketch.js';
@@ -43,7 +44,7 @@ const game = new Phaser.Game({
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [AccountsScene, TitleScene, MenuScene, World1Scene, World2Scene, World3Scene, GrapeMoonScene, SupermarketScene, EndingScene, TrainingScene, TwoPlayerScene, BattleScene, AdventureScene, QuestScene, StoryMapScene, StoryIntroScene, StoryCloudScene, StoryUnderwaterScene, StoryJungleScene, StoryCastleScene, StoryKingScene, StoryEndingScene, TripBalloonScene, TripRainbowScene, TripSurfScene, TripMineScene, TripStairsScene, DrawingsScene],
+  scene: [AccountsScene, TitleScene, MenuScene, World1Scene, World2Scene, World3Scene, GrapeMoonScene, SupermarketScene, PowerUpsScene, EndingScene, TrainingScene, TwoPlayerScene, BattleScene, AdventureScene, QuestScene, StoryMapScene, StoryIntroScene, StoryCloudScene, StoryUnderwaterScene, StoryJungleScene, StoryCastleScene, StoryKingScene, StoryEndingScene, TripBalloonScene, TripRainbowScene, TripSurfScene, TripMineScene, TripStairsScene, DrawingsScene],
 });
 
 // The controller presses keys in the menus and 3D worlds. These 2D scenes read it themselves (controls.js),

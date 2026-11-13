@@ -77,6 +77,7 @@ export class TrainingScene extends SideScrollerScene {
     if (this.character.doubleJump) steps.push(['train.doubleJump', () => p().airJumpsLeft === 0 && !p().sprite.body.blocked.down]);
     if (this.character.invisibility) steps.push(['train.invisible', () => p().invisibleUntil > 0]);
     if (this.character.shadow) steps.push(['train.shadow', () => p().shadowUntil > 0]);
+    if (this.character.slide) steps.push(['train.slide', () => p().slideUntil > 0 || p().slideReadyAt > 0]);
     if (this.character.attacks) steps.push(['train.swap', () => p().attackIndex > 0]);
     steps.push(['train.done', () => false]);
     return steps;

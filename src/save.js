@@ -14,7 +14,8 @@ function newSave() {
     bolts: 0,
     keys: [], // e.g. 'world1' after beating Pizza Boss
     owned: [...STARTING_CHARACTERS],
-    powerUps: [],
+    powerUps: [], // every power-up you own (the shop checks this)
+    powerUpsOff: [], // the ones switched OFF on the POWER-UPS screen (still owned, but they do nothing)
     selected: 'supa-capybara',
     language: 'en', // 'en' or 'de'
     difficulty: 'medium', // see difficulty.js
@@ -106,6 +107,26 @@ export function loadSave() {
 
 export function writeSave(save) {
   localStorage.setItem(saveKey(loadAccounts().current), JSON.stringify(save));
+}
+
+// POWER-UP SWITCHES (Ethan, 2026-11-13): each power-up you own can be ON or OFF (PowerUpsScene).
+// Gameplay reads activePowerUps(save), never save.powerUps. Bubble Shield needs the Shield to be on.
+// 'mega-beam' has a switch too (it's a stock counter, save.megaBeams, not in save.powerUps).
+export function isPowerUpOn(save, id) {
+  const off = save.powerUpsOff ?? [];
+  if (off.includes(id)) return false;
+  if (id === 'multi-direction') return !off.includes('shield');
+  return true;
+}
+
+export function setPowerUpOn(save, id, on) {
+  const off = (save.powerUpsOff ?? []).filter((other) => other !== id);
+  save.powerUpsOff = on ? off : [...off, id];
+}
+
+// The power-ups you own that are switched ON.
+export function activePowerUps(save) {
+  return (save.powerUps ?? []).filter((id) => isPowerUpOn(save, id));
 }
 
 // CUBE ISLANDS progress: { food: { color: count }, babies: [{ animal, color, xp, team }], dragonBeaten }.

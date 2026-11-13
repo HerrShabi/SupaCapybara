@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { writeSave } from './save.js';
+import { writeSave, isPowerUpOn } from './save.js';
 import { audio } from './audio.js';
 import { t } from './i18n.js';
 import { rainbowColor } from './strawberry.js';
@@ -25,6 +25,11 @@ const SWIRLS = ['🔥', '⚡', '🌙', '🔥', '⚡', '🌙'];
 
 export function megaBeamCount(save) {
   return save.megaBeams ?? 0;
+}
+
+// Can this player fire MEGA BEAMs here? (Switched ON on the POWER-UPS screen.)
+export function megaBeamOn(save) {
+  return isPowerUpOn(save, 'mega-beam');
 }
 
 export class MegaBeam {

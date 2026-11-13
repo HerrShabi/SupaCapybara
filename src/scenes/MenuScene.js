@@ -17,7 +17,7 @@ import { WORLD_COUNT, startWorld } from '../trips/worlds.js';
 // - 🦸 HEROES: a row of hero cards (pick with ◀ ▶, buy locked heroes)
 // - 🗺️ WORLDS: a card for each world with its picture and name (pick with ▲ ▼), plus 🥊 BOSS RUSH once unlocked
 // - difficulty and one wide PLAY button ("PLAY <hero>" and the world)
-// - right side: the shop, and the boss keys under it
+// - right side: the shop, the boss keys, and the POWER-UPS button (ON/OFF switches, PowerUpsScene)
 // - bottom: touch buttons, secret colors, wardrobe, back
 
 // Each world card's picture and color
@@ -93,6 +93,7 @@ export class MenuScene extends Phaser.Scene {
     addBackButton(this, RIGHT + RIGHT_WIDTH - 60, 506, () => this.scene.start('Title'));
     this.createShop();
     this.createKeys();
+    this.createPowerUpsButton();
 
     this.message = this.add
       .text(LEFT + LEFT_WIDTH / 2, 474, '', { fontFamily: FONT, fontSize: '15px', color: '#ff8a80' })
@@ -107,6 +108,8 @@ export class MenuScene extends Phaser.Scene {
     this.input.keyboard.on('keydown-ESC', () => this.scene.start('Title'));
     this.input.keyboard.on('keydown-M', () => this.toggleSound());
     this.input.keyboard.on('keydown-SPACE', () => this.play());
+    this.input.keyboard.on('keydown-P', () => this.openPowerUps());
+    this.input.keyboard.on('keydown-C', () => this.openPowerUps()); // (a controller's Y button)
 
     this.select(this.selectedIndex);
   }
@@ -162,6 +165,10 @@ export class MenuScene extends Phaser.Scene {
     const bottomY = CARDS_TOP + CARD_HEIGHT - 13;
     if (canBuy) {
       this.createBuyButton(character, centerX, bottomY);
+    } else if (!owned && character.jailed) {
+      // CAPTAIN WADDLE isn't bought: he's in jail in World 1's police station
+      const jailHint = this.add.text(centerX, bottomY, t('menu.inJail'), { fontFamily: FONT, fontSize: '11px', color: '#ffb74d' }).setOrigin(0.5);
+      jailHint.setScale(Math.min(1, (this.cardWidth - 12) / jailHint.width));
     } else if (!owned && this.save.keys.includes(character.unlockKey)) {
       this.add.text(centerX, bottomY, t('menu.soon'), { fontFamily: FONT, fontSize: '11px', color: '#aaaaaa' }).setOrigin(0.5);
     } else if (!owned) {
@@ -572,6 +579,28 @@ export class MenuScene extends Phaser.Scene {
     const character = this.characters[this.selectedIndex];
     audio.play('click');
     this.scene.start('Supermarket', { hero: this.owns(character) ? character.id : this.save.selected });
+  }
+
+  // POWER-UPS: ON/OFF switches for every power-up you own (PowerUpsScene)
+  createPowerUpsButton() {
+    const top = 340;
+    const height = 56;
+    this.add
+      .rectangle(RIGHT, top, RIGHT_WIDTH, height, 0x4527a0)
+      .setOrigin(0, 0)
+      .setStrokeStyle(4, 0xb39ddb)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => this.openPowerUps());
+    this.add.text(RIGHT + 40, top + height / 2, '⚡', { fontSize: '30px' }).setOrigin(0.5);
+    const title = this.add.text(RIGHT + 72, top + 18, t('menu.powerUpsButton'), { fontFamily: FONT, fontSize: '20px', color: '#ffffff' }).setStroke('#000000', 5).setOrigin(0, 0.5);
+    title.setScale(Math.min(1, (RIGHT_WIDTH - 84) / title.width));
+    const what = this.add.text(RIGHT + 72, top + 41, t('menu.powerUpsWhat'), { fontFamily: 'Arial', fontSize: '12px', color: '#ffffff' }).setOrigin(0, 0.5);
+    what.setScale(Math.min(1, (RIGHT_WIDTH - 84) / what.width));
+  }
+
+  openPowerUps() {
+    audio.play('click');
+    this.scene.start('PowerUps');
   }
 
   createKeys() {

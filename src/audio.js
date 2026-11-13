@@ -340,6 +340,18 @@ class GameAudio {
         this.noise({ length: 0.3, volume: 0.3, filter: 'bandpass', frequency: 900 });
         this.tone({ wave: 'sawtooth', from: 300, to: 120, length: 0.25, volume: 0.1 });
         break;
+      case 'snowball':
+        this.noise({ length: 0.12, volume: 0.25, filter: 'bandpass', frequency: 1800 });
+        this.tone({ wave: 'sine', from: 700, to: 300, length: 0.12, volume: 0.12 });
+        break;
+      case 'slide':
+        this.noise({ length: 0.5, volume: 0.3, filter: 'bandpass', frequency: 2400 });
+        this.tone({ wave: 'triangle', from: 300, to: 900, length: 0.25, volume: 0.12 });
+        break;
+      case 'keyTry':
+        this.noise({ length: 0.06, volume: 0.35, filter: 'bandpass', frequency: 4000 });
+        this.noise({ delay: 0.12, length: 0.06, volume: 0.35, filter: 'bandpass', frequency: 3500 });
+        break;
       case 'moon':
         this.tone({ wave: 'sine', from: 200, to: 600, length: 0.25, volume: 0.25 });
         this.tone({ wave: 'triangle', from: 400, to: 1200, delay: 0.05, length: 0.2, volume: 0.1 });

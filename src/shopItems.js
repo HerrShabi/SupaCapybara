@@ -1,12 +1,13 @@
 import { POWER_UPS, DANCES } from './characters.js';
 import { SHOP_HATS, SHOP_HAT_PRICE } from './art/hats.js';
+import { setPowerUpOn } from './save.js';
 
 // Everything the supermarket sells (SupermarketScene), aisle by aisle: power-ups, new hats, win dances.
 // Each item: { kind: 'powerUp' | 'hat' | 'dance', id, price, icon (emoji, or null for hats: they show the hat), needs?, usedUp? }
 // Names are the same i18n keys as everywhere else ('powerUp.<id>', 'hat.<id>', 'dance.<id>'); the shelf
 // descriptions are 'shopInfo.<id>'.
 
-const POWER_UP_ICONS = { shield: '🛡️', 'multi-direction': '🫧', fly: '🕊️', double: '💰', freeze: '❄️', 'mecha-capybara': '🤖', 'mega-beam': '🌈', 'supa-sniper': '🎯', 'sniper-ammo': '🔫' };
+export const POWER_UP_ICONS = { shield: '🛡️', 'multi-direction': '🫧', fly: '🕊️', double: '💰', freeze: '❄️', 'mecha-capybara': '🤖', 'mega-beam': '🌈', 'supa-sniper': '🎯', 'sniper-ammo': '🔫' };
 
 export const AISLES = [
   { id: 'powerUps', items: POWER_UPS.filter((p) => p.ready).map((p) => ({ kind: 'powerUp', icon: POWER_UP_ICONS[p.id] ?? '⚡', ...p })) },
@@ -49,6 +50,7 @@ export function buyItem(save, item) {
   save.bolts -= item.price;
   if (item.usedUp) save[item.stock] = stockOf(save, item) + (item.pack ?? 1);
   else if (item.kind === 'powerUp') save.powerUps.push(item.id);
+  if (item.kind === 'powerUp') setPowerUpOn(save, item.id, true); // new power-ups come switched ON (PowerUpsScene)
   else if (item.kind === 'hat') (save.hats ??= []).push(item.id);
   else (save.dances ??= []).push(item.id);
 }

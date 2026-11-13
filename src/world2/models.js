@@ -36,6 +36,7 @@ const HERO_LOOKS = {
   'bloodmoon-cat': { animal: 'cat', suit: 0x6a1b4d, suitDark: 0x400f2e, fur: 0xf3e5f5 },
   'supa-chameleon': { animal: 'chameleon', suit: 0xf06292, suitDark: 0x3e7d1f },
   copybara: { animal: 'capybara', suit: 0x1a3a8a, suitDark: 0x0d1f4f, badge: true, noCape: true },
+  'captain-waddle': { animal: 'penguin', cape: 0xff8f00 },
 };
 
 function boltShape() {
@@ -55,6 +56,7 @@ const HEAD_3D = {
   capybara: { top: [0, 1.13, 0.62], eyes: [0, 0.98, 0.95] },
   cat: { top: [0, 1.28, 0.6], eyes: [0, 1.02, 0.92] },
   chameleon: { top: [0, 1.12, 0.6], eyes: [0, 0.9, 0.78] },
+  penguin: { top: [0, 1.38, 0.02], eyes: [0, 1.17, 0.27] },
 };
 
 // A 3D hat or costume, sitting on y = 0.
@@ -132,6 +134,7 @@ export function makeHat3D(hat) {
 // hat: optional hat to wear. colors: optional suit/suitDark/cape override (Evil Capybara).
 export function makeHero(id, palette = 0, hat = null, colors = null) {
   const look = { ...(HERO_LOOKS[id] ?? HERO_LOOKS['supa-capybara']), ...PALETTES[palette], ...colors };
+  if (look.animal === 'penguin') return makePenguin(look, hat);
   const group = new THREE.Group();
   const legs = [];
 
@@ -202,6 +205,56 @@ export function makeHero(id, palette = 0, hat = null, colors = null) {
   }
 
   return { group, legs, cape };
+}
+
+// CAPTAIN WADDLE: a standing penguin. Black body, white belly with the bolt, orange beak and feet, orange cape.
+function makePenguin(look, hat) {
+  const group = new THREE.Group();
+  const legs = [];
+  for (const x of [-0.17, 0.17]) {
+    const foot = box(0.2, 0.1, 0.34, 0xff9800, x, 0.05, 0.08);
+    legs.push(foot);
+    group.add(foot);
+  }
+  const body = ball(0.42, 0x1c1c24, 0, 0.55, 0);
+  body.scale.set(1, 1.3, 0.9);
+  group.add(body);
+  const belly = ball(0.34, 0xffffff, 0, 0.52, 0.17);
+  belly.scale.set(0.85, 1.15, 0.6);
+  group.add(belly);
+  const bolt = new THREE.Mesh(boltShape(), new THREE.MeshBasicMaterial({ color: BOLT, side: THREE.DoubleSide }));
+  bolt.position.set(0, 0.56, 0.39);
+  group.add(bolt);
+  for (const side of [-1, 1]) {
+    const wing = box(0.08, 0.5, 0.24, 0x1c1c24, side * 0.43, 0.6, 0);
+    wing.rotation.z = side * 0.3;
+    group.add(wing);
+    group.add(ball(0.045, 0x000000, side * 0.09, 1.17, 0.27)); // eyes
+  }
+  group.add(ball(0.27, 0x1c1c24, 0, 1.12, 0.02)); // head
+  group.add(ball(0.18, 0xffffff, 0, 1.1, 0.14)); // white face
+  const beak = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.25, 8), mat(0xff9800));
+  beak.rotation.x = Math.PI / 2;
+  beak.position.set(0, 1.06, 0.38);
+  group.add(beak);
+
+  const cape = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.85), new THREE.MeshStandardMaterial({ color: look.cape ?? 0xff8f00, side: THREE.DoubleSide }));
+  cape.geometry.translate(0, -0.42, 0);
+  cape.position.set(0, 0.98, -0.32);
+  cape.rotation.x = 0.5;
+  group.add(cape);
+
+  if (hat) {
+    const hatMesh = makeHat3D(hat);
+    hatMesh.position.set(...(hat === 'shades' ? HEAD_3D.penguin.eyes : HEAD_3D.penguin.top));
+    group.add(hatMesh);
+  }
+  return { group, legs, cape };
+}
+
+// CAPTAIN WADDLE's snowball (his attack in 3D)
+export function makeSnowball() {
+  return new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 10), new THREE.MeshBasicMaterial({ color: 0xffffff }));
 }
 
 // Ultra Capybara's pink fire aura.

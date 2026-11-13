@@ -1179,7 +1179,7 @@ export class QuestWorld extends AdventureWorld {
     } else if (Math.random() < RAINBOW_EGG_CHANCE) {
       this.dropEgg(dragon.pos);
     } else {
-      const count = bolts * (this.save.powerUps.includes('double') ? 2 : 1);
+      const count = bolts * (this.powerUps.includes('double') ? 2 : 1);
       this.hud.message(t('quest.dragonBeaten'), t('adv.gotBolts', { count }), 4000);
     }
     setTimeout(() => {

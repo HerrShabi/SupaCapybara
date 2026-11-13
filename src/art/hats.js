@@ -12,11 +12,13 @@ const HEAD = {
   capybara: { top: [51, 8], eyes: [52, 15] },
   cat: { top: [50, 7], eyes: [50, 17] },
   chameleon: { top: [52, 13], eyes: [54, 19] },
+  penguin: { top: [42, 3], eyes: [47, 11] },
 };
 
 export function animalOf(heroId) {
   if (heroId.includes('cat')) return 'cat';
   if (heroId.includes('chameleon')) return 'chameleon';
+  if (heroId === 'captain-waddle') return 'penguin';
   return 'capybara';
 }
 
