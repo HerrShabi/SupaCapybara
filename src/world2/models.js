@@ -38,6 +38,7 @@ const HERO_LOOKS = {
   copybara: { animal: 'capybara', suit: 0x1a3a8a, suitDark: 0x0d1f4f, badge: true, noCape: true },
   'captain-waddle': { animal: 'penguin', cape: 0xff8f00 },
   'agent-whiskers': { animal: 'cat', suit: 0x16161c, suitDark: 0x050507, fur: 0xb0bec5, noCape: true, agent: true },
+  'fbi-chameleon': { animal: 'chameleon', suit: 0x1e5bb8, suitDark: 0x16161c, badge: true, noCape: true, fbi: true },
 };
 
 function boltShape() {
@@ -196,6 +197,13 @@ export function makeHero(id, palette = 0, hat = null, colors = null) {
     tail.position.set(0, 0.55, -0.7);
     tail.rotation.y = Math.PI / 2;
     group.add(tail);
+    if (look.fbi) {
+      // FBI AGENT CHAMELEON: sunglasses, and his black suit showing at the front of the blue FBI jacket
+      const shades = makeHat3D('shades');
+      shades.position.set(...HEAD_3D.chameleon.eyes);
+      group.add(shades);
+      group.add(box(0.3, 0.34, 0.02, 0x16161c, 0, 0.58, 0.51));
+    }
   }
 
   // Blue cape from the neck down the back
@@ -272,6 +280,19 @@ export function makeGadget() {
   light.position.y = 0.22;
   group.add(light);
   group.userData.light = light;
+  return group;
+}
+
+// FBI AGENT CHAMELEON's boomerang badge: a flat gold shield with a blue middle (it spins as it flies).
+export function makeBadge() {
+  const group = new THREE.Group();
+  const gold = new THREE.MeshStandardMaterial({ color: 0xffd23f, metalness: 0.6, roughness: 0.3, emissive: 0x6d5200 });
+  const shield = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.06, 6), gold);
+  shield.rotation.x = Math.PI / 2;
+  group.add(shield);
+  const middle = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.08, 12), new THREE.MeshBasicMaterial({ color: 0x1e5bb8 }));
+  middle.rotation.x = Math.PI / 2;
+  group.add(middle);
   return group;
 }
 

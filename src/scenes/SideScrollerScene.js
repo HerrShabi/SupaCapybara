@@ -286,6 +286,19 @@ export class SideScrollerScene extends Phaser.Scene {
     for (const player of this.players) this.physics.add.overlap(player.sprite, this.bolts, (sprite, bolt) => this.collectBolt(bolt));
   }
 
+  // FBI AGENT CHAMELEON's magnifying glass: hidden bolts sparkle into view in an arc in front of him.
+  revealSecrets(player) {
+    if (!this.bolts) return;
+    for (let i = 0; i < 5; i++) {
+      const x = player.x + player.facing * (90 + i * 55);
+      const y = player.y - 30 - Math.sin((i / 4) * Math.PI) * 70;
+      const bolt = this.bolts.create(x, y, 'bolt').setAlpha(0); // (a static body: fade it in, don't scale it)
+      this.tweens.add({ targets: bolt, alpha: 1, duration: 350, delay: i * 80 });
+      const sparkle = this.add.circle(x, y, 18, 0xfff59d, 0.8).setDepth(3);
+      this.tweens.add({ targets: sparkle, scale: 2, alpha: 0, duration: 500, delay: i * 80, onComplete: () => sparkle.destroy() });
+    }
+  }
+
   collectBolt(bolt) {
     bolt.disableBody(true, true);
     audio.play('bolt');

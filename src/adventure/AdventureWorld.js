@@ -45,7 +45,9 @@ const FLY_SPEED = 8;
 const RADIUS = 0.5; // how wide the hero is
 const HEIGHT = 1.2;
 
-const ATTACK_COOLDOWN_MS = { laser: 250, superLaser: 220, goldLaser: 220, scratch: 300, tongue: 450, moon: 400, rocket: 300, cuffs: 400, snowball: 300, gadget: 450 };
+const ATTACK_COOLDOWN_MS = { laser: 250, superLaser: 220, goldLaser: 220, scratch: 300, tongue: 450, moon: 400, rocket: 300, cuffs: 400, snowball: 300, gadget: 450, badge: 400 };
+// FBI AGENT CHAMELEON's badge flies out, turns around halfway and comes back to him (a boomerang)
+const BADGE_LIFE = 1.1; // seconds
 const SHOT_SPEED = 28;
 const SHOT_LIFE = 0.9;
 const SCRATCH_REACH = 2.4;
@@ -58,7 +60,7 @@ const TONGUE_REACH = 6;
 // AGENT WHISKERS' spy gadgets: thrown in an arc, they land, blink, and explode
 const GADGET_FUSE = 0.5; // seconds
 const GADGET_BLAST = 2.6; // how far the explosion reaches
-const POWER_MS = { invisible: 10000, shadow: 5000, shield: 10000, fly: 10000, mecha: 15000 };
+const POWER_MS = { invisible: 10000, shadow: 5000, shield: 10000, fly: 10000, mecha: 15000, lens: 6000 }; // (lens: FBI AGENT CHAMELEON's magnifying glass)
 // (The Freeze Ray has its own timers: see useFreezeRay.)
 const POWER_WAIT_MS = 30000;
 
@@ -915,6 +917,7 @@ export class AdventureWorld {
     if (this.wasPressed(p, 'special') && character.invisibility) this.startPower(p, 'invisible', 'invisible');
     if (this.wasPressed(p, 'special') && character.shadow) this.startPower(p, 'shadow', 'shadow');
     if (this.wasPressed(p, 'special') && character.slide) this.startSlide(p);
+    if (this.wasPressed(p, 'special') && character.magnifier) this.startPower(p, 'lens', 'lens');
     if (p.slideUntil) this.updateSlide(p);
     if (this.wasPressed(p, 'shield') && p.powerUps.includes('shield')) this.startPower(p, 'shield', 'shield');
     if (this.wasPressed(p, 'fly') && p.powerUps.includes('fly')) this.startPower(p, 'fly', 'fly');
@@ -955,6 +958,7 @@ export class AdventureWorld {
     if (character.attacks) parts.push(`Q = ${t('game.switch')}`);
     if (character.invisibility) parts.push(status('C', t('game.invisible'), 'invisible'));
     if (character.shadow) parts.push(status('C', t('game.shadow'), 'shadow'));
+    if (character.magnifier) parts.push(status('C', t('game.lens'), 'lens'));
     if (character.slide) {
       if (this.sliding(p)) parts.push(`${t('game.slide')}!`);
       else if (this.now < (p.slideReadyAt ?? 0)) parts.push(`C = ${t('game.slide')}: ${t('game.wait', { seconds: seconds(p.slideReadyAt - this.now) })}`);
@@ -1031,6 +1035,11 @@ export class AdventureWorld {
       audio.play('gadget');
       const vel = p.forward.clone().multiplyScalar(11).addScaledVector(UP, 6);
       this.addShot({ mesh: heroModels.makeGadget(), pos: start, vel, life: 1.2, damage: 2, fromPlayer: true, gadget: true });
+    } else if (kind === 'badge') {
+      // FBI AGENT CHAMELEON: a spinning boomerang badge (double damage while the magnifying glass shows weak spots)
+      audio.play('badge');
+      const vel = p.forward.clone().multiplyScalar(SHOT_SPEED * 0.55);
+      this.addShot({ mesh: heroModels.makeBadge(), pos: start, vel, life: BADGE_LIFE, damage: this.active('lens', p) ? 2 : 1, fromPlayer: true, boomerang: p, turnAt: BADGE_LIFE / 2 });
     } else {
       const look = {
         laser: [0xff2020, 0.14, 1.3, 1, 'laser'],
@@ -1122,6 +1131,13 @@ export class AdventureWorld {
         }
       }
       if (shot.gadget) shot.vel.y -= 22 * dt; // (gadgets fall in an arc)
+      if (shot.boomerang && shot.life < shot.turnAt) {
+        // The badge comes back to whoever threw it (and is caught when it gets there)
+        const home = this.bodyOf(shot.boomerang);
+        shot.vel.copy(home.clone().sub(shot.pos).setLength(SHOT_SPEED * 0.6));
+        shot.ghost = true; // (it flies over hills on the way back)
+        if (home.distanceTo(shot.pos) < 0.8) shot.life = 0;
+      }
       shot.pos.addScaledVector(shot.vel, dt);
       shot.mesh.position.copy(shot.pos);
       if (shot.vel.lengthSq() > 0) shot.mesh.lookAt(shot.pos.clone().add(shot.vel));

@@ -29,7 +29,11 @@ const BOUNCE_MS = 300;
 
 const LASER_SPEED = 30;
 const LASER_LIFE = 0.8; // seconds
-const ATTACK_COOLDOWN_MS = { laser: 250, superLaser: 220, goldLaser: 220, scratch: 300, tongue: 450, moon: 400, rocket: 300, cuffs: 400, snowball: 300, gadget: 450 };
+const ATTACK_COOLDOWN_MS = { laser: 250, superLaser: 220, goldLaser: 220, scratch: 300, tongue: 450, moon: 400, rocket: 300, cuffs: 400, snowball: 300, gadget: 450, badge: 400 };
+// FBI AGENT CHAMELEON: the badge flies out and turns around halfway (a boomerang); the magnifying glass doubles its damage
+const BADGE_LIFE = 1.1; // seconds, out and back
+const LENS_MS = 6000;
+const LENS_WAIT_MS = 20000;
 const SCRATCH_REACH = 2.4;
 const TONGUE_REACH = 6;
 const TONGUE_MS = 260;
@@ -74,6 +78,7 @@ const ATTACK_NAMES = {
   cuffs: 'game.attack.cuffs',
   snowball: 'game.attack.snowball',
   gadget: 'game.attack.gadget',
+  badge: 'game.attack.badge',
 };
 // AGENT WHISKERS' spy gadgets: they fly a short way, land, blink, and explode
 const GADGET_FUSE = 0.5; // seconds
@@ -465,6 +470,11 @@ export class SpaceWorld {
     return this.now < (this.player.slideUntil ?? 0);
   }
 
+  // FBI AGENT CHAMELEON's magnifying glass (C): weak spots, so badges do double damage
+  get magnifying() {
+    return this.now < (this.player.lensUntil ?? 0);
+  }
+
   // A magic strawberry's rainbow magic: super fast, nothing hurts you, touching bad guys pops them
   get rainbow() {
     return this.magic.active(this.now);
@@ -728,6 +738,16 @@ export class SpaceWorld {
     }
     if (p.slideUntil) this.updateSlide();
 
+    if (this.character.magnifier && this.pressed('KeyC') && !this.magnifying && this.now >= (p.lensReadyAt ?? 0)) {
+      p.lensUntil = this.now + LENS_MS;
+      audio.play('lens');
+      this.hud.message?.('🔍', t('game.lens'), 1200);
+    }
+    if (p.lensUntil && !this.magnifying) {
+      p.lensUntil = 0;
+      p.lensReadyAt = this.now + LENS_WAIT_MS;
+    }
+
     if (this.hasMecha && this.pressed('KeyR') && !this.mecha && !p.mechaUsed) {
       p.mechaUsed = true; // once per level
       p.mechaUntil = this.now + MECHA_MS;
@@ -767,6 +787,7 @@ export class SpaceWorld {
     if (this.hasShield) parts.push(status('V', t('game.shield'), p.shieldUntil, p.shieldReadyAt));
     if (this.character.shadow) parts.push(status('C', t('game.shadow'), p.shadowUntil, p.shadowReadyAt));
     if (this.character.slide) parts.push(status('C', t('game.slide'), p.slideUntil ?? 0, p.slideReadyAt ?? 0));
+    if (this.character.magnifier) parts.push(status('C', t('game.lens'), p.lensUntil ?? 0, p.lensReadyAt ?? 0));
     if (this.hasFly) parts.push(status('F', t('game.fly'), p.flyUntil, p.flyReadyAt));
     if (this.hasFreeze) parts.push(status('Z', t('game.freeze'), this.freezeUntil ?? 0, this.freezeReadyAt ?? 0));
     if (this.hasMecha) {
@@ -839,6 +860,10 @@ export class SpaceWorld {
       // AGENT WHISKERS: a spy gadget that lands a little way ahead and explodes (landGadget)
       audio.play('gadget');
       this.addShot({ mesh: models.makeGadget(), planet: p.planet, start, dir: p.forward, speed: LASER_SPEED * 0.4, life: 0.35, damage: 2, fromPlayer: true, gadget: true });
+    } else if (kind === 'badge') {
+      // FBI AGENT CHAMELEON: a spinning badge that comes back like a boomerang
+      audio.play('badge');
+      this.addShot({ mesh: models.makeBadge(), planet: p.planet, start, dir: p.forward, speed: LASER_SPEED * 0.55, life: BADGE_LIFE, damage: this.magnifying ? 2 : 1, fromPlayer: true, boomerang: true });
     } else if (kind === 'moon') {
       // Bloodmoon Cat: a red moon that flies to the nearest bad guy by itself
       audio.play('moon');
@@ -1030,12 +1055,12 @@ export class SpaceWorld {
   // mega: a MEGA BEAM laser (its damage to Grape Boss counts toward the beam's limit)
   // cuffs: COPYBARA's handcuffs (they spin, and a bad guy they beat goes to jail)
   // gadget: AGENT WHISKERS' spy gadget (it lands and explodes when its life runs out or it bumps into something)
-  addShot({ mesh, planet, start, dir, speed, life, damage = 1, fromPlayer, homing = false, mega = false, cuffs = false, gadget = false }) {
+  addShot({ mesh, planet, start, dir, speed, life, damage = 1, fromPlayer, homing = false, mega = false, cuffs = false, gadget = false, boomerang = false }) {
     const offset = start.clone().sub(planet.center);
     const up = offset.clone().normalize();
     const heading = dir.clone().addScaledVector(up, -dir.dot(up)).normalize();
     this.scene.add(mesh);
-    this.shots.push({ mesh, planet, offset, heading, speed, life, damage, fromPlayer, homing, mega, cuffs, gadget });
+    this.shots.push({ mesh, planet, offset, heading, speed, life, damage, fromPlayer, homing, mega, cuffs, gadget, boomerang, turnAt: life / 2 });
   }
 
   scratch() {
@@ -1129,6 +1154,14 @@ export class SpaceWorld {
       shot.mesh.position.copy(shot.planet.center).add(shot.offset);
       shot.mesh.lookAt(shot.mesh.position.clone().add(shot.heading));
       if (shot.cuffs) shot.mesh.rotateY(this.now / 60);
+      if (shot.boomerang) {
+        shot.mesh.rotateZ(this.now / 50); // (spinning)
+        // Halfway: turn around and fly back the same way
+        if (!shot.returning && shot.life < shot.turnAt) {
+          shot.returning = true;
+          shot.heading.negate();
+        }
+      }
 
       if (shot.fromPlayer && this.discoCrack && this.discoSpot().distanceTo(shot.mesh.position) < 1.2) {
         shot.life = 0;

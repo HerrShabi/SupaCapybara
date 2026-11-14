@@ -103,6 +103,7 @@ const HERO_LOOKS = {
   copybara: { animal: 'capybara', suit: 0x1a3a8a, noCape: true },
   'captain-waddle': { animal: 'penguin', cape: 0xff8f00 },
   'agent-whiskers': { animal: 'cat', suit: 0x1c1c22, fur: 0xb0bec5, noCape: true, agent: true },
+  'fbi-chameleon': { animal: 'chameleon', suit: 0x1e5bb8, noCape: true },
 };
 const POSES = { idle: [0, false], run1: [3, true], run2: [-3, true], jump: [2, true] };
 

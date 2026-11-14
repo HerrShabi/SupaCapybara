@@ -352,6 +352,17 @@ class GameAudio {
       case 'gadgetBeep':
         this.tone({ wave: 'square', from: 1500, to: 1500, length: 0.05, volume: 0.06 });
         break;
+      case 'badge': // FBI AGENT CHAMELEON's boomerang badge: a whooshing spin
+        this.tone({ wave: 'triangle', from: 500, to: 1100, length: 0.18, volume: 0.1 });
+        this.noise({ delay: 0.03, length: 0.2, volume: 0.15, filter: 'bandpass', frequency: 2400 });
+        break;
+      case 'lens': // the magnifying glass: a twinkly "aha!"
+        this.notes(['E6', 'G6', 'B6', 'E7'], { wave: 'sine', gap: 0.06, length: 0.2, volume: 0.1 });
+        break;
+      case 'knock': // knocking on the FBI van
+        this.tone({ wave: 'square', from: 180, to: 120, length: 0.06, volume: 0.2 });
+        this.tone({ wave: 'square', from: 180, to: 120, delay: 0.16, length: 0.06, volume: 0.2 });
+        break;
       case 'gadgetBoom':
         this.noise({ length: 0.45, volume: 0.45, frequency: 1200 });
         this.tone({ wave: 'sine', from: 160, to: 40, length: 0.4, volume: 0.3 });

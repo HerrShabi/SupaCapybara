@@ -173,6 +173,10 @@ export class MenuScene extends Phaser.Scene {
       // AGENT WHISKERS isn't bought either: she's hiding in a box on a secret planet in World 2
       const spaceHint = this.add.text(centerX, bottomY, t('menu.inSpace'), { fontFamily: FONT, fontSize: '11px', color: '#f48fb1' }).setOrigin(0.5);
       spaceHint.setScale(Math.min(1, (this.cardWidth - 12) / spaceHint.width));
+    } else if (!owned && character.van) {
+      // FBI AGENT CHAMELEON isn't bought: he's in his secret van on a roof in World 1
+      const vanHint = this.add.text(centerX, bottomY, t('menu.inVan'), { fontFamily: FONT, fontSize: '11px', color: '#90caf9' }).setOrigin(0.5);
+      vanHint.setScale(Math.min(1, (this.cardWidth - 12) / vanHint.width));
     } else if (!owned && this.save.keys.includes(character.unlockKey)) {
       this.add.text(centerX, bottomY, t('menu.soon'), { fontFamily: FONT, fontSize: '11px', color: '#aaaaaa' }).setOrigin(0.5);
     } else if (!owned) {

@@ -24,6 +24,7 @@ const ATTACK_COOLDOWN_MS = {
   cuffs: 400,
   snowball: 300,
   gadget: 450,
+  badge: 400,
 };
 const LASER_SPEED = 900;
 const LASER_RANGE_MS = 700;
@@ -73,6 +74,14 @@ const GADGET_FUSE_MS = 500;
 const GADGET_BLAST = 70; // half the size of the blast square
 const GADGET_DAMAGE = 2;
 
+// FBI AGENT CHAMELEON: the badge flies out and comes back (it can hit on the way out AND back).
+// The MAGNIFYING GLASS (C) shows hidden bolts and the bad guys' weak spots: badges do double damage.
+const BADGE_REACH = 260;
+const BADGE_MS = 800; // out and back
+const BADGE_HIT_EVERY_MS = 280; // (so one badge can't hit the same boss every frame)
+const LENS_MS = 6000;
+const LENS_WAIT_MS = 20000;
+
 const FREEZE_MS = 5000;
 const FREEZE_WAIT_MS = 30000;
 
@@ -120,6 +129,10 @@ export class Player {
     this.slideUntil = 0;
     this.slideReadyAt = 0;
     this.nextSlideHitAt = 0;
+    this.badges = []; // FBI AGENT CHAMELEON's boomerang badges in the air
+    this.lensUntil = 0;
+    this.lensReadyAt = 0;
+    this.lensGraphics = null;
 
     this.lasers = scene.physics.add.group({ allowGravity: false });
     this.megaBeam = megaBeam ? new MegaBeam(this) : null;
@@ -185,6 +198,10 @@ export class Player {
     return this.scene.time.now < this.slideUntil;
   }
 
+  get magnifying() {
+    return this.scene.time.now < this.lensUntil;
+  }
+
   get rainbow() {
     return this.magic.active(this.scene.time.now);
   }
@@ -234,6 +251,7 @@ export class Player {
     if (this.character.invisibility) parts.push(status('C', t('game.invisible'), this.invisibleUntil, this.invisibleReadyAt));
     if (this.character.shadow) parts.push(status('C', t('game.shadow'), this.shadowUntil, this.shadowReadyAt));
     if (this.character.slide) parts.push(status('C', t('game.slide'), this.slideUntil, this.slideReadyAt));
+    if (this.character.magnifier) parts.push(status('C', t('game.lens'), this.lensUntil, this.lensReadyAt));
     if (this.hasShield) parts.push(status('V', t('game.shield'), this.shieldUntil, this.shieldReadyAt));
     if (this.hasFly) parts.push(status('F', t('game.fly'), this.flyUntil, this.flyReadyAt));
     if (this.hasFreeze) parts.push(status('Z', t('game.freeze'), this.freezeUntil, this.freezeReadyAt));
@@ -350,6 +368,9 @@ export class Player {
     if (this.shadowUntil && !this.shadow) this.endShadow();
     if (this.character.slide && special) this.startSlide();
     if (this.slideUntil) this.updateSlide();
+    if (this.character.magnifier && special) this.startLens();
+    this.updateLens();
+    this.updateBadges();
     if (c.justPressed('shield') && this.hasShield) this.raiseShield();
     if (this.shieldUntil && !this.shielded) this.lowerShield();
     if (this.shielded) this.shield.setPosition(...this.shieldPosition());
@@ -399,6 +420,7 @@ export class Player {
     if (kind === 'cuffs') this.throwCuffs();
     if (kind === 'snowball') this.throwSnowball();
     if (kind === 'gadget') this.throwGadget();
+    if (kind === 'badge') this.throwBadge();
     if (kind === 'laser') this.fireLaser('laser', 1);
     if (kind === 'superLaser') this.fireLaser('super-laser', 2);
     if (kind === 'goldLaser') this.fireLaser('gold-laser', 2);
@@ -526,6 +548,69 @@ export class Player {
     this.scene.cameras.main.shake(120, 0.006);
     const area = new Phaser.Geom.Rectangle(x - GADGET_BLAST, y - GADGET_BLAST - 20, GADGET_BLAST * 2, GADGET_BLAST * 2);
     if (this.scene.hitArea(area, GADGET_DAMAGE, this)) this.landedHit();
+  }
+
+  // ---------- FBI AGENT CHAMELEON ----------
+
+  // X: a spinning FBI badge flies out in front of him and comes back to his hand, like a boomerang.
+  throwBadge() {
+    audio.play('badge');
+    const badge = this.scene.add.image(this.x, this.y - 8, 'fbi-badge').setDepth(3).setScale(1.3);
+    this.badges.push({ sprite: badge, dir: this.facing, startedAt: this.scene.time.now, fromY: this.y - 8, nextHitAt: 0 });
+  }
+
+  updateBadges() {
+    if (!this.badges.length) return;
+    const now = this.scene.time.now;
+    this.badges = this.badges.filter((b) => {
+      const k = (now - b.startedAt) / BADGE_MS;
+      if (k >= 1 || !b.sprite.active) {
+        b.sprite.destroy();
+        return false;
+      }
+      // Out and back in a smooth curve, coming home to wherever the hero is now
+      const x = this.x + b.dir * BADGE_REACH * Math.sin(k * Math.PI);
+      const y = b.fromY + (this.y - 8 - b.fromY) * k - 18 * Math.sin(k * Math.PI);
+      b.sprite.setPosition(x, y).setAngle(now * 1.4);
+      if (now >= b.nextHitAt) {
+        const area = new Phaser.Geom.Rectangle(x - 22, y - 22, 44, 44);
+        // The magnifying glass shows weak spots: double damage
+        if (this.scene.hitArea(area, this.magnifying ? 2 : 1, this)) {
+          b.nextHitAt = now + BADGE_HIT_EVERY_MS;
+          this.landedHit();
+        }
+      }
+      return true;
+    });
+  }
+
+  // C: the magnifying glass. Hidden bolts pop out around you (if the level has any to hide: scene.revealSecrets),
+  // and every bad guy shows a red target on its weak spot while it lasts.
+  startLens() {
+    const now = this.scene.time.now;
+    if (this.magnifying || now < this.lensReadyAt) return;
+    this.lensUntil = now + LENS_MS;
+    audio.play('lens');
+    this.lensGraphics ??= this.scene.add.group();
+    this.scene.revealSecrets?.(this);
+  }
+
+  updateLens() {
+    if (!this.lensUntil) return;
+    if (!this.magnifying) {
+      this.lensUntil = 0;
+      this.lensReadyAt = this.scene.time.now + LENS_WAIT_MS;
+      this.lensGraphics?.clear(true, true);
+      return;
+    }
+    // The glass in his hand, and a target on each bad guy (and the boss) nearby
+    const group = this.lensGraphics;
+    group.clear(true, true);
+    group.add(this.scene.add.image(this.x + this.facing * 34, this.y - 4, 'magnifier').setDepth(3.5).setFlipX(this.facing < 0));
+    const view = this.scene.cameras.main.worldView;
+    const targets = [...(this.scene.badGuys?.getChildren() ?? []), this.scene.boss].filter((b) => b?.active && b.visible && view.contains(b.x, b.y));
+    const pulse = 1 + 0.12 * Math.sin(this.scene.time.now / 120);
+    for (const target of targets) group.add(this.scene.add.image(target.x, target.y, 'weak-spot').setDepth(4).setScale(pulse));
   }
 
   // AGENT WHISKERS' double jump: her grappling hook zips up, catches, and the rope fades away.
@@ -763,6 +848,9 @@ export class Player {
     this.slideUntil = 0;
     this.tongue = null;
     this.tongueGraphics.clear();
+    for (const b of this.badges) b.sprite.destroy();
+    this.badges = [];
+    if (this.lensUntil) this.lensUntil = this.scene.time.now; // (updateLens tidies up the glass and targets)
     this.character = character;
     this.id = character.id;
     this.look = look;

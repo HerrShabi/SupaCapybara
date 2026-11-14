@@ -75,6 +75,7 @@ export function showTouchControls(container, buttons, labels) {
     buttons.invisible && ['KeyC', '👻'],
     buttons.shadow && ['KeyC', '🌑'],
     buttons.slide && ['KeyC', '🛷'],
+    buttons.lens && ['KeyC', '🔍'],
     buttons.shield && ['KeyV', '🛡️'],
     buttons.fly && ['KeyF', '🕊️'],
     buttons.mecha && ['KeyR', '🤖'],
@@ -220,7 +221,7 @@ function makeRoot(container) {
 
 // Which buttons a hero needs. `threeD` adds up/down (World 2 walks forward and back).
 export function touchButtonsFor(character, powerUps, threeD) {
-  const attack = { laser: '👀', superLaser: '👀', scratch: '🐾', tongue: '👅', moon: '🌕', goldLaser: '✨', cuffs: '🔗', snowball: '❄️', gadget: '💣' }[character.attack];
+  const attack = { laser: '👀', superLaser: '👀', scratch: '🐾', tongue: '👅', moon: '🌕', goldLaser: '✨', cuffs: '🔗', snowball: '❄️', gadget: '💣', badge: '🪃' }[character.attack];
   const fly = powerUps.includes('fly');
   return {
     left: true,
@@ -231,6 +232,7 @@ export function touchButtonsFor(character, powerUps, threeD) {
     invisible: character.invisibility,
     shadow: character.shadow,
     slide: character.slide, // CAPTAIN WADDLE's WADDLE SLIDE
+    lens: character.magnifier, // FBI AGENT CHAMELEON's magnifying glass
     mecha: powerUps.includes('mecha-capybara'),
     swap: Boolean(character.attacks),
     freeze: powerUps.includes('freeze'),

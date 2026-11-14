@@ -1,13 +1,15 @@
 // Every hero you can pick, and every power-up in the shop. Ideas are Ethan's (see GAME_DESIGN.md).
 // Words the player sees (hero names, power descriptions, power-up names) are in i18n.js.
 //
-// attack: what X does. 'laser' | 'superLaser' | 'scratch' | 'tongue' | 'moon' | 'goldLaser' | 'cuffs' | 'snowball' | 'gadget'
+// attack: what X does. 'laser' | 'superLaser' | 'scratch' | 'tongue' | 'moon' | 'goldLaser' | 'cuffs' | 'snowball' | 'gadget' | 'badge'
 // secret: the card only shows up once unlockKey is yours (and then you own the hero)
 // unlockKey: the boss key you need before the hero can be bought.
 // jailed: not bought; you free him from the police station's jail cell in World 1 (World1Scene, a boss key opens it).
 // hidden: not bought; she hides in a cardboard box on a secret planet in World 2 (SpaceWorld.createAgentBox).
 // grapple: the double jump throws a grappling hook (Player.grappleFlick).
 // slide: C does the WADDLE SLIDE (a belly slide that knocks over bad guys, see Player.startSlide).
+// van: not bought; he's in a secret FBI van on a roof in World 1 (World1Scene.createVan, X to knock).
+// magnifier: C is the MAGNIFYING GLASS (Player.startLens): hidden bolts + weak spots (double damage).
 
 export const CHARACTERS = [
   {
@@ -65,6 +67,16 @@ export const CHARACTERS = [
     doubleJump: true,
     grapple: true,
     hidden: true,
+  },
+  {
+    // FBI AGENT CHAMELEON (Ethan's design, 2026-11-14): a green chameleon in a black suit, sunglasses, a blue FBI jacket
+    // and a yellow FBI badge. X throws FBI BADGES that fly out and come back like boomerangs (they can hit on the way
+    // out AND back). C is the MAGNIFYING GLASS: hidden bolts appear around you, and bad guys show their weak spots
+    // (badges do double damage) for a few seconds. He isn't bought: find his secret FBI van in the city (World 1).
+    id: 'fbi-chameleon',
+    attack: 'badge',
+    magnifier: true,
+    van: true,
   },
   {
     // Secret: unlocked (for free) by beating the Lava Dragon. Has lots of powers at once.

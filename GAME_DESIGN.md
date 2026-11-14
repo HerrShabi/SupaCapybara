@@ -486,6 +486,13 @@ Ethan's friend suggested "FBI Capybara" and "Secret Agent Cat". We make the cat 
 - **How you get her:** she is **hiding on a planet in World 2** 🪐 (space). The clue: a suspicious **cardboard box** 📦 that moves a little, with her **sunglasses** sticking out. Touch or scratch it and she jumps out.
 - She says: **"Shh! How did you find me? Don't tell anyone!"** 🤫
 
+## FBI Agent Chameleon (new hero, designed 2026-11-14, in the game)
+
+- A green **chameleon** in a **black suit**, **sunglasses** 🕶️, a **blue FBI jacket** and a **yellow FBI badge**. No cape.
+- **X attack:** throws **FBI badges** that fly out and come back like **boomerangs** 🪃 (they can hit on the way out and back).
+- **C: the magnifying glass** 🔍: for a few seconds, **hidden bolts** appear and bad guys show their **weak spots** 🎯 (badges do double damage). (In the 3D worlds it only does the weak spots.)
+- **How you get him:** find his **secret FBI van** 🚐 (a black van with a satellite dish) on a roof in **World 1, the city**. Knock on it (X) and he hops out to join your team.
+
 ## Future updates (Ethan wants these later; don't forget!)
 
 - More worlds: underwater 🌊, a spooky castle 🏰, candy land 🍭.

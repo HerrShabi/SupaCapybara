@@ -199,6 +199,38 @@ export function createPowerTextures(scene) {
     g.fillCircle(48, 48, 12);
   });
 
+  // FBI AGENT CHAMELEON's boomerang badge: a gold shield with a blue middle
+  make(scene, 'fbi-badge', 26, 28, (g) => {
+    g.fillStyle(0xb8860b);
+    g.fillPoints([{ x: 13, y: 0 }, { x: 26, y: 5 }, { x: 24, y: 18 }, { x: 13, y: 28 }, { x: 2, y: 18 }, { x: 0, y: 5 }], true);
+    g.fillStyle(0xffd23f);
+    g.fillPoints([{ x: 13, y: 3 }, { x: 23, y: 7 }, { x: 21, y: 17 }, { x: 13, y: 25 }, { x: 5, y: 17 }, { x: 3, y: 7 }], true);
+    g.fillStyle(0x1e5bb8);
+    g.fillCircle(13, 13, 5);
+    g.fillStyle(0xffffff);
+    g.fillCircle(11, 11, 1.5);
+  });
+  // The magnifying glass's target marker on a bad guy's weak spot
+  make(scene, 'weak-spot', 40, 40, (g) => {
+    g.lineStyle(3, 0xff1744);
+    g.strokeCircle(20, 20, 15);
+    g.strokeCircle(20, 20, 7);
+    g.lineBetween(20, 0, 20, 9);
+    g.lineBetween(20, 31, 20, 40);
+    g.lineBetween(0, 20, 9, 20);
+    g.lineBetween(31, 20, 40, 20);
+  });
+  make(scene, 'magnifier', 40, 40, (g) => {
+    g.lineStyle(6, 0x6d4c41);
+    g.lineBetween(27, 27, 38, 38); // handle
+    g.fillStyle(0xbfe3ff, 0.45);
+    g.fillCircle(17, 17, 13);
+    g.lineStyle(4, 0xb8860b);
+    g.strokeCircle(17, 17, 13);
+    g.fillStyle(0xffffff, 0.8);
+    g.fillCircle(12, 12, 3);
+  });
+
   // CAPTAIN WADDLE's snowball (and the snow that flies up when it splats or he slides)
   make(scene, 'snowball', 24, 24, (g) => {
     g.fillStyle(0xb3e5fc, 0.5);

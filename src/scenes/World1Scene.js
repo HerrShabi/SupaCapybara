@@ -69,6 +69,9 @@ const STATION = { x: 140, width: 270, top: 250, ground: 440 };
 const CELL = { x: 285, width: 115, top: 330 }; // the cell, in the right part of the station
 const LOCK = { x: 292, y: 392 }; // the padlock on the cell's bars
 const STATION_DOOR = 190;
+// FBI AGENT CHAMELEON's secret van: a plain black van with a little satellite dish, parked on the third roof.
+// Walk up and press X (or ↑) to knock: he hops out and joins your team (save.owned).
+const VAN = { x: 1715, ground: 430, width: 150, height: 74 };
 
 // Lightning bolts to collect: [x, y, howMany]. Each row is spaced 40px apart.
 const BOLTS = [
@@ -89,7 +92,7 @@ const SUNGLASSES = [
   [3100, 320],
 ];
 // Apples stand still and shoot both ways: [x]
-const APPLES = [1600, 2650, 3800];
+const APPLES = [1345, 2650, 3800]; // (the second roof's apple stands left of the water tower, away from the FBI van)
 // Robots walk back and forth and shoot at you: [fromX, toX]
 const ROBOTS = [
   [880, 1140],
@@ -167,6 +170,7 @@ export class World1Scene extends SideScrollerScene {
     this.createSky();
     this.createCity();
     this.createPoliceStation();
+    this.createVan();
   }
 
   updateScenery() {
@@ -175,7 +179,99 @@ export class World1Scene extends SideScrollerScene {
       this.updateSky();
       this.updatePortal();
       this.updateJail();
+      this.updateVan();
     }
+  }
+
+  // ---------- FBI AGENT CHAMELEON's secret van ----------
+
+  createVan() {
+    const { x, ground, width, height } = VAN;
+    const left = x - width / 2;
+    const top = ground - height;
+    const g = this.add.graphics().setDepth(1.5);
+    g.fillStyle(0x16161c).fillRoundedRect(left, top, width, height - 12, 10);
+    g.fillStyle(0x0b0b10).fillRect(left + width - 34, top + 8, 26, 22); // windshield (tinted!)
+    g.fillStyle(0x263238).fillRect(left + 12, top + 10, 34, 18); // back window
+    g.fillStyle(0x37474f).fillRect(left, ground - 24, width, 6); // stripe
+    g.fillStyle(0xffeb3b).fillRect(left + width - 6, ground - 34, 6, 8); // headlight
+    g.fillStyle(0x111111).fillCircle(left + 30, ground - 10, 12).fillCircle(left + width - 30, ground - 10, 12);
+    g.fillStyle(0x9e9e9e).fillCircle(left + 30, ground - 10, 5).fillCircle(left + width - 30, ground - 10, 5);
+    // The secret satellite dish on the roof
+    g.fillStyle(0x9e9e9e).fillRect(x - 6, top - 10, 4, 12);
+    g.fillStyle(0xcfd8dc).fillEllipse(x - 4, top - 14, 26, 10);
+    // The sliding side door
+    this.vanDoor = this.add.rectangle(x - 8, top + 30, 48, height - 22, 0x212129).setStrokeStyle(2, 0x0b0b10).setDepth(1.6);
+
+    if (this.save.owned.includes('fbi-chameleon')) return;
+    this.vanPrompt = this.add
+      .text(x, top - 40, t('van.knock'), { fontFamily: 'Arial Black, Arial', fontSize: '16px', color: '#90caf9' })
+      .setStroke('#000000', 5)
+      .setOrigin(0.5)
+      .setDepth(6)
+      .setVisible(false);
+    this.tweens.add({ targets: this.vanPrompt, y: this.vanPrompt.y - 6, duration: 400, yoyo: true, repeat: -1 });
+    this.vanReadyAt = 0;
+  }
+
+  updateVan() {
+    if (!this.vanPrompt || this.jail || this.bossRush) return;
+    const near = this.players.find((p) => Math.abs(p.x - VAN.x) < VAN.width / 2 + 30 && Math.abs(p.sprite.body.bottom - VAN.ground) < 12);
+    this.vanPrompt.setVisible(Boolean(near));
+    if (!near || this.time.now < this.vanReadyAt) return;
+    if (near.controls.justPressed('attack') || near.controls.justPressed('up')) this.knockVan(near).catch((error) => console.error(error.stack));
+  }
+
+  // Knock knock! (Uses the jail's little cutscene helpers: this.jail freezes the level and say() waits for a button.)
+  async knockVan(player) {
+    this.jail = { waiting: null };
+    this.vanPrompt.setVisible(false);
+    player.sprite.setVelocity(0, 0);
+    player.sprite.anims.stop();
+    player.sprite.setTexture(`${player.look}-idle`);
+    player.lasers.clear(true, true);
+    player.nextAttackAt = this.time.now + 400; // (the X that knocks doesn't shoot too)
+    this.freezeWorld();
+    const top = VAN.ground - VAN.height;
+
+    audio.play('knock');
+    this.tweens.add({ targets: this.vanDoor, x: this.vanDoor.x + 3, duration: 60, yoyo: true, repeat: 3 });
+    await this.wait(700);
+    await this.say(t('van.who'), { x: VAN.x, y: top + 10 });
+
+    // The door slides open and he hops out
+    audio.play('doorOpen');
+    await new Promise((resolve) => this.tweens.add({ targets: this.vanDoor, x: this.vanDoor.x + 46, duration: 400, ease: 'Quad.easeOut', onComplete: resolve }));
+    const look = this.lookOf('fbi-chameleon');
+    const agent = this.add.sprite(VAN.x - 8, VAN.ground - 36, `${look}-idle`).setScale(1.5).setDepth(1.55).setFlipX(player.x < VAN.x);
+    await new Promise((resolve) => this.tweens.add({ targets: agent, alpha: { from: 0, to: 1 }, duration: 250, onComplete: resolve }));
+    agent.setDepth(2.5).setTexture(`${look}-jump`);
+    audio.play('doubleJump');
+    const landX = VAN.x + (player.x < VAN.x ? -1 : 1) * 70;
+    await new Promise((resolve) => this.tweens.add({ targets: agent, x: landX, y: { from: agent.y - 50, to: agent.y }, duration: 380, ease: 'Quad.easeIn', onComplete: resolve }));
+    agent.setTexture(`${look}-idle`);
+    await this.say(`${t('name.fbi-chameleon').toUpperCase()}: ${t('van.found')}`, agent);
+
+    // He's on your team now
+    if (!this.save.owned.includes('fbi-chameleon')) this.save.owned.push('fbi-chameleon');
+    writeSave(this.save);
+    audio.play('win');
+    this.flashMessage(t('van.joined'), '#90caf9');
+    // Back into the van he goes (until you pick him in the menu)
+    if (!agent.active) return; // (the level was left during the scene)
+    agent.play(`${look}-run`).setFlipX(landX > VAN.x);
+    this.tweens.add({
+      targets: agent,
+      x: VAN.x - 8,
+      duration: 500,
+      onComplete: () => {
+        agent.destroy();
+        this.tweens.add({ targets: this.vanDoor, x: this.vanDoor.x - 46, duration: 400 });
+      },
+    });
+    this.vanPrompt.destroy();
+    this.vanPrompt = null;
+    this.closeJail();
   }
 
   // ---------- The police station and CAPTAIN WADDLE's jail cell ----------
