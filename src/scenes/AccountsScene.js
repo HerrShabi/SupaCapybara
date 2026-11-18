@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { niceName } from '../names.js';
 import { loadSave, loadAccounts, switchAccount, addAccount, changeAccount, deleteAccount, MAX_ACCOUNTS } from '../save.js';
 import { t, setLanguage } from '../i18n.js';
 import { audio } from '../audio.js';
@@ -142,6 +143,7 @@ export class AccountsScene extends Phaser.Scene {
       <form style="background:#37474f;border:5px solid #ffd23f;border-radius:16px;padding:24px;text-align:center;color:white">
         <div style="font-size:22px;margin-bottom:14px">${t('accounts.typeName')}</div>
         <input maxlength="${NAME_LENGTH}" style="font-size:26px;padding:8px;width:260px;border-radius:8px;border:none;text-align:center;font-family:inherit">
+        <div data-oops style="display:none;margin-top:10px;font-size:16px;color:#ffd23f">${t('accounts.niceName')}</div>
         <div style="margin-top:16px;display:flex;gap:12px;justify-content:center">
           <button type="button" data-cancel style="font-size:18px;padding:10px 18px;border-radius:10px;border:3px solid white;background:#263238;color:white;font-family:inherit">✖</button>
           <button type="submit" style="font-size:18px;padding:10px 26px;border-radius:10px;border:3px solid white;background:#2e7d32;color:white;font-family:inherit">${t('accounts.ok')}</button>
@@ -159,6 +161,13 @@ export class AccountsScene extends Phaser.Scene {
     box.querySelector('form').addEventListener('submit', (event) => {
       event.preventDefault();
       const text = input.value.trim().slice(0, NAME_LENGTH);
+      // no swear words in names: keep the box open and ask for a nicer one
+      if (text && !niceName(text)) {
+        audio.play('error');
+        box.querySelector('[data-oops]').style.display = 'block';
+        input.select();
+        return;
+      }
       close();
       audio.play('click');
       if (text) done(text);

@@ -520,3 +520,4 @@ Ethan's friend suggested "FBI Capybara" and "Secret Agent Cat". We make the cat 
 
 - Ethan: "make drawing mode look like drawing". In drawing mode (and the Drawings World), SuperCapybara is drawn like Ethan's own blue pen drawing (`concept-art/drawn-supa-capybara.jpg`): a tall bean body leaning forward, a long cape behind, a small head with one eye and a smile, a bump on his front, the lightning bolt, and a line near the bottom. White paper, blue ink.
 - The first player's default name is "Player 1" (not "Ethan").
+- Player names can't be swear words (Ethan, 2026-11-18), in English or German, even with tricks like FUUUCK or 5h1t. The name box says "Oops! Please pick a nice name 😊". Normal names that just contain those letters (Cassie, Glass, Bastian) are fine.
