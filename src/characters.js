@@ -10,6 +10,9 @@
 // slide: C does the WADDLE SLIDE (a belly slide that knocks over bad guys, see Player.startSlide).
 // van: not bought; he's in a secret FBI van on a roof in World 1 (World1Scene.createVan, X to knock).
 // magnifier: C is the MAGNIFYING GLASS (Player.startLens): hidden bolts + weak spots (double damage).
+// nightEyes: C is NIGHT EYES (Player.startNightEyes): hidden bolts + ghost platforms you can stand on.
+// lavaHidden: not bought; he hides behind the lava waterfall in World 3 (World3Scene.createLavaFall).
+// slippery: on the ground he slides a few steps when you stop (like a penguin on ice).
 
 export const CHARACTERS = [
   {
@@ -57,6 +60,7 @@ export const CHARACTERS = [
     doubleJump: true,
     slide: true,
     jailed: true,
+    slippery: true, // (Ethan, 2026-11-18)
   },
   {
     // AGENT WHISKERS (Ethan's design, 2026-11-13): a secret agent cat in a black suit, sunglasses and a pink tie.
@@ -77,6 +81,16 @@ export const CHARACTERS = [
     attack: 'badge',
     magnifier: true,
     van: true,
+  },
+  {
+    // SUPA TIGER (Ethan's design, 2026-11-18): a yellow tiger with black stripes, a black fire suit with orange flames
+    // and a red cape. X is the STRIPE BURST: his stripes fly off in every direction like a firework (short range),
+    // then grow back. C is NIGHT EYES: his eyes glow, hidden bolts and ghost platforms appear for a few seconds.
+    // He isn't bought: he hides behind the lava waterfall in World 3.
+    id: 'supa-tiger',
+    attack: 'stripes',
+    nightEyes: true,
+    lavaHidden: true,
   },
   {
     // Secret: unlocked (for free) by beating the Lava Dragon. Has lots of powers at once.
@@ -120,11 +134,27 @@ export const DANCES = [
   { id: 'wiggle', price: 50, icon: '🤪' },
   { id: 'bunny', price: 50, icon: '🐰' },
   { id: 'flip', price: 50, icon: '🤸' },
+  // FIREWORKS (Ethan, 2026-11-18): only the cats can do it. Each cat's fireworks have their own colors and shapes,
+  // and every one goes "MEOW!" when it pops (SUPA TIGER's go "ROAR!"). See CAT_FIREWORKS.
+  { id: 'fireworks', price: 10, icon: '🎆', only: ['supa-cat', 'bloodmoon-cat', 'agent-whiskers', 'supa-tiger'] },
 ];
+
+// What each cat's fireworks look like: colors, shape ('scratch' | 'moon' | 'gadget' | 'stripe') and the pop sound.
+export const CAT_FIREWORKS = {
+  'supa-cat': { colors: [0xe53935, 0xff8a80, 0xffffff], shape: 'scratch', pop: 'meow' },
+  'bloodmoon-cat': { colors: [0xff4081, 0x8b0000, 0xf48fb1], shape: 'moon', pop: 'meow' },
+  'agent-whiskers': { colors: [0xff2d95, 0x16161c, 0xff80c0], shape: 'gadget', pop: 'meow' },
+  'supa-tiger': { colors: [0xff6d00, 0xffc107, 0xd32f2f], shape: 'stripe', pop: 'roar' },
+};
+
+// Can this hero do this dance? (Some dances are only for some heroes.)
+export function canDance(dance, heroId) {
+  return !dance.only || dance.only.includes(heroId);
+}
 
 // The dance this hero does: the one picked in the wardrobe, or a random one you own. null if you own none.
 export function pickDance(save, heroId) {
-  const owned = save.dances ?? [];
+  const owned = (save.dances ?? []).filter((id) => canDance(DANCES.find((d) => d.id === id) ?? {}, heroId));
   const chosen = save.dancing?.[heroId];
   if (chosen && owned.includes(chosen)) return chosen;
   return owned.length ? owned[Math.floor(Math.random() * owned.length)] : null;

@@ -6,6 +6,7 @@ import { drawRock, drawLedge, drawVolcano, createVolcanoTextures, LAVA, LAVA_BRI
 import { createRocketTextures } from '../art/city.js';
 import { writeSave } from '../save.js';
 import { afterWorld } from '../trips/worlds.js';
+import { drawComicBubble } from '../comicBubble.js';
 
 // World 3: the volcano. Jump across rocks over lava while rocks fall from the sky.
 // The last screen is the Lava Dragon's lair: it breathes fire, drops lava rocks, and makes the lava rise.
@@ -14,6 +15,8 @@ const ARENA_START = 4040;
 const LEVEL_WIDTH = ARENA_START + VIEW_WIDTH;
 const FLOOR = 440; // the lair's floor
 const LAVA_TOP = 490; // the lava at the bottom of every pit
+// SUPA TIGER hides behind this lava waterfall (it pours down onto the rock at 1260-1680). Walk into it to find him!
+const LAVA_FALL = { x: 1590, width: 56, ground: 440 };
 
 // Rock ground: [x, width, top]. The gaps are lava!
 const GROUND = [
@@ -112,6 +115,7 @@ export class World3Scene extends SideScrollerScene {
     createRocketTextures(this);
     super.create(data);
     this.createFallingRocks();
+    this.createLavaFall();
     if (!this.bossRush && !this.team) this.startCrash();
   }
 
@@ -199,6 +203,65 @@ export class World3Scene extends SideScrollerScene {
 
   updateScenery() {
     this.lairLavaTop.y = this.lairLava.y;
+    this.updateLavaFall();
+  }
+
+  // ---------- SUPA TIGER's hiding spot: a lava waterfall (it doesn't hurt: it's a secret door!) ----------
+
+  createLavaFall() {
+    const { x, width, ground } = LAVA_FALL;
+    const fall = this.add.rectangle(x, 0, width, ground, LAVA, 0.9).setOrigin(0.5, 0).setDepth(2.6);
+    // Bright streaks pouring down, and a splash at the bottom
+    for (let i = 0; i < 4; i++) {
+      const streak = this.add.rectangle(x - width / 2 + 8 + i * 13, -60, 5, 70, LAVA_BRIGHT, 0.9).setOrigin(0.5, 0).setDepth(2.61);
+      this.tweens.add({ targets: streak, y: ground, duration: 700 + i * 90, delay: i * 160, repeat: -1 });
+    }
+    this.tweens.add({ targets: fall, alpha: 0.75, duration: 400, yoyo: true, repeat: -1 });
+    const splash = this.add.ellipse(x, ground, width + 34, 16, LAVA_BRIGHT, 0.8).setDepth(2.62);
+    this.tweens.add({ targets: splash, scaleX: 1.15, duration: 300, yoyo: true, repeat: -1 });
+    this.tigerFound = this.save.owned.includes('supa-tiger');
+    if (this.tigerFound) return;
+    // The clue: two yellow eyes blinking behind the lava
+    this.tigerEyes = [-6, 6].map((dx) => this.add.circle(x + dx, ground - 40, 2.5, 0xfff176).setDepth(2.63));
+    this.tweens.add({ targets: this.tigerEyes, alpha: 0, duration: 120, yoyo: true, repeat: -1, repeatDelay: 1800 });
+  }
+
+  updateLavaFall() {
+    if (this.tigerFound) return;
+    const { x, width, ground } = LAVA_FALL;
+    const finder = this.players.find((p) => Math.abs(p.x - x) < width / 2 + 10 && p.y > ground - 120);
+    if (finder) this.findTiger(finder);
+  }
+
+  // Out he jumps: ROAAAR!
+  findTiger(player) {
+    this.tigerFound = true;
+    this.tigerEyes?.forEach((eye) => eye.destroy());
+    const { x, ground } = LAVA_FALL;
+    const side = player.x < x ? -1 : 1;
+    audio.play('roar');
+    this.cameras.main.shake(300, 0.006);
+    const tiger = this.add.sprite(x, ground - 36, 'supa-tiger-jump').setScale(1.5).setDepth(2.7).setFlipX(side < 0);
+    this.tweens.add({
+      targets: tiger,
+      x: x + side * 80,
+      y: { from: ground - 90, to: ground - 36 },
+      duration: 450,
+      ease: 'Quad.easeIn',
+      onComplete: () => tiger.setTexture('supa-tiger-idle').setFlipX(side > 0),
+    });
+    if (!this.save.owned.includes('supa-tiger')) this.save.owned.push('supa-tiger');
+    writeSave(this.save);
+    this.time.delayedCall(500, () => {
+      if (!tiger.active) return;
+      const view = this.cameras.main.worldView;
+      const parts = drawComicBubble(this, `${t('name.supa-tiger').toUpperCase()}: ${t('tiger.found')}`, { x: tiger.x, y: tiger.y - 6 }, view, tiger.x - view.x > 480 ? -1 : 1, '');
+      audio.play('win');
+      this.flashMessage(t('tiger.joined'), '#ffb74d');
+      this.time.delayedCall(5500, () => parts.forEach((part) => part.destroy()));
+      // Then he runs off to wait for you in the menu
+      this.time.delayedCall(5600, () => tiger.active && this.tweens.add({ targets: tiger.play('supa-tiger-run').setFlipX(side < 0), x: tiger.x + side * 500, alpha: 0, duration: 1400, onComplete: () => tiger.destroy() }));
+    });
   }
 
   // ---------- Rocks falling from the sky ----------

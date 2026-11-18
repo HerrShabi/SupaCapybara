@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { CHARACTERS, KEYS, DANCES } from '../characters.js';
+import { CHARACTERS, KEYS, DANCES, canDance } from '../characters.js';
 import { t, setLanguage, getLanguage, LANGUAGES } from '../i18n.js';
 import { DIFFICULTIES, DIFFICULTY_ORDER } from '../difficulty.js';
 import { audio } from '../audio.js';
@@ -173,6 +173,10 @@ export class MenuScene extends Phaser.Scene {
       // AGENT WHISKERS isn't bought either: she's hiding in a box on a secret planet in World 2
       const spaceHint = this.add.text(centerX, bottomY, t('menu.inSpace'), { fontFamily: FONT, fontSize: '11px', color: '#f48fb1' }).setOrigin(0.5);
       spaceHint.setScale(Math.min(1, (this.cardWidth - 12) / spaceHint.width));
+    } else if (!owned && character.lavaHidden) {
+      // SUPA TIGER isn't bought: he hides behind the lava waterfall in World 3
+      const lavaHint = this.add.text(centerX, bottomY, t('menu.inLava'), { fontFamily: FONT, fontSize: '11px', color: '#ffb74d' }).setOrigin(0.5);
+      lavaHint.setScale(Math.min(1, (this.cardWidth - 12) / lavaHint.width));
     } else if (!owned && character.van) {
       // FBI AGENT CHAMELEON isn't bought: he's in his secret van on a roof in World 1
       const vanHint = this.add.text(centerX, bottomY, t('menu.inVan'), { fontFamily: FONT, fontSize: '11px', color: '#90caf9' }).setOrigin(0.5);
@@ -453,7 +457,7 @@ export class MenuScene extends Phaser.Scene {
     label(480, 292, t('menu.dances'), 16, '#b9f6ca', 400);
     const owned = this.save.dances ?? [];
     const picked = this.save.dancing?.[character.id] ?? null;
-    const choices = [null, ...DANCES];
+    const choices = [null, ...DANCES.filter((d) => canDance(d, character.id))]; // (FIREWORKS is only for cats)
     choices.forEach((dance, i) => {
       const x = 480 + (i - (choices.length - 1) / 2) * 132;
       const has = !dance || owned.includes(dance.id);

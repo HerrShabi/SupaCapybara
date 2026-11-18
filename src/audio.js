@@ -359,6 +359,22 @@ class GameAudio {
       case 'lens': // the magnifying glass: a twinkly "aha!"
         this.notes(['E6', 'G6', 'B6', 'E7'], { wave: 'sine', gap: 0.06, length: 0.2, volume: 0.1 });
         break;
+      case 'stripes': // SUPA TIGER's STRIPE BURST: a fiery FWOOSH all around
+        this.noise({ length: 0.3, volume: 0.35, filter: 'bandpass', frequency: 700 });
+        this.tone({ wave: 'sawtooth', from: 220, to: 520, length: 0.18, volume: 0.08 });
+        break;
+      case 'nightEyes': // SUPA TIGER's NIGHT EYES: a spooky little shimmer
+        this.notes(['A4', 'E5', 'A5', 'C6'], { wave: 'triangle', gap: 0.08, length: 0.3, volume: 0.09 });
+        break;
+      case 'roar': // SUPA TIGER says hello: ROAAAR!
+        this.noise({ length: 0.9, volume: 0.4, filter: 'lowpass', frequency: 500 });
+        this.tone({ wave: 'sawtooth', from: 140, to: 70, length: 0.9, volume: 0.25 });
+        break;
+      case 'meow': // a cat firework pops: MEOW!
+        this.tone({ wave: 'sawtooth', from: 600, to: 900, length: 0.12, volume: 0.1 });
+        this.tone({ wave: 'sawtooth', delay: 0.12, from: 900, to: 450, length: 0.3, volume: 0.1 });
+        this.noise({ length: 0.15, volume: 0.25, filter: 'bandpass', frequency: 1600 });
+        break;
       case 'knock': // knocking on the FBI van
         this.tone({ wave: 'square', from: 180, to: 120, length: 0.06, volume: 0.2 });
         this.tone({ wave: 'square', from: 180, to: 120, delay: 0.16, length: 0.06, volume: 0.2 });

@@ -3,7 +3,7 @@ import { discoReward, Magic, MAGIC_SPEED, takeStrawberry, bagText, rainbowColor 
 import * as THREE from 'three';
 import { t } from '../i18n.js';
 import { audio } from '../audio.js';
-import { getCharacter, pickDance } from '../characters.js';
+import { getCharacter, pickDance, CAT_FIREWORKS } from '../characters.js';
 import { getDifficulty, BAD_GUY_REWARD, BOSS_REWARD } from '../difficulty.js';
 import { writeSave, addBaby, activePowerUps } from '../save.js';
 import { megaBeamOn } from '../megaBeam.js';
@@ -31,11 +31,14 @@ const BOUNCE_MS = 300;
 
 const LASER_SPEED = 30;
 const LASER_LIFE = 0.8; // seconds
-const ATTACK_COOLDOWN_MS = { laser: 250, superLaser: 220, goldLaser: 220, scratch: 300, tongue: 450, moon: 400, rocket: 300, cuffs: 400, snowball: 300, gadget: 450, badge: 400 };
+const ATTACK_COOLDOWN_MS = { laser: 250, superLaser: 220, goldLaser: 220, scratch: 300, tongue: 450, moon: 400, rocket: 300, cuffs: 400, snowball: 300, gadget: 450, badge: 400, stripes: 520 };
 // FBI AGENT CHAMELEON: the badge flies out and turns around halfway (a boomerang); the magnifying glass doubles its damage
 const BADGE_LIFE = 1.1; // seconds, out and back
 const LENS_MS = 6000;
 const LENS_WAIT_MS = 20000;
+// SUPA TIGER's NIGHT EYES (C): see-through ghost moons hop up away from the planet like stairs, for a few seconds
+const NIGHT_EYES_MS = 7000;
+const NIGHT_EYES_WAIT_MS = 20000;
 const SCRATCH_REACH = 2.4;
 const TONGUE_REACH = 6;
 const TONGUE_MS = 260;
@@ -81,6 +84,7 @@ const ATTACK_NAMES = {
   snowball: 'game.attack.snowball',
   gadget: 'game.attack.gadget',
   badge: 'game.attack.badge',
+  stripes: 'game.attack.stripes',
 };
 // AGENT WHISKERS' spy gadgets: they fly a short way, land, blink, and explode
 const GADGET_FUSE = 0.5; // seconds
@@ -676,7 +680,7 @@ export class SpaceWorld {
       p.vel.set(0, 0, 0);
       p.model.visible = true;
       this.mechaModel.visible = false;
-      this.danceState = { id, done, start: this.now, ms: id === 'wiggle' ? 1900 : 1700, hop: -1 };
+      this.danceState = { id, done, start: this.now, ms: id === 'wiggle' ? 1900 : id === 'fireworks' ? 2600 : 1700, hop: -1, bursts: [] };
       audio.play('dance');
     }
   }
@@ -752,6 +756,15 @@ export class SpaceWorld {
       audio.play('lens');
       this.hud.message?.('🔍', t('game.lens'), 1200);
     }
+    if (this.character.nightEyes && this.pressed('KeyC') && !this.ghostMoons && this.now >= (p.nightEyesReadyAt ?? 0)) {
+      p.nightEyesUntil = this.now + NIGHT_EYES_MS;
+      audio.play('nightEyes');
+      this.makeGhostMoons(p);
+    }
+    if (this.ghostMoons && this.now >= p.nightEyesUntil) {
+      p.nightEyesReadyAt = this.now + NIGHT_EYES_WAIT_MS;
+      this.removeGhostMoons(p);
+    }
     if (p.lensUntil && !this.magnifying) {
       p.lensUntil = 0;
       p.lensReadyAt = this.now + LENS_WAIT_MS;
@@ -797,6 +810,7 @@ export class SpaceWorld {
     if (this.character.shadow) parts.push(status('C', t('game.shadow'), p.shadowUntil, p.shadowReadyAt));
     if (this.character.slide) parts.push(status('C', t('game.slide'), p.slideUntil ?? 0, p.slideReadyAt ?? 0));
     if (this.character.magnifier) parts.push(status('C', t('game.lens'), p.lensUntil ?? 0, p.lensReadyAt ?? 0));
+    if (this.character.nightEyes) parts.push(status('C', t('game.nightEyes'), p.nightEyesUntil ?? 0, p.nightEyesReadyAt ?? 0));
     if (this.hasFly) parts.push(status('F', t('game.fly'), p.flyUntil, p.flyReadyAt));
     if (this.hasFreeze) parts.push(status('Z', t('game.freeze'), this.freezeUntil ?? 0, this.freezeReadyAt ?? 0));
     if (this.hasMecha) {
@@ -886,8 +900,8 @@ export class SpaceWorld {
         new THREE.MeshBasicMaterial({ color: { laser: 0xff2020, superLaser: 0xff4fd8, goldLaser: 0xffd54f }[kind] }),
       );
       this.addShot({ mesh, planet: p.planet, start, dir: p.forward, speed: LASER_SPEED, life: LASER_LIFE, damage: big ? 2 : 1, fromPlayer: true });
-    } else if (kind === 'scratch') {
-      audio.play('scratch');
+    } else if (kind === 'scratch' || kind === 'stripes') {
+      audio.play(kind); // (SUPA TIGER's stripe burst hits close by, like a scratch)
       this.scratch();
     } else {
       audio.play('tongue');
@@ -2078,6 +2092,10 @@ export class SpaceWorld {
       }
       p.model.position.addScaledVector(up, Math.abs(Math.sin(k * Math.PI * 3)) * 1.1);
       p.model.rotateY(hop % 2 ? 0.6 : -0.6);
+    } else if (d.id === 'fireworks') {
+      // The cats' FIREWORKS: a little hop, then three pops above the hero in this cat's colors. MEOW!
+      p.model.position.addScaledVector(up, Math.abs(Math.sin(Math.min(k * 4, 1) * Math.PI)) * 0.8);
+      this.updateFireworks(d, up, k);
     } else {
       // Backflip: go up, spin all the way around (around the middle of the body), come down
       p.model.position.addScaledVector(up, Math.sin(k * Math.PI) * 2.4);
@@ -2088,8 +2106,69 @@ export class SpaceWorld {
     if (this.aura) this.aura.position.copy(this.playerBody());
     if (k >= 1) {
       this.danceState = null;
+      for (const burst of d.bursts) for (const part of burst.parts) this.scene.remove(part.mesh);
       orient(p.model, up, p.forward);
       d.done();
+    }
+  }
+
+  // SUPA TIGER's ghost moons: little see-through planets (with their own gravity, like every planet) climbing up
+  // and away in front of him. Jump from one to the next!
+  makeGhostMoons(p) {
+    const up = this.upAt(p.planet, p.pos);
+    const material = new THREE.MeshStandardMaterial({ color: 0xb3e5fc, transparent: true, opacity: 0.45, emissive: 0x4fc3f7, emissiveIntensity: 0.6 });
+    this.ghostMoons = [1, 2, 3, 4].map((i) => {
+      const radius = 1.2;
+      const center = p.pos.clone().addScaledVector(p.forward, i * 2.8).addScaledVector(up, radius + 0.6 + i * 1.5);
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 16, 12), material);
+      mesh.position.copy(center);
+      this.scene.add(mesh);
+      const moon = { id: `ghost${i}`, ghost: true, center, radius, color: 0xb3e5fc, spawn: up.clone(), mesh };
+      this.planets.push(moon);
+      return moon;
+    });
+  }
+
+  removeGhostMoons(p) {
+    for (const moon of this.ghostMoons) this.scene.remove(moon.mesh);
+    this.planets = this.planets.filter((planet) => !planet.ghost);
+    this.ghostMoons = null;
+    if (p.planet.ghost) {
+      // Standing on one when it vanishes: fall back to the nearest real planet
+      p.onGround = false;
+      p.planet = this.nearestPlanet(p.pos).planet;
+    }
+  }
+
+  // Three fireworks pop (at 20%, 45% and 70% of the dance); their pieces fly out and fade.
+  updateFireworks(d, up, k) {
+    const look = CAT_FIREWORKS[this.character.id] ?? CAT_FIREWORKS['supa-cat'];
+    const side = new THREE.Vector3().crossVectors(up, this.player.forward).normalize();
+    [0.2, 0.45, 0.7].forEach((at, i) => {
+      if (k < at || d.bursts[i]) return;
+      audio.play(look.pop);
+      const center = this.playerBody().addScaledVector(up, 2.2 + (i === 1 ? 0.8 : 0)).addScaledVector(side, (i - 1) * 2.4);
+      const parts = [];
+      for (let n = 0; n < 12; n++) {
+        const angle = (n / 12) * Math.PI * 2;
+        const color = look.colors[n % look.colors.length];
+        const geometry = look.shape === 'moon' ? new THREE.SphereGeometry(0.16, 8, 6) : look.shape === 'gadget' ? new THREE.BoxGeometry(0.25, 0.25, 0.25) : new THREE.BoxGeometry(0.5, 0.1, 0.1);
+        const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color, transparent: true }));
+        const dir = side.clone().multiplyScalar(Math.cos(angle)).addScaledVector(up, Math.sin(angle));
+        mesh.position.copy(center);
+        mesh.lookAt(center.clone().add(dir));
+        this.scene.add(mesh);
+        parts.push({ mesh, dir });
+      }
+      d.bursts[i] = { at, center, parts };
+    });
+    for (const burst of d.bursts) {
+      if (!burst) continue;
+      const age = Math.min(1, (k - burst.at) / 0.3);
+      for (const part of burst.parts) {
+        part.mesh.position.copy(burst.center).addScaledVector(part.dir, age * 2.2).addScaledVector(up, -age * age * 0.8);
+        part.mesh.material.opacity = 1 - age;
+      }
     }
   }
 

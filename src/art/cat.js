@@ -3,7 +3,7 @@ import { drawCape, drawSuitBolt, CAPE } from './heroParts.js';
 const OUTLINE = 0x1a2a6c;
 
 // agent: AGENT WHISKERS' look: no cape, a white shirt with a pink tie instead of the bolt, and sunglasses.
-export function drawCat(g, { legOffset = 0, capeFlying = false }, { suit, suitDark, fur = 0xffffff, cape = CAPE, agent = false }) {
+export function drawCat(g, { legOffset = 0, capeFlying = false }, { suit, suitDark, fur = 0xffffff, cape = CAPE, agent = false, tiger = false }) {
   if (!agent) drawCape(g, capeFlying, cape);
 
   // Tail sticking up
@@ -26,6 +26,7 @@ export function drawCat(g, { legOffset = 0, capeFlying = false }, { suit, suitDa
   g.fillStyle(suit);
   g.fillEllipse(31, 30, 38, 20);
   if (agent) drawShirtAndTie(g);
+  else if (tiger) drawFlames(g);
   else drawSuitBolt(g, 24, 21);
 
   // Head with pointy ears
@@ -51,6 +52,7 @@ export function drawCat(g, { legOffset = 0, capeFlying = false }, { suit, suitDa
   g.lineBetween(53, 21, 63, 19);
   g.lineBetween(53, 22, 63, 23);
 
+  if (tiger) drawTigerStripes(g);
   if (agent) {
     drawSunglasses(g);
     return;
@@ -81,4 +83,26 @@ function drawSunglasses(g) {
   g.fillStyle(0xffffff, 0.8);
   g.fillRect(43, 15, 2, 1.5);
   g.fillRect(53, 15, 2, 1.5);
+}
+
+// SUPA TIGER: orange flames licking up from the bottom of his black fire suit
+function drawFlames(g) {
+  g.fillStyle(0xff6d00);
+  for (const x of [17, 25, 33, 41]) g.fillTriangle(x - 4, 38, x + 4, 38, x + 1, 25);
+  g.fillStyle(0xffc107);
+  for (const x of [17, 25, 33, 41]) g.fillTriangle(x - 2, 38, x + 2, 38, x + 1, 31);
+}
+
+// SUPA TIGER's black stripes: on his forehead, his cheeks and his tail
+function drawTigerStripes(g) {
+  g.lineStyle(2, 0x111111);
+  g.lineBetween(48, 9, 49, 13);
+  g.lineBetween(52, 9, 51, 13);
+  g.lineBetween(50, 8, 50, 12);
+  g.lineBetween(40, 18, 44, 19);
+  g.lineBetween(41, 22, 44, 21);
+  g.lineBetween(60, 18, 57, 19);
+  g.lineStyle(2.5, 0x111111);
+  g.lineBetween(9, 22, 13, 25);
+  g.lineBetween(6, 15, 10, 15);
 }

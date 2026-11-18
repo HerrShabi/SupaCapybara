@@ -102,6 +102,7 @@ const HERO_LOOKS = {
   'supa-chameleon': { animal: 'chameleon' },
   copybara: { animal: 'capybara', suit: 0x1a3a8a, noCape: true },
   'captain-waddle': { animal: 'penguin', cape: 0xff8f00 },
+  'supa-tiger': { animal: 'cat', suit: 0x1c1c22, fur: 0xffc928, cape: 0xd32f2f },
   'agent-whiskers': { animal: 'cat', suit: 0x1c1c22, fur: 0xb0bec5, noCape: true, agent: true },
   'fbi-chameleon': { animal: 'chameleon', suit: 0x1e5bb8, noCape: true },
 };
@@ -316,6 +317,12 @@ export function createDoodleHatTextures(scene) {
     pencil(g, points, 0x37474f, { strokes: false });
     pen(g, points, { closed: true, ...thin });
     pen(g, [[4, 14], [16, 14]], { color: 0xd32f2f, width: 2, wobble: 0.3 });
+  });
+  hat('ninja', 28, 14, (g) => {
+    pencil(g, rectPoints(8, 8, 18, 5), 0xd32f2f, { strokes: false });
+    pen(g, rectPoints(8, 8, 18, 5), { closed: true, ...thin });
+    pen(g, [[9, 9], [0, 3]], { color: 0xd32f2f, width: 2.5, wobble: 0.3 });
+    pen(g, [[9, 11], [0, 12]], { color: 0xd32f2f, width: 2.5, wobble: 0.3 });
   });
   hat('shades', 22, 8, (g) => {
     pen(g, [[0, 1], [22, 1]], { width: 1.6, wobble: 0.3 });

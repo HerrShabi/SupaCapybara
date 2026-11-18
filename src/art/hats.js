@@ -2,7 +2,7 @@
 // sold in the supermarket (SupermarketScene). Heroes wear them in every world.
 // Names are in i18n.js as 'hat.<id>'. Which hero wears which hat is save.wearing[heroId].
 
-export const SHOP_HATS = ['viking', 'astronaut', 'tophat'];
+export const SHOP_HATS = ['viking', 'astronaut', 'tophat', 'ninja']; // ninja: SUPA TIGER's red headband (Ethan, 2026-11-18)
 export const SHOP_HAT_PRICE = 670;
 export const HATS = ['crown', 'pirate', 'wizard', 'party', 'shades', 'champion', ...SHOP_HATS];
 // 'champion': the golden champion crown, only for beating THE BAD GUY KING story.
@@ -16,7 +16,7 @@ const HEAD = {
 };
 
 export function animalOf(heroId) {
-  if (heroId.includes('cat') || heroId === 'agent-whiskers') return 'cat';
+  if (heroId.includes('cat') || heroId === 'agent-whiskers' || heroId === 'supa-tiger') return 'cat';
   if (heroId.includes('chameleon')) return 'chameleon';
   if (heroId === 'captain-waddle') return 'penguin';
   return 'capybara';
@@ -122,6 +122,15 @@ export function createHatTextures(scene) {
     g.fillRect(0, 18, 20, 4);
     g.fillStyle(0xd32f2f);
     g.fillRect(4, 13, 12, 3);
+  });
+  // The ninja headband: a red band around the head, the two ends flapping out the back
+  make(scene, 'hat-ninja', 28, 14, (g) => {
+    g.fillStyle(0xd32f2f);
+    g.fillRect(8, 8, 18, 5);
+    g.fillTriangle(9, 9, 0, 3, 2, 8);
+    g.fillTriangle(9, 11, 0, 12, 3, 7);
+    g.fillStyle(0xff5252);
+    g.fillRect(8, 8, 18, 1.5);
   });
   make(scene, 'hat-shades', 22, 8, (g) => {
     g.fillStyle(0x111111);

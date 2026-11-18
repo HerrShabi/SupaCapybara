@@ -5,6 +5,7 @@ import { audio } from './audio.js';
 import { Controls } from './controls.js';
 import { createHatTextures, hatAnchor } from './art/hats.js';
 import { MegaBeam } from './megaBeam.js';
+import { CAT_FIREWORKS } from './characters.js';
 
 // The hero you control: running, jumping, and each hero's own powers.
 // The scene decides what got hit: scene.hitArea(area, damage, attacker), scene.nearestTarget(x, y, attacker), and overlaps on player.lasers.
@@ -27,6 +28,7 @@ const ATTACK_COOLDOWN_MS = {
   snowball: 300,
   gadget: 450,
   badge: 400,
+  stripes: 520,
 };
 const LASER_SPEED = 900;
 const LASER_RANGE_MS = 700;
@@ -84,6 +86,17 @@ const BADGE_HIT_EVERY_MS = 280; // (so one badge can't hit the same boss every f
 const LENS_MS = 6000;
 const LENS_WAIT_MS = 20000;
 
+// SUPA TIGER: the STRIPE BURST flies out all around him (not too far), and NIGHT EYES (C) shows hidden bolts and
+// ghost platforms (see-through steps up into the air) that hold you while it lasts.
+const STRIPES_REACH = 105;
+const STRIPES_DAMAGE = 2;
+const NIGHT_EYES_MS = 7000;
+const NIGHT_EYES_WAIT_MS = 20000;
+const GHOST_STEPS = [[80, -55], [190, -120], [300, -185], [410, -250]]; // [ahead, up] from his feet
+
+// CAPTAIN WADDLE is a bit slippery: when you stop, he keeps sliding and slows down a little every frame.
+const SLIPPERY_KEEP = 0.9;
+
 const FREEZE_MS = 5000;
 const FREEZE_WAIT_MS = 30000;
 
@@ -135,6 +148,9 @@ export class Player {
     this.lensUntil = 0;
     this.lensReadyAt = 0;
     this.lensGraphics = null;
+    this.nightEyesUntil = 0;
+    this.nightEyesReadyAt = 0;
+    this.ghosts = null; // SUPA TIGER's ghost platforms while NIGHT EYES is on
 
     this.lasers = scene.physics.add.group({ allowGravity: false });
     this.megaBeam = megaBeam ? new MegaBeam(this) : null;
@@ -200,6 +216,10 @@ export class Player {
     return this.scene.time.now < this.slideUntil;
   }
 
+  get nightEyes() {
+    return this.scene.time.now < this.nightEyesUntil;
+  }
+
   get magnifying() {
     return this.scene.time.now < this.lensUntil;
   }
@@ -254,6 +274,7 @@ export class Player {
     if (this.character.shadow) parts.push(status('C', t('game.shadow'), this.shadowUntil, this.shadowReadyAt));
     if (this.character.slide) parts.push(status('C', t('game.slide'), this.slideUntil, this.slideReadyAt));
     if (this.character.magnifier) parts.push(status('C', t('game.lens'), this.lensUntil, this.lensReadyAt));
+    if (this.character.nightEyes) parts.push(status('C', t('game.nightEyes'), this.nightEyesUntil, this.nightEyesReadyAt));
     if (this.hasShield) parts.push(status('V', t('game.shield'), this.shieldUntil, this.shieldReadyAt));
     if (this.hasFly) parts.push(status('F', t('game.fly'), this.flyUntil, this.flyReadyAt));
     if (this.hasFreeze) parts.push(status('Z', t('game.freeze'), this.freezeUntil, this.freezeReadyAt));
@@ -310,10 +331,13 @@ export class Player {
         this.sprite.setVelocityX(-speed).setFlipX(true);
       } else if (c.isDown('right')) {
         this.sprite.setVelocityX(speed).setFlipX(false);
+      } else if (this.character.slippery && onGround && Math.abs(body.velocity.x) > 15) {
+        this.sprite.setVelocityX(body.velocity.x * SLIPPERY_KEEP); // whee, a little slide
       } else {
         this.sprite.setVelocityX(0);
       }
     }
+    const slipping = this.character.slippery && !c.isDown('left') && !c.isDown('right') && body.velocity.x !== 0;
 
     if (c.justPressed('fly') && this.hasFly) this.startFlying();
     if (this.flyUntil && !this.flying) this.stopFlying();
@@ -359,7 +383,7 @@ export class Player {
     } else if (!onGround) {
       this.sprite.anims.stop();
       this.sprite.setTexture(`${this.look}-jump`);
-    } else if (body.velocity.x !== 0) {
+    } else if (body.velocity.x !== 0 && !slipping) {
       this.sprite.anims.play(`${this.look}-run`, true);
     } else {
       this.sprite.anims.stop();
@@ -382,6 +406,8 @@ export class Player {
     if (this.slideUntil) this.updateSlide();
     if (this.character.magnifier && special) this.startLens();
     this.updateLens();
+    if (this.character.nightEyes && special) this.startNightEyes();
+    this.updateNightEyes();
     this.updateBadges();
     if (c.justPressed('shield') && this.hasShield) this.raiseShield();
     if (this.shieldUntil && !this.shielded) this.lowerShield();
@@ -433,6 +459,7 @@ export class Player {
     if (kind === 'snowball') this.throwSnowball();
     if (kind === 'gadget') this.throwGadget();
     if (kind === 'badge') this.throwBadge();
+    if (kind === 'stripes') this.stripeBurst();
     if (kind === 'laser') this.fireLaser('laser', 1);
     if (kind === 'superLaser') this.fireLaser('super-laser', 2);
     if (kind === 'goldLaser') this.fireLaser('gold-laser', 2);
@@ -623,6 +650,92 @@ export class Player {
     const targets = [...(this.scene.badGuys?.getChildren() ?? []), this.scene.boss].filter((b) => b?.active && b.visible && view.contains(b.x, b.y));
     const pulse = 1 + 0.12 * Math.sin(this.scene.time.now / 120);
     for (const target of targets) group.add(this.scene.add.image(target.x, target.y, 'weak-spot').setDepth(4).setScale(pulse));
+  }
+
+  // ---------- SUPA TIGER ----------
+
+  // X: the STRIPE BURST. Fiery stripes fly off him in every direction like a firework, hit what's close, and fade.
+  stripeBurst() {
+    audio.play('stripes');
+    const { x, y } = this;
+    for (let i = 0; i < 10; i++) {
+      const angle = (i / 10) * Math.PI * 2;
+      const stripe = this.scene.add.rectangle(x, y, 18, 6, i % 2 ? 0x111111 : 0xff6d00).setStrokeStyle(2, 0xffc107).setRotation(angle).setDepth(3);
+      this.scene.tweens.add({
+        targets: stripe,
+        x: x + Math.cos(angle) * STRIPES_REACH,
+        y: y + Math.sin(angle) * STRIPES_REACH,
+        alpha: 0,
+        scaleX: 1.6,
+        duration: 260,
+        ease: 'Quad.easeOut',
+        onComplete: () => stripe.destroy(),
+      });
+    }
+    const ring = this.scene.add.circle(x, y, 20, 0xff9100, 0.35).setDepth(2.9);
+    this.scene.tweens.add({ targets: ring, scale: STRIPES_REACH / 20, alpha: 0, duration: 260, onComplete: () => ring.destroy() });
+    const area = new Phaser.Geom.Rectangle(x - STRIPES_REACH, y - STRIPES_REACH, STRIPES_REACH * 2, STRIPES_REACH * 2);
+    if (this.scene.hitArea(area, STRIPES_DAMAGE, this)) this.landedHit();
+  }
+
+  // C: NIGHT EYES. His eyes glow, hidden bolts sparkle into view (scene.revealSecrets), and see-through ghost
+  // platforms climb up into the air in front of him. They hold you until NIGHT EYES runs out.
+  startNightEyes() {
+    const now = this.scene.time.now;
+    if (this.nightEyes || now < this.nightEyesReadyAt || !this.scene.physics) return;
+    this.nightEyesUntil = now + NIGHT_EYES_MS;
+    audio.play('nightEyes');
+    this.scene.revealSecrets?.(this);
+    const scene = this.scene;
+    const feet = this.sprite.body.bottom;
+    this.ghosts = { group: scene.physics.add.staticGroup(), looks: [], eyes: [scene.add.circle(0, 0, 2.6, 0xfff176).setDepth(2.1), scene.add.circle(0, 0, 2.6, 0xfff176).setDepth(2.1)] };
+    this.ghosts.glow = scene.add.circle(0, 0, 16, 0xfff176, 0.18).setDepth(2.05);
+    GHOST_STEPS.forEach(([ahead, up], i) => {
+      const gx = this.x + this.facing * ahead;
+      const top = feet + up;
+      const look = scene.add.rectangle(gx, top + 8, 100, 16, 0xb3e5fc, 0.35).setStrokeStyle(2, 0xe1f5fe, 0.9).setDepth(1.9).setAlpha(0);
+      scene.tweens.add({ targets: look, alpha: 1, duration: 300, delay: i * 120 });
+      scene.tweens.add({ targets: look, y: top + 5, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      const zone = scene.add.zone(gx - 50, top, 100, 16).setOrigin(0, 0);
+      this.ghosts.group.add(zone);
+      zone.body.checkCollision.down = false; // (jump up through them, like the rock ledges)
+      zone.body.checkCollision.left = false;
+      zone.body.checkCollision.right = false;
+      this.ghosts.looks.push(look);
+    });
+    // They hold everyone, so in 2 PLAYERS the other player can follow him up (Ethan, 2026-11-18)
+    const everyone = (scene.players ?? scene.fighters ?? [this]).map((p) => p.sprite);
+    this.ghosts.collider = scene.physics.add.collider(everyone, this.ghosts.group);
+  }
+
+  updateNightEyes() {
+    if (!this.ghosts) return;
+    if (!this.nightEyes) {
+      this.nightEyesUntil = 0;
+      this.nightEyesReadyAt = this.scene.time.now + NIGHT_EYES_WAIT_MS;
+      this.endNightEyes();
+      return;
+    }
+    // The glowing eyes sit on his face (the face is at x 46-54, y 17 of the 64 x 48 picture)
+    const scale = this.sprite.scaleX;
+    const left = this.sprite.flipX;
+    const eyeX = (ex) => this.x + (left ? -1 : 1) * (ex - 32) * scale;
+    const eyeY = this.y + (17 - 24) * scale;
+    this.ghosts.eyes[0].setPosition(eyeX(46), eyeY);
+    this.ghosts.eyes[1].setPosition(eyeX(54), eyeY);
+    this.ghosts.glow.setPosition(eyeX(50), eyeY).setAlpha(0.14 + 0.08 * Math.sin(this.scene.time.now / 150));
+    // The last second: the ghost platforms blink (get off!)
+    const left_ = this.nightEyesUntil - this.scene.time.now;
+    if (left_ < 1200) for (const look of this.ghosts.looks) look.setVisible(Math.floor(left_ / 150) % 2 === 0);
+  }
+
+  endNightEyes() {
+    const ghosts = this.ghosts;
+    if (!ghosts) return;
+    this.ghosts = null;
+    ghosts.collider.destroy();
+    ghosts.group.clear(true, true);
+    for (const part of [...ghosts.looks, ...ghosts.eyes, ghosts.glow]) part.destroy();
   }
 
   // The grapple: find the nearest ledge top above her (and not behind her) that the rope can reach.
@@ -931,6 +1044,7 @@ export class Player {
     for (const b of this.badges) b.sprite.destroy();
     this.badges = [];
     if (this.lensUntil) this.lensUntil = this.scene.time.now; // (updateLens tidies up the glass and targets)
+    if (this.nightEyesUntil) this.nightEyesUntil = this.scene.time.now; // (updateNightEyes takes the ghost platforms away)
     this.character = character;
     this.id = character.id;
     this.look = look;
@@ -990,11 +1104,53 @@ export class Player {
       );
       return 1700;
     }
+    if (id === 'fireworks') {
+      // The cats' FIREWORKS: three rockets shoot up and pop into this cat's own shapes and colors. MEOW!
+      const look = CAT_FIREWORKS[this.id] ?? CAT_FIREWORKS['supa-cat'];
+      sprite.setVelocityY(-300);
+      [200, 800, 1400].forEach((delay, i) => scene.time.delayedCall(delay, () => this.launchFirework(look, i)));
+      return 2600;
+    }
     // Flip: a backflip high in the air
     sprite.setVelocityY(-JUMP_SPEED);
     audio.play('doubleJump');
     scene.tweens.add({ targets: sprite, angle: -360 * this.facing, duration: 820, ease: 'Sine.easeInOut', onComplete: () => sprite.setAngle(0) });
     return 1500;
+  }
+
+  launchFirework(look, i) {
+    const scene = this.scene;
+    if (!this.sprite.active) return;
+    const fromX = this.x;
+    const fromY = this.y - 20;
+    const toX = fromX + [-110, 0, 110][i];
+    const toY = fromY - 190 + (i === 1 ? -40 : 0);
+    audio.play('jump');
+    const rocket = scene.add.circle(fromX, fromY, 4, look.colors[0]).setDepth(5);
+    scene.tweens.add({
+      targets: rocket,
+      x: toX,
+      y: toY,
+      duration: 420,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        rocket.destroy();
+        audio.play(look.pop);
+        const flash = scene.add.circle(toX, toY, 14, 0xffffff, 0.9).setDepth(5);
+        scene.tweens.add({ targets: flash, scale: 3, alpha: 0, duration: 300, onComplete: () => flash.destroy() });
+        for (let k = 0; k < 12; k++) {
+          const angle = (k / 12) * Math.PI * 2;
+          const color = look.colors[k % look.colors.length];
+          const part =
+            look.shape === 'moon' ? scene.add.circle(toX, toY, 7, color)
+            : look.shape === 'gadget' ? scene.add.rectangle(toX, toY, 11, 11, color).setStrokeStyle(2, 0xffffff)
+            : look.shape === 'scratch' ? scene.add.rectangle(toX, toY, 22, 4, color)
+            : scene.add.rectangle(toX, toY, 24, 7, color).setStrokeStyle(1.5, 0x111111);
+          part.setRotation(angle).setDepth(5);
+          scene.tweens.add({ targets: part, x: toX + Math.cos(angle) * 70, y: toY + Math.sin(angle) * 80 + 20, alpha: { from: 1, to: 0, ease: 'Quad.easeIn' }, duration: 1200, ease: 'Quad.easeOut', onComplete: () => part.destroy() });
+        }
+      },
+    });
   }
 
   updateDance() {

@@ -45,7 +45,7 @@ const FLY_SPEED = 8;
 const RADIUS = 0.5; // how wide the hero is
 const HEIGHT = 1.2;
 
-const ATTACK_COOLDOWN_MS = { laser: 250, superLaser: 220, goldLaser: 220, scratch: 300, tongue: 450, moon: 400, rocket: 300, cuffs: 400, snowball: 300, gadget: 450, badge: 400 };
+const ATTACK_COOLDOWN_MS = { laser: 250, superLaser: 220, goldLaser: 220, scratch: 300, tongue: 450, moon: 400, rocket: 300, cuffs: 400, snowball: 300, gadget: 450, badge: 400, stripes: 520 };
 // FBI AGENT CHAMELEON's badge flies out, turns around halfway and comes back to him (a boomerang)
 const BADGE_LIFE = 1.1; // seconds
 const SHOT_SPEED = 28;
@@ -60,7 +60,7 @@ const TONGUE_REACH = 6;
 // AGENT WHISKERS' spy gadgets: thrown in an arc, they land, blink, and explode
 const GADGET_FUSE = 0.5; // seconds
 const GADGET_BLAST = 2.6; // how far the explosion reaches
-const POWER_MS = { invisible: 10000, shadow: 5000, shield: 10000, fly: 10000, mecha: 15000, lens: 6000 }; // (lens: FBI AGENT CHAMELEON's magnifying glass)
+const POWER_MS = { invisible: 10000, shadow: 5000, shield: 10000, fly: 10000, mecha: 15000, lens: 6000, nightEyes: 7000 }; // (nightEyes: SUPA TIGER's ghost stairs) // (lens: FBI AGENT CHAMELEON's magnifying glass)
 // (The Freeze Ray has its own timers: see useFreezeRay.)
 const POWER_WAIT_MS = 30000;
 
@@ -912,12 +912,40 @@ export class AdventureWorld {
     this.showPowers(this.player);
   }
 
+  // SUPA TIGER's NIGHT EYES: see-through ghost stairs climb up in front of him. They're solids, so everyone can
+  // stand on them, until NIGHT EYES runs out.
+  makeGhostStairs(p) {
+    const material = new THREE.MeshStandardMaterial({ color: 0xb3e5fc, transparent: true, opacity: 0.45, emissive: 0x4fc3f7, emissiveIntensity: 0.5 });
+    p.ghosts = [1, 2, 3, 4].map((i) => {
+      const x = p.pos.x + p.forward.x * (i * 2.2);
+      const z = p.pos.z + p.forward.z * (i * 2.2);
+      const top = p.pos.y + i * 1.1;
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(2, 0.3, 2), material);
+      mesh.position.set(x, top - 0.15, z);
+      this.scene.add(mesh);
+      return { mesh, solid: this.addSolid(x - 1, x + 1, top - 0.3, top, z - 1, z + 1) };
+    });
+  }
+
+  removeGhostStairs(p) {
+    for (const ghost of p.ghosts) {
+      this.scene.remove(ghost.mesh);
+      this.solids = this.solids.filter((s) => s !== ghost.solid);
+    }
+    p.ghosts = null;
+  }
+
   updateHeroPowers(p) {
     const character = p.character;
     if (this.wasPressed(p, 'special') && character.invisibility) this.startPower(p, 'invisible', 'invisible');
     if (this.wasPressed(p, 'special') && character.shadow) this.startPower(p, 'shadow', 'shadow');
     if (this.wasPressed(p, 'special') && character.slide) this.startSlide(p);
     if (this.wasPressed(p, 'special') && character.magnifier) this.startPower(p, 'lens', 'lens');
+    if (this.wasPressed(p, 'special') && character.nightEyes && !this.active('nightEyes', p)) {
+      this.startPower(p, 'nightEyes', 'nightEyes');
+      if (this.active('nightEyes', p)) this.makeGhostStairs(p);
+    }
+    if (p.ghosts && !this.active('nightEyes', p)) this.removeGhostStairs(p);
     if (p.slideUntil) this.updateSlide(p);
     if (this.wasPressed(p, 'shield') && p.powerUps.includes('shield')) this.startPower(p, 'shield', 'shield');
     if (this.wasPressed(p, 'fly') && p.powerUps.includes('fly')) this.startPower(p, 'fly', 'fly');
@@ -959,6 +987,7 @@ export class AdventureWorld {
     if (character.invisibility) parts.push(status('C', t('game.invisible'), 'invisible'));
     if (character.shadow) parts.push(status('C', t('game.shadow'), 'shadow'));
     if (character.magnifier) parts.push(status('C', t('game.lens'), 'lens'));
+    if (character.nightEyes) parts.push(status('C', t('game.nightEyes'), 'nightEyes'));
     if (character.slide) {
       if (this.sliding(p)) parts.push(`${t('game.slide')}!`);
       else if (this.now < (p.slideReadyAt ?? 0)) parts.push(`C = ${t('game.slide')}: ${t('game.wait', { seconds: seconds(p.slideReadyAt - this.now) })}`);
@@ -1025,8 +1054,8 @@ export class AdventureWorld {
     p.nextAttackAt = this.now + ATTACK_COOLDOWN_MS[kind];
     const start = this.bodyOf(p).addScaledVector(UP, 0.3).addScaledVector(p.forward, 0.9);
 
-    if (kind === 'scratch') {
-      audio.play('scratch');
+    if (kind === 'scratch' || kind === 'stripes') {
+      audio.play(kind); // (SUPA TIGER's stripe burst hits close by, like a scratch)
       this.scratch(p);
     } else if (kind === 'tongue') {
       audio.play('tongue');

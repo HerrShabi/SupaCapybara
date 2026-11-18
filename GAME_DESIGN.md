@@ -521,3 +521,33 @@ Ethan's friend suggested "FBI Capybara" and "Secret Agent Cat". We make the cat 
 - Ethan: "make drawing mode look like drawing". In drawing mode (and the Drawings World), SuperCapybara is drawn like Ethan's own blue pen drawing (`concept-art/drawn-supa-capybara.jpg`): a tall bean body leaning forward, a long cape behind, a small head with one eye and a smile, a bump on his front, the lightning bolt, and a line near the bottom. White paper, blue ink.
 - The first player's default name is "Player 1" (not "Ethan").
 - Player names can't be swear words (Ethan, 2026-11-18), in English or German, even with tricks like FUUUCK or 5h1t. The name box says "Oops! Please pick a nice name 😊". Normal names that just contain those letters (Cassie, Glass, Bastian) are fine.
+
+## Supa Tiger (new hero, designed 2026-11-18 evening, in the game)
+
+- Q1: Ethan wants a **new character** for SuperCapybara 1.
+- Q2: The new hero is **Supa Tiger** 🐯 (Ethan first wanted a crewmate from Among Us, but we don't copy other games' characters).
+- Q3: X attack = **fire stripes** 🔥 (his stripes glow), but not as boomerangs; how they work is Q4.
+- Q4: **Stripe burst** 💥: all his stripes fly off at once in every direction like a firework, then grow back. **Short range** (not too far: hits bad guys close around him).
+- Q5: C = **Night eyes** 🌙: his eyes glow, and he sees **hidden bolts** and **secret paths** for a few seconds.
+- Ethan (Q6 side idea): **Captain Waddle should be slippery** 🐧 (he wants it, it's not a bug). How slippery is Q7.
+- Q7: Captain Waddle is **a little bit slippery**: when you stop, he slides a few steps before he stands still.
+- Q6: You **find** Supa Tiger hiding in **World 3** (the volcano), **behind a lava waterfall**. He isn't bought.
+- Q8: Looks: a **yellow** tiger with black stripes, a **fire suit** (black with **orange flames**) and a **red cape** (not the usual blue one).
+- Q9: When you find him he says all three together: **"ROAAAR! This lava is too hot even for me! Took you long enough. Supa Tiger is ready to join the team!"**
+- Q10: The secret paths are **ghost platforms** 👻: see-through platforms in the air that appear (and hold you) only while Night eyes is on.
+
+**Built (2026-11-18):** Supa Tiger is in the side-scrolling worlds: the stripe burst (X), Night eyes with 4 ghost steps going up in front of him and hidden bolts (C, 7 seconds, then wait 20), and the lava waterfall in World 3 (two yellow eyes blink behind it; walk into it to find him). Captain Waddle slides a little when you stop.
+- In World 2 and ADVENTURE his X is a short-range hit like a scratch.
+- Q11: In World 2 and ADVENTURE, Night eyes makes **ghost platforms too** (the same see-through stairs as in the volcano). Not built yet.
+- Q12: Supa Tiger gets **his own win dance**: **STRIPE BURST FIREWORKS** 🎆 (his stripes shoot up into the sky and pop like fireworks). Not built yet.
+- Q13: The fireworks are **fire colors**: orange, yellow and red.
+- Q14: You **buy** the fireworks dance in the supermarket for **10 ⚡** (Ethan said "ten cents").
+- Q15: **Only the cats** can do the fireworks dance: Supa Cat, Bloodmoon Cat, Agent Whiskers and Supa Tiger.
+- Q16: Each cat's fireworks have **their own colors AND their own shapes**: Supa Cat (red, scratch marks), Bloodmoon Cat (pink and dark red moons), Agent Whiskers (pink and black gadgets), Supa Tiger (fire-colored stripes).
+- Q17: Each firework goes **"MEOW!"** when it pops (Supa Tiger's go **"ROAR!"**).
+- Q18: In 2 PLAYERS (BATTLE and TEAM), the ghost platforms **hold both players**, so the other one can follow him up. **Built** (2026-11-18).
+- Q19: Supa Tiger gets his own hat: a **red ninja headband** with the ends flapping in the wind (just for him, in the wardrobe).
+- Q20: You **buy** the ninja headband in the supermarket, next to the other hats (Claude picks the price like the other hats).
+
+**Built (2026-11-18, Q11-Q20):** ghost stairs in ADVENTURE (see-through steps) and World 2 (4 little see-through ghost moons you hop between), the cats' FIREWORKS dance (10 ⚡ in the supermarket, only cats see it in the wardrobe; 3 pops in their own colors and shapes, MEOW / ROAR), ghost stairs holding both players, and the ninja headband (670 ⚡, anyone can wear it for now).
+- **Next time, build first (Ethan, 2026-11-18):** the cats' fireworks dance, then the ghost stairs in World 2 and ADVENTURE.

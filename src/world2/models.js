@@ -38,6 +38,7 @@ const HERO_LOOKS = {
   copybara: { animal: 'capybara', suit: 0x1a3a8a, suitDark: 0x0d1f4f, badge: true, noCape: true },
   'captain-waddle': { animal: 'penguin', cape: 0xff8f00 },
   'agent-whiskers': { animal: 'cat', suit: 0x16161c, suitDark: 0x050507, fur: 0xb0bec5, noCape: true, agent: true },
+  'supa-tiger': { animal: 'cat', suit: 0x16161c, suitDark: 0x050507, fur: 0xffc928, cape: 0xd32f2f },
   'fbi-chameleon': { animal: 'chameleon', suit: 0x1e5bb8, suitDark: 0x16161c, badge: true, noCape: true, fbi: true },
 };
 
@@ -124,6 +125,15 @@ export function makeHat3D(hat) {
     const band = new THREE.Mesh(new THREE.CylinderGeometry(0.165, 0.165, 0.06, 12), mat(0xd32f2f));
     band.position.y = 0.08;
     group.add(band);
+  } else if (hat === 'ninja') {
+    // SUPA TIGER's red ninja headband, with the two ends sticking out the back
+    group.add(box(0.48, 0.09, 0.48, 0xd32f2f, 0, -0.1, 0));
+    const tail = box(0.06, 0.06, 0.3, 0xd32f2f, 0.06, -0.08, -0.36);
+    tail.rotation.x = 0.4;
+    group.add(tail);
+    const tail2 = box(0.06, 0.06, 0.26, 0xd32f2f, -0.06, -0.12, -0.34);
+    tail2.rotation.x = 0.1;
+    group.add(tail2);
   } else if (hat === 'shades') {
     group.add(box(0.5, 0.05, 0.04, 0x111111, 0, 0.06, 0));
     group.add(box(0.2, 0.12, 0.05, 0x111111, -0.13, 0, 0));

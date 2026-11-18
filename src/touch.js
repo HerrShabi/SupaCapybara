@@ -221,7 +221,7 @@ function makeRoot(container) {
 
 // Which buttons a hero needs. `threeD` adds up/down (World 2 walks forward and back).
 export function touchButtonsFor(character, powerUps, threeD) {
-  const attack = { laser: '👀', superLaser: '👀', scratch: '🐾', tongue: '👅', moon: '🌕', goldLaser: '✨', cuffs: '🔗', snowball: '❄️', gadget: '💣', badge: '🪃' }[character.attack];
+  const attack = { laser: '👀', superLaser: '👀', scratch: '🐾', tongue: '👅', moon: '🌕', goldLaser: '✨', cuffs: '🔗', snowball: '❄️', gadget: '💣', badge: '🪃', stripes: '🔥' }[character.attack];
   const fly = powerUps.includes('fly');
   return {
     left: true,
@@ -232,7 +232,7 @@ export function touchButtonsFor(character, powerUps, threeD) {
     invisible: character.invisibility,
     shadow: character.shadow,
     slide: character.slide, // CAPTAIN WADDLE's WADDLE SLIDE
-    lens: character.magnifier, // FBI AGENT CHAMELEON's magnifying glass
+    lens: character.magnifier || character.nightEyes, // FBI AGENT CHAMELEON's magnifying glass, SUPA TIGER's NIGHT EYES (both C)
     mecha: powerUps.includes('mecha-capybara'),
     swap: Boolean(character.attacks),
     freeze: powerUps.includes('freeze'),
