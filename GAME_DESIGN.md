@@ -515,3 +515,8 @@ Ethan's friend suggested "FBI Capybara" and "Secret Agent Cat". We make the cat 
 ## SupaCapy 2 button (2026-11-18, in the game)
 
 - Ethan: SupaCapy 2 is played from SuperCapybara 1. A small 🦫 SUPACAPY 2 button in the corner of the title screen (left side, above the player button) opens it.
+
+## Drawing mode SuperCapybara (2026-11-18, in the game)
+
+- Ethan: "make drawing mode look like drawing". In drawing mode (and the Drawings World), SuperCapybara is drawn like Ethan's own blue pen drawing (`concept-art/drawn-supa-capybara.jpg`): a tall bean body leaning forward, a long cape behind, a small head with one eye and a smile, a bump on his front, the lightning bolt, and a line near the bottom. White paper, blue ink.
+- The first player's default name is "Player 1" (not "Ethan").

@@ -94,7 +94,7 @@ const CLAY = {
 };
 // The other heroes use their animal's clay look with their own suit colors
 const HERO_LOOKS = {
-  'supa-capybara': { animal: 'capybara' },
+  'supa-capybara': { animal: 'pen-capybara' }, // Ethan's own pen drawing (concept-art/drawn-supa-capybara.jpg), 2026-11-18
   'ultra-capybara': { animal: 'capybara', suit: 0xe0457b },
   'golden-capybara': { animal: 'capybara', suit: 0xffc107, cape: 0xfff176 },
   'supa-cat': { animal: 'cat' },
@@ -116,9 +116,53 @@ function cape(g, flying, color) {
   shape(g, points, color);
 }
 
+// Points around an ellipse that's tilted by `tilt` radians (Ethan draws SupaCapy leaning a bit)
+function tiltedEllipse(cx, cy, rx, ry, tilt, count = 22) {
+  const cos = Math.cos(tilt);
+  const sin = Math.sin(tilt);
+  return ellipsePoints(0, 0, rx, ry, count).map(([x, y]) => [cx + x * cos - y * sin, cy + x * sin + y * cos]);
+}
+
+// SUPACAPY exactly like Ethan draws him with a blue ballpoint pen (concept-art/drawn-supa-capybara.jpg):
+// a tall bean-shaped body leaning a little, a long cape flying out behind, a small head on top with one eye and a
+// smile, a bump on his front, a lightning bolt on his body, and a line across near the bottom. White paper, blue ink.
+const BALLPOINT = 0x2340c8;
+function drawPenCapybara(g, legs, flying) {
+  const ink = { color: BALLPOINT, width: 2.2, closed: true, wobble: 1.2 };
+  const paper = (points) => {
+    pencil(g, points, 0xffffff, { strokes: false });
+    pen(g, points, ink);
+  };
+  const bob = legs * 0.5; // running bounces him a little
+  const lean = flying ? 0.55 : 0.28 + legs * 0.02; // he leans forward more when he jumps
+  // the cape: a long oval behind him (further out when he flies)
+  paper(tiltedEllipse(flying ? 18 : 22, flying ? 24 : 27 + bob, 5.5, flying ? 17 : 15, flying ? 1.0 : 0.55));
+  // the body: the tall bean, with the line near the bottom
+  const body = tiltedEllipse(31, 27 + bob, 7.5, 19, lean);
+  paper(body);
+  const onBody = (x, y) => [31 + x * Math.cos(lean) - y * Math.sin(lean), 27 + bob + x * Math.sin(lean) + y * Math.cos(lean)];
+  pen(g, [onBody(-6.5, 12), onBody(6.5, 12)], { color: BALLPOINT, width: 1.8, wobble: 0.6 });
+  // the bump on his front
+  paper(tiltedEllipse(42, 17 + bob, 4.5, 6, lean * 0.6));
+  // the lightning bolt on his body
+  const bx = 33;
+  const by = 22 + bob;
+  pen(g, [[bx + 2, by - 7], [bx - 3, by + 1], [bx + 2, by + 1], [bx - 3, by + 9]], { color: BALLPOINT, width: 2, wobble: 0.5 });
+  pen(g, [[bx + 4, by - 7], [bx - 0.5, by - 0.5], [bx + 4.5, by - 0.5], [bx - 1, by + 7]], { color: BALLPOINT, width: 1.4, wobble: 0.5 });
+  // the head: a small oval on top, with one eye and a smile at the front
+  const hx = 37;
+  const hy = 7 + bob;
+  paper(tiltedEllipse(hx, hy, 9, 4.6, 0.12));
+  pen(g, [[hx - 6, hy + 3], [hx + 2, hy - 4.5]], { color: BALLPOINT, width: 1.4, wobble: 0.4 }); // the line where his head starts
+  g.fillStyle(BALLPOINT).fillCircle(hx + 1, hy - 1, 1.4); // eye
+  pen(g, [[hx + 4, hy + 0.5], [hx + 6.5, hy + 2.5], [hx + 9, hy + 0.5]], { color: BALLPOINT, width: 1.4, wobble: 0.3 }); // smile
+}
+
 function drawDoodleHero(g, look, [legs, flying]) {
   const { animal } = look;
-  if (animal === 'capybara') {
+  if (animal === 'pen-capybara') {
+    drawPenCapybara(g, legs, flying);
+  } else if (animal === 'capybara') {
     // Standing up, like Ethan's clay SuperCapybara: big head with a white snout, suit, legs, cape behind
     const c = { ...CLAY.capybara, ...look };
     const capePoints = flying ? [[28, 16], [3, 8], [8, 20], [2, 32], [24, 30]] : [[28, 16], [14, 26], [12, 42], [26, 38]];
@@ -204,6 +248,7 @@ export const DOODLE_HAT_PREFIX = 'doodle-hat-';
 // Top of the head (and the eyes, for shades) in each doodle hero's 64x48 frame
 const DOODLE_HEADS = {
   capybara: { top: [35, 3], eyes: [40, 9] },
+  'pen-capybara': { top: [37, 3], eyes: [38, 6] },
   cat: { top: [50, 9], eyes: [51, 16] },
   chameleon: { top: [52, 17], eyes: [55, 23] },
   penguin: { top: [42, 2], eyes: [47, 11] },

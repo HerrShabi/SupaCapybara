@@ -49,9 +49,8 @@ export function loadAccounts() {
       return accounts;
     }
   } catch {}
-  // No accounts yet: the save from before accounts is Ethan's
-  const name = localStorage.getItem(STORAGE_KEY) ? 'Ethan' : 'Player 1';
-  return { current: 'main', list: [{ id: 'main', name, hero: 'supa-capybara' }] };
+  // No accounts yet: the first player is just "Player 1" (Ethan, 2026-11-18: not "Ethan"; everyone can rename it)
+  return { current: 'main', list: [{ id: 'main', name: 'Player 1', hero: 'supa-capybara' }] };
 }
 
 function writeAccounts(accounts) {
