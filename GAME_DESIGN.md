@@ -481,7 +481,7 @@ Ethan: "you should be able to choose power-up". Every power-up you own gets an *
 Ethan's friend suggested "FBI Capybara" and "Secret Agent Cat". We make the cat first (FBI Capybara later; make him different from Copybara, e.g. suit, sunglasses, briefcase).
 - A secret agent **cat** named **Agent Whiskers**, in a **black suit with sunglasses** 🕶️ (a bright pop like a pink tie helps her stand out).
 - **X attack:** throws **spy gadgets** 💣 that explode a bit after they land.
-- **Double jump with a grappling hook** 🪝.
+- **Double jump with a grappling hook** 🪝. Since 2026-11-18 it's a REAL grapple (Ethan picked B: only for her): in the side-scrolling worlds the hook grabs the nearest roof or platform above her and pulls her up onto it. If nothing is in reach, it's a normal grapple jump. In **World 2 (space)** the hook latches onto the **next planet** (the one she's looking toward) and pulls her across space to it (Ethan, 2026-11-18).
 - **No special (C) move.**
 - **How you get her:** she is **hiding on a planet in World 2** 🪐 (space). The clue: a suspicious **cardboard box** 📦 that moves a little, with her **sunglasses** sticking out. Touch or scratch it and she jumps out.
 - She says: **"Shh! How did you find me? Don't tell anyone!"** 🤫
@@ -511,3 +511,7 @@ Ethan's friend suggested "FBI Capybara" and "Secret Agent Cat". We make the cat 
 - **Theme songs**: a heroic song for the menu, a funky city song for World 1, and a fast, scary song for the Pizza Boss fight. The music stops when Pizza Boss explodes, and a win jingle plays.
 - **City sounds**: traffic rumbling and car horns far away. It gets quieter at night, and the horns stop.
 - **Effects**: jump, double jump, laser, super laser, scratch, tongue, bolt, bad guy POP, stomp, blaster shots, getting hurt, falling, Shield, invisible, bubble bounce, helicopter, Pizza Boss roar/hit/explosion, key, buying, and an error beep.
+
+## SupaCapy 2 button (2026-11-18, in the game)
+
+- Ethan: SupaCapy 2 is played from SuperCapybara 1. A small 🦫 SUPACAPY 2 button in the corner of the title screen (left side, above the player button) opens it.

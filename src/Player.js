@@ -12,6 +12,8 @@ import { MegaBeam } from './megaBeam.js';
 const RUN_SPEED = 260;
 const JUMP_SPEED = 620;
 const BOUNCE_MS = 250; // after getting hit you fly back a bit and can't steer
+const GRAPPLE_REACH = 320; // how far Agent Whiskers' hook reaches (to a roof or platform above her)
+const GRAPPLE_SPEED = 900; // how fast the rope pulls her
 
 const ATTACK_COOLDOWN_MS = {
   laser: 250,
@@ -274,6 +276,7 @@ export class Player {
   }
 
   respawnAt({ x, y }) {
+    this.stopGrapple();
     this.sprite.setPosition(x, y).setVelocity(0, 0);
   }
 
@@ -281,6 +284,13 @@ export class Player {
     // Held by the level (like swinging on a jungle vine): the scene moves the hero, so just keep the hat on.
     if (this.held) {
       if (this.aura) this.aura.setPosition(this.x, this.y + 6);
+      this.updateHat();
+      return;
+    }
+    // Agent Whiskers' hook has caught a ledge: the rope pulls her up onto it (no steering on the way)
+    if (this.grapple) {
+      this.updateGrapple();
+      this.updatePowers();
       this.updateHat();
       return;
     }
@@ -328,7 +338,9 @@ export class Player {
     } else if (jumpPressed && this.airJumpsLeft > 0) {
       this.airJumpsLeft -= 1;
       this.sprite.setVelocityY(-JUMP_SPEED);
-      if (this.character.grapple) this.grappleFlick();
+      // AGENT WHISKERS (Ethan, 2026-11-18): the hook grabs a roof or platform above her and pulls her up onto it.
+      // If nothing is in reach, it's the old grapple jump.
+      if (this.character.grapple) this.startGrapple() || this.grappleFlick();
       else this.puff();
       audio.play(this.character.grapple ? 'grapple' : 'doubleJump');
     }
@@ -613,6 +625,81 @@ export class Player {
     for (const target of targets) group.add(this.scene.add.image(target.x, target.y, 'weak-spot').setDepth(4).setScale(pulse));
   }
 
+  // The grapple: find the nearest ledge top above her (and not behind her) that the rope can reach.
+  findLedge() {
+    const body = this.sprite.body;
+    const feet = body.bottom;
+    const dir = this.facing;
+    const view = this.scene.cameras.main.worldView;
+    let best = null;
+    for (const group of [this.scene.solids, this.scene.platforms]) {
+      for (const thing of group?.getChildren() ?? []) {
+        const b = thing.body;
+        if (!b || !thing.active) continue;
+        const rise = feet - b.top;
+        if (rise < 50 || rise > GRAPPLE_REACH) continue; // has to be above her, and not too high
+        const x = Phaser.Math.Clamp(this.x + dir * 70, b.left + 14, b.right - 14);
+        if ((x - this.x) * dir < -30 || Math.abs(x - this.x) > GRAPPLE_REACH * 0.8 || b.right - b.left < 30) continue;
+        if (!view.contains(x, b.top)) continue;
+        const d = Math.hypot(x - this.x, rise);
+        if (d <= GRAPPLE_REACH && (!best || d < best.d)) best = { x, y: b.top, d };
+      }
+    }
+    return best;
+  }
+
+  startGrapple() {
+    const ledge = this.findLedge();
+    if (!ledge) return false;
+    this.grapple = { x: ledge.x, y: ledge.y, startedAt: this.scene.time.now, rope: this.scene.add.graphics().setDepth(3), reach: 0 };
+    this.sprite.body.setAllowGravity(false);
+    this.sprite.setFlipX(ledge.x < this.x);
+    return true;
+  }
+
+  updateGrapple() {
+    const g = this.grapple;
+    const body = this.sprite.body;
+    const elapsed = this.scene.time.now - g.startedAt;
+    // the hook flies out first (80 ms), then the rope pulls
+    g.reach = Math.min(1, elapsed / 80);
+    const handX = this.x + this.facing * 10;
+    const handY = this.y - 10;
+    const hookX = handX + (g.x - handX) * g.reach;
+    const hookY = handY + (g.y - handY) * g.reach;
+    g.rope.clear();
+    g.rope.lineStyle(6, 0xffffff, 0.8).lineBetween(handX, handY, hookX, hookY);
+    g.rope.lineStyle(3, 0x4e342e).lineBetween(handX, handY, hookX, hookY);
+    drawHook(g.rope, hookX, hookY);
+    this.sprite.anims.stop();
+    this.sprite.setTexture(`${this.look}-jump`);
+    if (g.reach < 1) {
+      this.sprite.setVelocity(0, 0);
+      return;
+    }
+    // pull her to just above the ledge
+    const targetX = g.x;
+    const targetY = g.y - body.height / 2 - 6;
+    const dx = targetX - this.x;
+    const dy = targetY - this.y;
+    const d = Math.hypot(dx, dy);
+    if (d < 22 || elapsed > 900) {
+      this.stopGrapple();
+      this.sprite.setVelocity(this.facing * 120, -160); // a little hop up onto it
+      return;
+    }
+    // mostly up while she's below the top (if she bumps a wall she slides up it), then over onto the ledge
+    if (this.y > targetY + 8) this.sprite.setVelocity(Phaser.Math.Clamp(dx * 3, -300, 300), -GRAPPLE_SPEED);
+    else this.sprite.setVelocity((dx / d) * GRAPPLE_SPEED, (dy / d) * GRAPPLE_SPEED);
+  }
+
+  stopGrapple() {
+    if (!this.grapple) return;
+    this.grapple.rope.destroy();
+    this.grapple = null;
+    this.sprite.body.setAllowGravity(true);
+  }
+
   // AGENT WHISKERS' double jump: her grappling hook zips up, catches, and the rope fades away.
   grappleFlick() {
     const scene = this.scene;
@@ -632,15 +719,7 @@ export class Player {
         g.setAlpha(k < 0.5 ? 1 : 2 - k * 2);
         g.lineStyle(6, 0xffffff, 0.8).lineBetween(this.x + dir * 10, this.y - 10, hookX, hookY);
         g.lineStyle(3, 0x4e342e).lineBetween(this.x + dir * 10, this.y - 10, hookX, hookY);
-        // The hook: a shaft with two curved prongs, pointing up
-        g.lineStyle(5, 0x263238);
-        g.lineBetween(hookX, hookY + 4, hookX, hookY - 14);
-        g.beginPath();
-        g.arc(hookX - 9, hookY - 4, 9, 0, Math.PI / 2 + 1.2, false);
-        g.strokePath();
-        g.beginPath();
-        g.arc(hookX + 9, hookY - 4, 9, Math.PI / 2 - 1.2, Math.PI, false);
-        g.strokePath();
+        drawHook(g, hookX, hookY);
       },
       onComplete: () => g.destroy(),
     });
@@ -842,6 +921,7 @@ export class Player {
 
   // Become another hero right where you are: new look, attacks, powers, hat and aura. Power-ups stay.
   setCharacter(character, look, hat = null) {
+    this.stopGrapple();
     if (this.mecha) this.endMecha();
     if (this.invisible) this.becomeVisible();
     if (this.shadow) this.endShadow();
@@ -944,4 +1024,16 @@ export class Player {
     this.shieldReadyAt = this.scene.time.now + SHIELD_WAIT_MS;
     this.shield.disableBody(true, true);
   }
+}
+
+// Agent Whiskers' grappling hook: a shaft with two curved prongs, pointing up
+function drawHook(g, x, y) {
+  g.lineStyle(5, 0x263238);
+  g.lineBetween(x, y + 4, x, y - 14);
+  g.beginPath();
+  g.arc(x - 9, y - 4, 9, 0, Math.PI / 2 + 1.2, false);
+  g.strokePath();
+  g.beginPath();
+  g.arc(x + 9, y - 4, 9, Math.PI / 2 - 1.2, Math.PI, false);
+  g.strokePath();
 }

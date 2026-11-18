@@ -66,6 +66,7 @@ export class TitleScene extends Phaser.Scene {
     this.createFlyerButton(flyer);
     this.createTipsButton();
     this.createAccountButton();
+    this.createSupaCapy2Button();
 
     this.input.keyboard.on('keydown-UP', () => this.select(this.selected - 1));
     this.input.keyboard.on('keydown-DOWN', () => this.select(this.selected + 1));
@@ -223,6 +224,19 @@ export class TitleScene extends Phaser.Scene {
       });
     const label = this.add.text(110, 450, `👤 ${currentAccount().name}`, { fontFamily: FONT, fontSize: '15px', color: '#ffffff' }).setOrigin(0.5);
     label.setScale(Math.min(1, 175 / label.width));
+  }
+
+  // SupaCapy 2, the sequel: a separate game built into public/supacapy2/ (`npm run build:sc1` in ../SupaCapy2).
+  createSupaCapy2Button() {
+    this.add
+      .rectangle(110, 400, 190, 34, 0xd8343f)
+      .setStrokeStyle(3, 0xffd23f)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        audio.play('click');
+        location.href = `${import.meta.env.BASE_URL}supacapy2/index.html`;
+      });
+    this.add.text(110, 400, `🦫 ${t('menu.supaCapy2')}`, { fontFamily: FONT, fontSize: '15px', color: '#ffffff' }).setOrigin(0.5);
   }
 
   // Baby Capybara's tips: OFF, or his way of talking. Turning tips back on shows every tip again (for a new friend).

@@ -25,6 +25,8 @@ const RUN_SPEED = 6;
 const TURN_SPEED = 2.6; // radians per second
 const FLY_SPEED = 7;
 const LOST_IN_SPACE = 30; // this far from every planet = lost in space
+const GRAPPLE_REACH = 32; // AGENT WHISKERS' hook reaches a planet this far away (ground to ground)
+const GRAPPLE_SPEED = 20; // how fast the rope pulls her across space
 const BOUNCE_MS = 300;
 
 const LASER_SPEED = 30;
@@ -585,7 +587,9 @@ export class SpaceWorld {
     const jumpPressed = this.pressed('Space');
 
     const runSpeed = RUN_SPEED * (this.shadow ? SHADOW_SPEED : 1) * (this.rainbow ? MAGIC_SPEED : 1);
-    if (this.flying) {
+    if (p.grapple) {
+      this.updateGrapple(dt);
+    } else if (this.flying) {
       // Flying: no gravity. Hold SPACE to go up; let go to hover.
       const rise = this.down('Space') ? FLY_SPEED * 0.7 : 0;
       p.vel.copy(p.forward).multiplyScalar(move * FLY_SPEED).addScaledVector(up, rise);
@@ -607,8 +611,13 @@ export class SpaceWorld {
       p.vel.copy(along).addScaledVector(up, radial);
       if (jumpPressed && p.airJumpsLeft > 0) {
         p.airJumpsLeft -= 1;
-        p.vel.copy(along).addScaledVector(up, JUMP_SPEED);
-        audio.play('doubleJump');
+        // AGENT WHISKERS (Ethan, 2026-11-18): her hook latches onto the next planet and the rope pulls her over to it
+        if (this.character.grapple && this.startGrapple()) {
+          audio.play('grapple');
+        } else {
+          p.vel.copy(along).addScaledVector(up, JUMP_SPEED);
+          audio.play('doubleJump');
+        }
       }
     }
 
@@ -1414,6 +1423,7 @@ export class SpaceWorld {
 
   respawn() {
     const p = this.player;
+    this.stopGrapple();
     if (this.beam) this.endBeam(false);
     if (this.inShip) this.clearShip();
     const planet = p.checkpoint;
@@ -1481,7 +1491,84 @@ export class SpaceWorld {
     this.enemies.push({ kind: 'alien', planet, dir, heading: anyTangent(dir), altitude: 0, mesh, alive: true, nextShotAt: 0, shotEveryMs: 1800, phase: 0, ...extra });
   }
 
+  // ---------- AGENT WHISKERS' grappling hook ----------
+  // The planet the hook goes for: the one she's looking toward (forward and up), not too far away.
+  // Not the spaceship, and not Grape Boss's planets while the force field is still up.
+  grappleTarget() {
+    const p = this.player;
+    const up = this.upAt(p.planet, p.pos);
+    const look = p.forward.clone().multiplyScalar(0.8).addScaledVector(up, 0.6).normalize();
+    let best = null;
+    for (const planet of this.planets) {
+      if (planet === p.planet || planet.ship || (planet.boss && !this.fieldDown)) continue;
+      const toward = planet.center.clone().sub(p.pos);
+      const gap = toward.length() - planet.radius;
+      if (gap > GRAPPLE_REACH) continue;
+      const aim = toward.normalize().dot(look);
+      if (aim < 0.2) continue;
+      const score = aim - gap / 80;
+      if (!best || score > best.score) best = { planet, score };
+    }
+    return best?.planet ?? null;
+  }
+
+  startGrapple() {
+    const planet = this.grappleTarget();
+    if (!planet) return false;
+    const p = this.player;
+    // the hook grabs the side of the planet facing her
+    const point = this.pointOn(planet, p.pos.clone().sub(planet.center).normalize(), 0.1);
+    const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1, 6), new THREE.MeshBasicMaterial({ color: 0xffe0b2 }));
+    const hook = models.makeGrappleHook();
+    hook.scale.setScalar(2);
+    this.scene.add(rope, hook);
+    p.grapple = { planet, point, rope, hook, startedAt: this.now };
+    p.vel.set(0, 0, 0);
+    return true;
+  }
+
+  updateGrapple() {
+    const p = this.player;
+    const g = p.grapple;
+    const hand = this.playerBody();
+    const elapsed = this.now - g.startedAt;
+    // the hook flies out first, then the rope pulls her
+    const reach = Math.min(1, elapsed / 250);
+    const hookAt = hand.clone().lerp(g.point, reach);
+    g.hook.position.copy(hookAt);
+    g.hook.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), g.point.clone().sub(hand).normalize());
+    g.rope.position.copy(hand).lerp(hookAt, 0.5);
+    g.rope.scale.y = Math.max(0.01, hand.distanceTo(hookAt));
+    g.rope.quaternion.copy(g.hook.quaternion);
+    if (reach < 1) {
+      p.vel.set(0, 0, 0);
+      return;
+    }
+    const toPoint = g.point.clone().sub(p.pos);
+    const distance = toPoint.length();
+    // she faces where she's flying
+    const up = this.upAt(p.planet, p.pos);
+    const along = toPoint.clone().addScaledVector(up, -toPoint.dot(up));
+    if (along.lengthSq() > 1e-4) p.forward.copy(along.normalize());
+    if (distance < 0.8 || elapsed > 4000) {
+      // let go just above the planet: its gravity does the rest
+      p.vel.copy(g.planet.center).sub(p.pos).normalize().multiplyScalar(2);
+      this.stopGrapple();
+      return;
+    }
+    p.vel.copy(toPoint).multiplyScalar(Math.min(GRAPPLE_SPEED, distance * 6) / distance);
+  }
+
+  stopGrapple() {
+    const g = this.player?.grapple;
+    if (!g) return;
+    this.scene.remove(g.rope, g.hook);
+    g.rope.geometry.dispose();
+    this.player.grapple = null;
+  }
+
   startBeam(saucer) {
+    this.stopGrapple();
     this.beam = { saucer, startedAt: this.now, wiggles: 0, lastSide: 0, mesh: models.makeTractorBeam() };
     this.scene.add(this.beam.mesh);
     audio.play('fly');

@@ -666,3 +666,18 @@ export function makeJail() {
   }
   return group;
 }
+
+// AGENT WHISKERS' grappling hook (World 2): a dark shaft with two curved prongs, pointing along +Y
+export function makeGrappleHook() {
+  const group = new THREE.Group();
+  const metal = new THREE.MeshStandardMaterial({ color: 0x37474f, metalness: 0.7, roughness: 0.35 });
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.6, 8), metal);
+  group.add(shaft);
+  [-1, 1].forEach((side) => {
+    const prong = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.045, 6, 12, Math.PI * 0.75), metal);
+    prong.position.set(side * 0.2, 0.25, 0);
+    prong.rotation.z = side > 0 ? 0 : Math.PI * 0.25;
+    group.add(prong);
+  });
+  return group;
+}
