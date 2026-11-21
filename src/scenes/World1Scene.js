@@ -5,6 +5,7 @@ import { SideScrollerScene, VIEW_WIDTH, VIEW_HEIGHT } from './SideScrollerScene.
 import { createPizzaBossTexture } from '../art/pizzaBoss.js';
 import { openKeypad, drawKeypadPost } from '../keypad.js';
 import { writeSave } from '../save.js';
+import { unlockTrophy } from '../trophies.js';
 import { KEYS } from '../characters.js';
 import { heroKey } from '../art/heroes.js';
 import { drawComicBubble } from '../comicBubble.js';
@@ -123,6 +124,7 @@ export class World1Scene extends SideScrollerScene {
     super('World1', {
       world: 1,
       keyId: 'world1',
+      cleanTrophy: 'pizzaClean',
       music: 'city',
       bossName: 'game.pizzaBoss',
       disco: { x: 1486, y: 355 }, // the secret disco: a crack in the first water tower's tank
@@ -517,6 +519,8 @@ export class World1Scene extends SideScrollerScene {
   // The right code: the portal swirls open
   openPortal() {
     this.portalOpen = true;
+    unlockTrophy(this.save, 'portal');
+    writeSave(this.save);
     audio.play('forceField');
     this.cameras.main.flash(400, 206, 147, 216);
     const message = this.bigMessage(t('keypad.open'), '#e1bee7').setScale(0.6);

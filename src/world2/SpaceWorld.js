@@ -7,6 +7,7 @@ import { getCharacter, pickDance, CAT_FIREWORKS } from '../characters.js';
 import { getDifficulty, BAD_GUY_REWARD, BOSS_REWARD } from '../difficulty.js';
 import { writeSave, addBaby, activePowerUps } from '../save.js';
 import { megaBeamOn } from '../megaBeam.js';
+import { unlockTrophy } from '../trophies.js';
 import { Hud } from './hud.js';
 import { tipWanted, markTipSeen, tipText, TIP_MIN_MS } from '../tips.js';
 import { drawingMode, ThreeSketch } from '../sketch.js';
@@ -14,6 +15,7 @@ import { PLANETS, START_PLANET, FORCE_FIELD_RADIUS, JUMPS, BOLT_RINGS, BAD_GUYS,
 import * as models from './models.js';
 import { SpaceMegaBeam } from './spaceMegaBeam.js';
 import { SpaceSniper } from './spaceSniper.js';
+import { KEYS } from '../adventure/AdventureWorld.js';
 
 // World 2: 3D space. Each little planet pulls you toward its center, so you can walk all the way around it.
 // Jumping is floaty (moon jumps); jump from the yellow rings to reach the next planet.
@@ -99,6 +101,13 @@ const SLIDE_REACH = 1.9;
 
 const vec = (array) => new THREE.Vector3(...array);
 
+// 2 PLAYERS TEAM (Ethan, 2026-11-21): split screen, P1 on the left. Each player is a "seat" (see makeSeat);
+// use(seat) points this.player, this.character, this.camera... at that player, so the one-player code works for both.
+const SEAT_FIELDS = ['player', 'character', 'heroMaterials', 'mechaModel', 'aura', 'shieldMesh', 'camera'];
+// The one-player keys the code asks for, and which action they mean (in TEAM each player has their own keys).
+const ACTION_OF = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', Space: 'jump', KeyX: 'attack', KeyC: 'special' };
+const PAD_BUTTONS = { 0: 'jump', 1: 'attack', 2: 'attack', 3: 'special', 12: 'up', 13: 'down', 14: 'left', 15: 'right' };
+
 // Turns `object` so its +Y points along `up` and its +Z along `forward`.
 function orient(object, up, forward) {
   let z = forward.clone().addScaledVector(up, -forward.dot(up));
@@ -123,13 +132,16 @@ function slide(dir, heading, angle) {
 }
 
 export class SpaceWorld {
-  constructor({ container, save, onExit, discoPictures }) {
+  // team: { heroes: [hero1, hero2] } for 2 PLAYERS TEAM (split screen, shared hearts, a bolt race, no power-ups).
+  constructor({ container, save, onExit, discoPictures, team = null }) {
     this.container = container;
+    this.team = Boolean(team);
+    this.heroes = team ? team.heroes : [save.selected];
     this.discoPictures = discoPictures;
     this.disco = false;
     this.magic = new Magic(); // the magic strawberry (strawberry.js)
     this.megaBeam = new SpaceMegaBeam(this); // the MEGA BEAM (spaceMegaBeam.js)
-    this.powerUps = activePowerUps(save); // the power-ups you own that are switched ON
+    this.powerUps = team ? [] : activePowerUps(save); // the power-ups you own that are switched ON (TEAM has none, like the other team modes)
     this.sniper = this.powerUps.includes('supa-sniper') ? new SpaceSniper(this) : null; // the SUPA SNIPER (spaceSniper.js)
     this.save = save;
     this.onExit = onExit;
@@ -175,8 +187,11 @@ export class SpaceWorld {
     this.resize = () => {
       const { clientWidth: width, clientHeight: height } = this.container;
       this.renderer.setSize(width, height, false);
-      this.camera.aspect = width / height;
-      this.camera.updateProjectionMatrix();
+      const split = this.team && !this.trip ? 2 : 1;
+      for (const camera of this.seats?.map((seat) => seat.camera) ?? [this.camera]) {
+        camera.aspect = width / split / height;
+        camera.updateProjectionMatrix();
+      }
     };
     this.resize();
     window.addEventListener('resize', this.resize);
@@ -318,27 +333,48 @@ export class SpaceWorld {
   }
 
   createPlayer() {
+    this.hasMecha = this.powerUps.includes('mecha-capybara');
+    this.hasFreeze = this.powerUps.includes('freeze');
+    this.hasShield = this.powerUps.includes('shield');
+    this.shieldIsBubble = this.powerUps.includes('multi-direction');
+    this.hasFly = this.powerUps.includes('fly');
+    this.seats = this.heroes.map((id, i) => this.makeSeat(id, i));
+    if (this.team) {
+      // Shared hearts (Ethan, 2026-11-21): player 2's hearts ARE player 1's
+      const first = this.seats[0].player;
+      Object.defineProperty(this.seats[1].player, 'hearts', { get: () => first.hearts, set: (value) => (first.hearts = value) });
+    }
+    this.use(this.seats[0]);
+    this.resize();
+  }
+
+  // One player: the hero model, its own power meshes, camera, keys and the bolt race count.
+  makeSeat(id, index) {
+    const character = getCharacter(id);
     const palette = this.save.keys.includes('world3') ? this.save.palette ?? 0 : 0; // secret colors
-    const { group, legs, cape } = models.makeHero(this.character.id, palette, this.save.wearing?.[this.character.id]);
+    const { group, legs, cape } = models.makeHero(id, palette, this.save.wearing?.[id]);
     this.scene.add(group);
     // The hero gets its own materials, so turning invisible doesn't make anything else see-through.
-    this.heroMaterials = [];
+    const heroMaterials = [];
     group.traverse((part) => {
       if (!part.material) return;
       part.material = part.material.clone();
       part.material.transparent = true;
-      this.heroMaterials.push(part.material);
+      heroMaterials.push(part.material);
     });
     const planet = this.planet(START_PLANET);
-    this.player = {
+    const forward = planet.jumpDir.clone().addScaledVector(planet.spawn, -planet.jumpDir.dot(planet.spawn)).normalize();
+    // Player 2 starts a few steps to the side of player 1
+    const spawnDir = planet.spawn.clone().applyAxisAngle(forward, (index * 1.6) / planet.radius).normalize();
+    const player = {
       model: group,
       legs,
       cape,
       planet,
       checkpoint: planet,
-      pos: this.pointOn(planet, planet.spawn, 0),
+      pos: this.pointOn(planet, spawnDir, 0),
       vel: new THREE.Vector3(),
-      forward: planet.jumpDir.clone().addScaledVector(planet.spawn, -planet.jumpDir.dot(planet.spawn)).normalize(),
+      forward,
       onGround: true,
       airJumpsLeft: 0,
       hearts: this.settings.hearts,
@@ -357,26 +393,102 @@ export class SpaceWorld {
       mechaUsed: false,
       tongue: null,
     };
-    this.hasMecha = this.powerUps.includes('mecha-capybara');
-    this.hasFreeze = this.powerUps.includes('freeze');
-    this.mechaModel = models.makeMecha();
-    this.mechaModel.visible = false;
-    this.scene.add(this.mechaModel);
-    this.hasShield = this.powerUps.includes('shield');
-    this.shieldIsBubble = this.powerUps.includes('multi-direction');
-    this.hasFly = this.powerUps.includes('fly');
-
-    if (this.character.fireAura) {
-      this.aura = models.makeAura(this.character.auraColor);
-      this.scene.add(this.aura);
+    const mechaModel = models.makeMecha();
+    mechaModel.visible = false;
+    this.scene.add(mechaModel);
+    let aura;
+    if (character.fireAura) {
+      aura = models.makeAura(character.auraColor);
+      this.scene.add(aura);
     }
-    this.shieldMesh = this.shieldIsBubble
+    const shieldMesh = this.shieldIsBubble
       ? new THREE.Mesh(new THREE.SphereGeometry(1.5, 20, 16), new THREE.MeshBasicMaterial({ color: 0x4fc3f7, transparent: true, opacity: 0.25, depthWrite: false }))
       : new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.6, 0.12), new THREE.MeshBasicMaterial({ color: 0x4fc3f7, transparent: true, opacity: 0.45 }));
-    this.shieldMesh.visible = false;
-    this.scene.add(this.shieldMesh);
+    shieldMesh.visible = false;
+    this.scene.add(shieldMesh);
+    const camera = index === 0 ? this.camera : new THREE.PerspectiveCamera(65, 16 / 9, 0.1, 2000);
+    camera.position.copy(player.pos).add(new THREE.Vector3(0, 6, 10));
+    return {
+      index,
+      player,
+      character,
+      heroMaterials,
+      mechaModel,
+      aura,
+      shieldMesh,
+      camera,
+      keys: this.team ? KEYS[index ? 'p2' : 'p1'] : null,
+      padIndex: index,
+      padDown: new Set(),
+      padPressed: new Set(),
+      bolts: 0, // the bolt race (TEAM)
+      powerText: '',
+    };
+  }
 
-    this.camera.position.copy(this.player.pos).add(new THREE.Vector3(0, 6, 10));
+  // Point the one-player code at this seat's player.
+  use(seat) {
+    this.seat = seat;
+    for (const field of SEAT_FIELDS) this[field] = seat[field];
+  }
+
+  // Runs fn for every player, then goes back to whoever was current.
+  eachSeat(fn) {
+    const before = this.seat;
+    for (const seat of this.seats) {
+      this.use(seat);
+      fn(seat);
+    }
+    this.use(before);
+  }
+
+  // The player a bad guy cares about: the closest one on its planet (or just the closest one).
+  seatNear(planet, pos) {
+    if (this.seats.length === 1) return this.seats[0];
+    const score = (seat) => seat.player.pos.distanceTo(pos) + (seat.player.planet === planet ? 0 : 1000);
+    return this.seats.reduce((best, seat) => (score(seat) < score(best) ? seat : best));
+  }
+
+  // TEAM: each player's own game controller (the scene stops gamepadKeys.js from turning them into keys).
+  pollPads() {
+    const pads = navigator.getGamepads?.() ?? [];
+    for (const seat of this.seats) {
+      const pad = pads[seat.padIndex];
+      const down = new Set();
+      if (pad) {
+        for (const [index, action] of Object.entries(PAD_BUTTONS)) {
+          const button = pad.buttons[index];
+          if (button && (button.pressed || button.value > 0.5)) down.add(action);
+        }
+        const [x = 0, y = 0] = pad.axes;
+        if (x < -0.5) down.add('left');
+        if (x > 0.5) down.add('right');
+        if (y < -0.5) down.add('up');
+        if (y > 0.5) down.add('down');
+      }
+      seat.padPressed = new Set([...down].filter((action) => !seat.padDown.has(action)));
+      seat.padDown = down;
+    }
+  }
+
+  // The bolt race (Ethan, 2026-11-21): who collected more?
+  showRace() {
+    if (!this.team) return;
+    if (!this.raceBox) {
+      this.raceBox = document.createElement('div');
+      this.raceBox.style.cssText =
+        "position:absolute;top:64px;left:0;right:0;display:flex;justify-content:space-around;pointer-events:none;font:22px 'Arial Black',Arial,sans-serif;" +
+        'color:#ffd23f;text-shadow:-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000;z-index:5;';
+      this.raceBox.innerHTML = '<span></span><span></span>';
+      this.container.appendChild(this.raceBox);
+    }
+    this.seats.forEach((seat, i) => (this.raceBox.children[i].textContent = `P${i + 1} ⚡ ${seat.bolts}`));
+  }
+
+  raceResult() {
+    const [a, b] = this.seats.map((seat) => seat.bolts);
+    if (a === b) return t('team.raceTie');
+    return t('team.raceWinner', { player: a > b ? 1 : 2 });
   }
 
   createHud() {
@@ -392,6 +504,12 @@ export class SpaceWorld {
       bossName: t('game.grapeBoss'),
     });
     if (this.save.touch) this.hud.hideKeyboardHints();
+    if (this.team) {
+      this.hud.el('split').style.display = 'block';
+      this.hud.el('controls').textContent = t('quest.twoPlayerKeys');
+      this.hud.el('hint').textContent = '';
+      this.showRace();
+    }
     this.hud.setHearts(this.player.hearts);
     this.hud.setBolts(this.save.bolts);
     this.hud.setCrystals(0);
@@ -417,11 +535,21 @@ export class SpaceWorld {
   }
 
   down(...codes) {
-    return codes.some((code) => this.keysDown.has(code));
+    const seat = this.seat;
+    if (!seat?.keys) return codes.some((code) => this.keysDown.has(code));
+    return codes.some((code) => {
+      const action = ACTION_OF[code];
+      return Boolean(action) && ((seat.keys[action] ?? []).some((key) => this.keysDown.has(key)) || seat.padDown.has(action));
+    });
   }
 
   pressed(...codes) {
-    return codes.some((code) => this.keysPressed.has(code));
+    const seat = this.seat;
+    if (!seat?.keys) return codes.some((code) => this.keysPressed.has(code));
+    return codes.some((code) => {
+      const action = ACTION_OF[code];
+      return Boolean(action) && ((seat.keys[action] ?? []).some((key) => this.keysPressed.has(key)) || seat.padPressed.has(action));
+    });
   }
 
   // ---------- Helpers ----------
@@ -542,24 +670,32 @@ export class SpaceWorld {
       this.frame = requestAnimationFrame((next) => this.loop(next));
       return;
     }
+    this.use(this.seats[0]);
     if (this.trip) {
       this.updateTrip(dt);
     } else if (this.danceState) {
       this.updateDance(dt);
     } else if (!this.won) {
-      if (this.beam) this.updateBeam(dt);
-      else this.updatePlayer(dt);
-      this.updatePowers();
+      if (this.team) this.pollPads();
+      this.eachSeat(() => {
+        if (this.player.beam) this.updateBeam(dt);
+        else this.updatePlayer(dt);
+        this.updatePowers();
+        this.updateShip();
+        this.updateAgentBox();
+      });
+      this.hud.setPower(this.team ? this.seats.map((seat, i) => seat.powerText && `P${i + 1}: ${seat.powerText}`).filter(Boolean).join('     ') : this.seat.powerText);
+      this.tryStartDance();
       this.updateEnemies(dt);
-      this.updateShip();
-      this.updateAgentBox();
+      this.use(this.bossTarget());
       this.updateBoss(dt);
+      this.use(this.seats[0]);
       this.checkTips();
     }
     this.updateShots(dt);
     this.updateEffects(dt);
     this.updatePickups(dt);
-    if (!this.trip) this.updateCamera(dt);
+    if (!this.trip) this.eachSeat(() => this.updateCamera(dt));
 
     this.keysPressed.clear();
     this.draw();
@@ -568,6 +704,20 @@ export class SpaceWorld {
 
   // DRAWING MODE (save.drawingMode): the 3D world drawn like a notebook sketch (see src/sketch.js)
   draw() {
+    if (this.team && !this.trip) {
+      // Split screen: player 1 on the left, player 2 on the right (no sketch effect here)
+      const { clientWidth: width, clientHeight: height } = this.container;
+      const half = width / 2;
+      this.renderer.setScissorTest(true);
+      this.seats.forEach((seat, i) => {
+        this.renderer.setViewport(i * half, 0, half, height);
+        this.renderer.setScissor(i * half, 0, half, height);
+        this.renderer.render(this.scene, seat.camera);
+      });
+      this.renderer.setScissorTest(false);
+      this.renderer.setViewport(0, 0, width, height);
+      return;
+    }
     if (drawingMode(this.save)) {
       this.sketch ??= new ThreeSketch(this.renderer);
       this.sketch.render(this.scene, this.camera);
@@ -671,22 +821,10 @@ export class SpaceWorld {
 
     if (this.pressed('KeyX') || this.down('KeyX')) this.attack();
     this.updateTongue();
-
-    if (this.pendingDance && p.onGround && !this.beam) {
-      const { id, done } = this.pendingDance;
-      this.pendingDance = null;
-      p.mechaUntil = Math.min(p.mechaUntil, this.now);
-      p.flyUntil = Math.min(p.flyUntil, this.now);
-      p.vel.set(0, 0, 0);
-      p.model.visible = true;
-      this.mechaModel.visible = false;
-      this.danceState = { id, done, start: this.now, ms: id === 'wiggle' ? 1900 : id === 'fireworks' ? 2600 : 1700, hop: -1, bursts: [] };
-      audio.play('dance');
-    }
   }
 
   landed(planet) {
-    this.landedAt = this.now;
+    this.player.landedAt = this.now;
     if (planet.ship) return;
     if (!planet.boss || this.fieldDown) this.player.checkpoint = planet;
     if (this.fieldDown && planet.boss && !this.bossStarted) this.startBoss();
@@ -756,12 +894,12 @@ export class SpaceWorld {
       audio.play('lens');
       this.hud.message?.('🔍', t('game.lens'), 1200);
     }
-    if (this.character.nightEyes && this.pressed('KeyC') && !this.ghostMoons && this.now >= (p.nightEyesReadyAt ?? 0)) {
+    if (this.character.nightEyes && this.pressed('KeyC') && !p.ghostMoons && this.now >= (p.nightEyesReadyAt ?? 0)) {
       p.nightEyesUntil = this.now + NIGHT_EYES_MS;
       audio.play('nightEyes');
       this.makeGhostMoons(p);
     }
-    if (this.ghostMoons && this.now >= p.nightEyesUntil) {
+    if (p.ghostMoons && this.now >= p.nightEyesUntil) {
       p.nightEyesReadyAt = this.now + NIGHT_EYES_WAIT_MS;
       this.removeGhostMoons(p);
     }
@@ -776,8 +914,8 @@ export class SpaceWorld {
       audio.play('mecha');
     }
 
-    if (this.pressed('KeyB')) this.eatStrawberry();
-    if (this.pressed('KeyG') && megaBeamOn(this.save)) this.megaBeam.start();
+    if (this.pressed('KeyB') && !this.team) this.eatStrawberry();
+    if (this.pressed('KeyG') && megaBeamOn(this.save) && !this.team) this.megaBeam.start();
     if (this.sniper && this.pressed('KeyT')) this.sniper.open();
     this.megaBeam.update();
     this.updateRainbow();
@@ -816,11 +954,12 @@ export class SpaceWorld {
     if (this.hasMecha) {
       parts.push(p.mechaUsed && !this.mecha ? `R = ${t('game.mecha')}: ${t('game.used')}` : status('R', t('game.mecha'), p.mechaUntil, 0));
     }
-    if (megaBeamOn(this.save)) parts.push(this.megaBeam.status());
+    if (megaBeamOn(this.save) && !this.team) parts.push(this.megaBeam.status());
     if (this.sniper) parts.push(this.sniper.status());
     if (this.rainbow) parts.push(`🌈 ${t('strawberry.magic')}! ${this.magic.secondsLeft(this.now)}`);
-    else parts.push(bagText(this.save));
-    this.hud.setPower(parts.filter(Boolean).join('     '));
+    else if (!this.team) parts.push(bagText(this.save));
+    // In TEAM the keys are different, so only the names and timers (no "C =")
+    this.seat.powerText = parts.filter(Boolean).map((part) => (this.team ? part.replace(/^[A-Z] = /, '') : part)).join('     ');
   }
 
   // The WADDLE SLIDE knocks over every bad guy right in front of him (a few times a slide, so bosses get bumped too)
@@ -1054,6 +1193,7 @@ export class SpaceWorld {
     this.container.append(bubble);
     this.agentBubble = bubble;
     const seconds = 5;
+    const finder = this.seat;
     this.addEffect(group, seconds, (m, k) => {
       const time = k * seconds;
       const leap = Math.min(1, time / 0.7);
@@ -1061,7 +1201,7 @@ export class SpaceWorld {
       m.position.copy(base).lerp(land, leap).addScaledVector(landDir, jump);
       if (time > 0.7 && bubble.isConnected) {
         bubble.style.visibility = 'visible';
-        const head = this.toScreen(land.clone().addScaledVector(landDir, 1.9));
+        const head = this.toScreen(land.clone().addScaledVector(landDir, 1.9), finder);
         bubble.style.left = `${Math.min(Math.max(head.x, 160), this.container.clientWidth - 160)}px`;
         bubble.style.top = `${Math.min(Math.max(head.y, bubble.offsetHeight + 10), this.container.clientHeight - 30)}px`;
       }
@@ -1083,7 +1223,7 @@ export class SpaceWorld {
     const up = offset.clone().normalize();
     const heading = dir.clone().addScaledVector(up, -dir.dot(up)).normalize();
     this.scene.add(mesh);
-    this.shots.push({ mesh, planet, offset, heading, speed, life, damage, fromPlayer, homing, mega, cuffs, gadget, boomerang, turnAt: life / 2 });
+    this.shots.push({ mesh, planet, offset, heading, speed, life, damage, fromPlayer, homing, mega, cuffs, gadget, boomerang, turnAt: life / 2, owner: this.seat });
   }
 
   scratch() {
@@ -1166,9 +1306,10 @@ export class SpaceWorld {
   // ---------- Shots: they fly around the planet they started on ----------
 
   updateShots(dt) {
-    const body = this.playerBody();
+    const before = this.seat;
     for (const shot of this.shots) {
       shot.life -= dt;
+      if (shot.fromPlayer && shot.owner) this.use(shot.owner); // (bolts for the bolt race go to whoever shot)
       if (shot.homing) this.steerTowardNearest(shot);
       const axis = new THREE.Vector3().crossVectors(shot.offset, shot.heading).normalize();
       const angle = (shot.speed * dt) / shot.offset.length();
@@ -1210,15 +1351,20 @@ export class SpaceWorld {
           this.landedHit();
         }
       } else if (!this.won) {
-        const toShot = shot.mesh.position.clone().sub(body);
-        if (this.shielded && (this.shieldIsBubble ? toShot.length() < 1.6 : toShot.length() < 1.8 && toShot.dot(this.player.forward) > 0.6)) {
-          shot.life = 0;
-        } else if (toShot.length() < 0.8 && !this.invisible) {
-          this.hurt(shot.mesh.position);
-          shot.life = 0;
+        for (const seat of this.seats) {
+          this.use(seat);
+          const toShot = shot.mesh.position.clone().sub(this.playerBody());
+          if (this.shielded && (this.shieldIsBubble ? toShot.length() < 1.6 : toShot.length() < 1.8 && toShot.dot(this.player.forward) > 0.6)) {
+            shot.life = 0;
+          } else if (toShot.length() < 0.8 && !this.invisible) {
+            this.hurt(shot.mesh.position);
+            shot.life = 0;
+          }
+          if (shot.life <= 0) break;
         }
       }
     }
+    this.use(before);
     for (const shot of this.shots.filter((s) => s.life <= 0)) {
       this.scene.remove(shot.mesh);
       if (shot.gadget) this.landGadget(shot);
@@ -1240,7 +1386,10 @@ export class SpaceWorld {
       m.userData.light.visible = Math.floor(k * 8) % 2 === 0;
       if (k < 1 || boomed) return;
       boomed = true;
+      const before = this.seat;
+      if (shot.owner) this.use(shot.owner);
       this.gadgetBoom(pos, shot.damage);
+      this.use(before);
     });
   }
 
@@ -1301,8 +1450,7 @@ export class SpaceWorld {
   }
 
   updateEnemies(dt) {
-    const p = this.player;
-    const body = this.playerBody();
+    const before = this.seat;
     const seeDistance = this.settings.enemySeeDistance / 50;
     const shotSpeed = this.settings.enemyShotSpeed / 30;
 
@@ -1313,6 +1461,9 @@ export class SpaceWorld {
         enemy.ice.position.copy(this.enemyPosition(enemy));
         continue;
       }
+      this.use(this.seatNear(enemy.planet, this.enemyPosition(enemy)));
+      const p = this.player;
+      const body = this.playerBody();
       if (enemy.kind === 'saucer') {
         this.updateSaucer(enemy, dt);
         continue;
@@ -1369,6 +1520,7 @@ export class SpaceWorld {
       const color = enemy.kind === 'alien' ? 0x76ff03 : 0xffa000; // aliens shoot green ray-gun zaps
       for (const dir of directions) this.enemyShoot(enemy.planet, position, dir, shotSpeed, color);
     }
+    this.use(before);
   }
 
   enemyShoot(planet, start, dir, speed, color = 0xffa000) {
@@ -1425,21 +1577,27 @@ export class SpaceWorld {
   loseHeart() {
     const p = this.player;
     p.hearts -= 1;
+    if (this.bossStarted) this.bossHurt = true; // (no "without getting hurt" trophy)
     if (p.hearts > 0) {
       this.hud.setHearts(p.hearts);
       return true;
     }
     p.hearts = this.settings.hearts;
     this.hud.setHearts(p.hearts);
-    this.respawn();
+    if (this.team) {
+      this.eachSeat(() => this.respawn()); // shared hearts: you lose together, and both start again
+      this.hud.message('', t('team.bothLost'), 2500);
+    } else {
+      this.respawn();
+    }
     return false;
   }
 
   respawn() {
     const p = this.player;
     this.stopGrapple();
-    if (this.beam) this.endBeam(false);
-    if (this.inShip) this.clearShip();
+    if (this.player.beam) this.endBeam(false);
+    if (this.player.inShip) this.clearShip();
     const planet = p.checkpoint;
     p.planet = planet;
     p.pos.copy(this.pointOn(planet, planet.spawn, 0));
@@ -1448,7 +1606,7 @@ export class SpaceWorld {
     p.forward.copy(planet.jumpDir ?? anyTangent(planet.spawn));
     p.safeUntil = this.now + this.settings.hurtSafeMs;
     p.flyUntil = 0;
-    this.landedAt = this.now;
+    this.player.landedAt = this.now;
   }
 
   // ---------- Flying saucers and the alien spaceship ----------
@@ -1470,13 +1628,26 @@ export class SpaceWorld {
       return;
     }
     const position = this.enemyPosition(saucer);
-    if (this.beam?.saucer !== saucer) {
-      const hunting = p.planet === saucer.planet && !this.invisible && !this.inShip && !this.megaBeam.active(); // no grabbing during the MEGA BEAM
+    const beaming = this.seats.some((seat) => seat.player.beam?.saucer === saucer);
+    if (beaming && this.team) {
+      // The friend can jump into the beam on purpose, to follow into the spaceship (Ethan, 2026-11-21)
+      for (const seat of this.seats) {
+        const q = seat.player;
+        if (q.beam || q.inShip || q.planet !== saucer.planet) continue;
+        if (saucer.dir.angleTo(this.upAt(saucer.planet, q.pos)) * saucer.planet.radius < BEAM_RANGE) {
+          const before = this.seat;
+          this.use(seat);
+          this.startBeam(saucer);
+          this.use(before);
+        }
+      }
+    } else if (!beaming) {
+      const hunting = p.planet === saucer.planet && !this.invisible && !this.player.inShip && !this.megaBeam.active(); // no grabbing during the MEGA BEAM
       const playerDir = this.upAt(saucer.planet, p.pos);
       const distance = saucer.dir.angleTo(playerDir) * saucer.planet.radius;
       if (hunting) this.turnToward(saucer, playerDir, dt * 2);
       if (!hunting || distance > 0.4) slide(saucer.dir, saucer.heading, (SAUCER_SPEED * dt) / (saucer.planet.radius + SAUCER_ALTITUDE));
-      const settled = this.now > (this.landedAt ?? 0) + SAUCER_GRACE_MS;
+      const settled = this.now > (this.player.landedAt ?? 0) + SAUCER_GRACE_MS;
       if (hunting && settled && distance < BEAM_RANGE && p.onGround && this.now > saucer.readyAt) this.startBeam(saucer);
     }
     saucer.mesh.position.copy(this.pointOn(saucer.planet, saucer.dir, saucer.altitude + 0.15 * Math.sin(this.now / 400 + saucer.phase)));
@@ -1485,7 +1656,7 @@ export class SpaceWorld {
     // Jump on it from above to knock it
     const toPlayer = this.playerBody().sub(position);
     const falling = p.vel.dot(this.upAt(p.planet, p.pos)) < 0;
-    if (!this.beam && toPlayer.length() < 1.7 && falling && toPlayer.dot(saucer.dir) > 0.3) {
+    if (!p.beam && toPlayer.length() < 1.7 && falling && toPlayer.dot(saucer.dir) > 0.3) {
       this.defeat(saucer);
       this.stompBounce();
     }
@@ -1493,7 +1664,12 @@ export class SpaceWorld {
 
   // Knocked down: the saucer breaks, and the alien jumps out to fight you on foot.
   saucerDown(saucer) {
-    if (this.beam?.saucer === saucer) this.endBeam(false);
+    const before = this.seat;
+    for (const seat of this.seats.filter((s) => s.player.beam?.saucer === saucer)) {
+      this.use(seat);
+      this.endBeam(false);
+    }
+    this.use(before);
     audio.play('explosion');
     this.pop(this.enemyPosition(saucer), 0xb0bec5, 2);
     this.addAlien(saucer.planet, saucer.dir.clone());
@@ -1583,15 +1759,15 @@ export class SpaceWorld {
 
   startBeam(saucer) {
     this.stopGrapple();
-    this.beam = { saucer, startedAt: this.now, wiggles: 0, lastSide: 0, mesh: models.makeTractorBeam() };
-    this.scene.add(this.beam.mesh);
+    this.player.beam = { saucer, startedAt: this.now, wiggles: 0, lastSide: 0, mesh: models.makeTractorBeam() };
+    this.scene.add(this.player.beam.mesh);
     audio.play('fly');
     this.hud.message('', t('game.wiggle'), 2500);
   }
 
   // In the beam: you float up toward the saucer. Press left and right, left and right... to wiggle free!
   updateBeam(dt) {
-    const beam = this.beam;
+    const beam = this.player.beam;
     const saucer = beam.saucer;
     const p = this.player;
     if (!saucer.alive || saucer.ice) {
@@ -1625,9 +1801,9 @@ export class SpaceWorld {
   }
 
   endBeam(escaped) {
-    const beam = this.beam;
+    const beam = this.player.beam;
     this.scene.remove(beam.mesh);
-    this.beam = null;
+    this.player.beam = null;
     beam.saucer.readyAt = this.now + SAUCER_REST_MS;
     if (!escaped) return;
     audio.play('bounce');
@@ -1637,11 +1813,12 @@ export class SpaceWorld {
 
   // Pulled inside the spaceship: it's full of aliens!
   enterShip() {
-    const saucer = this.beam.saucer;
+    const saucer = this.player.beam.saucer;
     this.endBeam(false);
     saucer.readyAt = this.now + SAUCER_REST_MS * 2;
-    this.shipReturn = { planet: saucer.planet, dir: saucer.dir.clone() };
-    this.inShip = true;
+    this.player.shipReturn = { planet: saucer.planet, dir: saucer.dir.clone() };
+    const friendInside = this.seats.some((seat) => seat.player.inShip); // (TEAM: the friend followed you in)
+    this.player.inShip = true;
     const p = this.player;
     const ship = this.shipPlanet;
     p.planet = ship;
@@ -1650,16 +1827,16 @@ export class SpaceWorld {
     p.onGround = true;
     p.forward.copy(anyTangent(ship.spawn));
     p.safeUntil = this.now + this.settings.hurtSafeMs * 2;
-    this.landedAt = this.now;
+    this.player.landedAt = this.now;
     this.camera.position.copy(p.pos).addScaledVector(ship.spawn, 3.5).addScaledVector(p.forward, -7);
-    for (const dir of SHIP.aliens) this.addAlien(ship, vec(dir).normalize(), { inShip: true });
+    if (!friendInside) for (const dir of SHIP.aliens) this.addAlien(ship, vec(dir).normalize(), { inShip: true });
     audio.play('blastOff');
     this.hud.message(t('game.abducted'), t('game.beatAliens'), 3000);
   }
 
   // Beat all the aliens and the big red button shows up. Press it (walk onto it) to drop back down.
   updateShip() {
-    if (!this.inShip) return;
+    if (!this.player.inShip) return;
     const aliensLeft = this.enemies.some((e) => e.inShip && e.alive);
     if (!aliensLeft && !this.redButton) {
       const dir = vec(SHIP.button).normalize();
@@ -1674,6 +1851,8 @@ export class SpaceWorld {
   }
 
   clearShip() {
+    this.player.inShip = false;
+    if (this.seats.some((seat) => seat.player.inShip)) return; // the friend is still fighting in there
     for (const enemy of this.enemies.filter((e) => e.inShip)) {
       enemy.alive = false;
       this.scene.remove(enemy.mesh);
@@ -1682,34 +1861,52 @@ export class SpaceWorld {
     this.enemies = this.enemies.filter((e) => !e.inShip);
     if (this.redButton) this.scene.remove(this.redButton);
     this.redButton = null;
-    this.inShip = false;
   }
 
   // You pressed the button: back down to the planet, with an alien baby for Cube Islands!
   leaveShip() {
-    this.clearShip();
-    const p = this.player;
-    const { planet, dir } = this.shipReturn;
-    p.planet = planet;
-    p.pos.copy(this.pointOn(planet, dir, 0));
-    p.vel.set(0, 0, 0);
-    p.onGround = true;
-    p.safeUntil = this.now + this.settings.hurtSafeMs;
-    this.landedAt = this.now;
-    this.camera.position.copy(p.pos).addScaledVector(dir, 3.5).addScaledVector(p.forward, -7);
+    // Everybody inside drops back down (TEAM: the friend too)
+    const before = this.seat;
+    for (const seat of this.seats.filter((s) => s.player.inShip)) {
+      this.use(seat);
+      this.clearShip();
+      const p = this.player;
+      const { planet, dir } = p.shipReturn;
+      p.planet = planet;
+      p.pos.copy(this.pointOn(planet, dir, 0));
+      p.vel.set(0, 0, 0);
+      p.onGround = true;
+      p.safeUntil = this.now + this.settings.hurtSafeMs;
+      p.landedAt = this.now;
+      this.camera.position.copy(p.pos).addScaledVector(dir, 3.5).addScaledVector(p.forward, -7);
+      this.pop(this.playerBody(), 0x76ff03, 2);
+    }
+    this.use(before);
     addBaby(this.save, 'alien', 'alien');
     audio.play('key');
-    this.pop(this.playerBody(), 0x76ff03, 2);
     this.hud.message(t('game.alienBaby'), t('game.alienBabySub'), 4000);
   }
 
   // ---------- Bolts, crystals and the key ----------
 
   updatePickups(dt) {
+    for (const bolt of this.bolts) if (!bolt.taken) bolt.mesh.rotateY(dt * 3);
+    for (const crystal of this.crystals) if (!crystal.taken) crystal.mesh.rotateY(dt * 2);
+    this.key?.rotateY(dt * 2);
+    this.eachSeat(() => this.pickUp());
+
+    if (this.forceField.visible) {
+      const fade = this.fieldDown ? Math.max(0, this.forceField.material.opacity - dt * 0.2) : 0.15 + 0.05 * Math.sin(this.now / 300);
+      this.forceField.material.opacity = fade;
+      if (fade === 0) this.forceField.visible = false;
+    }
+  }
+
+  // What the current player touches
+  pickUp() {
     const body = this.playerBody();
     for (const bolt of this.bolts) {
       if (bolt.taken) continue;
-      bolt.mesh.rotateY(dt * 3);
       if (bolt.mesh.position.distanceTo(body) < 1.1) {
         bolt.taken = true;
         this.scene.remove(bolt.mesh);
@@ -1720,7 +1917,6 @@ export class SpaceWorld {
 
     for (const crystal of this.crystals) {
       if (crystal.taken) continue;
-      crystal.mesh.rotateY(dt * 2);
       if (crystal.mesh.position.distanceTo(body) < 1.5) {
         crystal.taken = true;
         this.scene.remove(crystal.mesh);
@@ -1732,14 +1928,7 @@ export class SpaceWorld {
       }
     }
 
-    if (this.forceField.visible) {
-      const fade = this.fieldDown ? Math.max(0, this.forceField.material.opacity - dt * 0.2) : 0.15 + 0.05 * Math.sin(this.now / 300);
-      this.forceField.material.opacity = fade;
-      if (fade === 0) this.forceField.visible = false;
-    }
-
     if (this.key) {
-      this.key.rotateY(dt * 2);
       if (this.key.position.distanceTo(body) < 1.6) {
         this.scene.remove(this.key);
         this.key = null;
@@ -1750,9 +1939,12 @@ export class SpaceWorld {
 
   // Twice as much with the Double power-up.
   addBolts(amount) {
-    this.save.bolts += amount * (this.powerUps.includes('double') ? 2 : 1);
+    const bolts = amount * (this.powerUps.includes('double') ? 2 : 1);
+    this.save.bolts += bolts;
+    this.seat.bolts += bolts;
     writeSave(this.save);
     this.hud.setBolts(this.save.bolts);
+    this.showRace();
   }
 
   lowerForceField() {
@@ -1773,7 +1965,7 @@ export class SpaceWorld {
 
   startBoss() {
     this.bossStarted = true;
-    this.player.checkpoint = this.bossPlanet;
+    for (const seat of this.seats) seat.player.checkpoint = this.bossPlanet;
     audio.playMusic('boss');
     this.hud.message(`${t('game.grapeBoss')}!`, '', 2000);
     const mesh = models.makeGrapeBoss();
@@ -1837,11 +2029,19 @@ export class SpaceWorld {
     orient(boss.mesh, boss.up, toPlayer.lengthSq() > 0.01 ? toPlayer : anyTangent(boss.up));
 
     this.updateWave();
+    if (boss.state === 'arriving') return;
+    this.eachSeat(() => {
+      this.bossTouch();
+      this.waveHurt();
+    });
+  }
 
-    // Touching Grape Boss
+  // Touching Grape Boss (the current player)
+  bossTouch() {
+    const boss = this.boss;
+    if (!boss || boss.state === 'defeated') return;
     const p = this.player;
     const body = this.playerBody();
-    if (boss.state === 'arriving') return;
     const top = boss.mesh.position.clone().addScaledVector(boss.up, BOSS_HEIGHT);
     const falling = p.vel.dot(this.upAt(p.planet, p.pos)) < 0 && !p.onGround;
     if (falling && p.pos.distanceTo(top) < 1.8) {
@@ -1900,9 +2100,11 @@ export class SpaceWorld {
     boss.wave = { planet: boss.planet, dir: boss.dir.clone(), startedAt: this.now, ring };
 
     // Landing right on you hurts
-    if (this.player.planet === boss.planet && this.playerBody().distanceTo(this.pointOn(boss.planet, boss.dir, 1)) < 2.5) {
-      this.hurt(boss.mesh.position);
-    }
+    this.eachSeat(() => {
+      if (this.player.planet === boss.planet && this.playerBody().distanceTo(this.pointOn(boss.planet, boss.dir, 1)) < 2.5) {
+        this.hurt(boss.mesh.position);
+      }
+    });
   }
 
   updateWave() {
@@ -1918,12 +2120,28 @@ export class SpaceWorld {
     wave.ring.position.copy(planet.center).addScaledVector(dir, (planet.radius + 0.15) * Math.cos(angle));
     wave.ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
     wave.ring.scale.setScalar(Math.max(0.01, (planet.radius + 0.15) * Math.sin(angle)));
+  }
 
+  // The ground pound wave hurts the current player if it reaches them on the ground (jump over it!)
+  waveHurt() {
+    const wave = this.boss?.wave;
+    if (!wave) return;
+    const angle = ((this.now - wave.startedAt) / 1000) * WAVE_SPEED;
+    const { planet, dir } = wave;
     const p = this.player;
     if (p.planet === planet && p.onGround) {
       const playerAngle = this.upAt(planet, p.pos).angleTo(dir);
       if (Math.abs(playerAngle - angle) < WAVE_WIDTH) this.hurt(p.pos.clone().sub(this.upAt(planet, p.pos)));
     }
+  }
+
+  // Who Grape Boss looks at and jumps at: a player on his planets (the closest), or player 1.
+  bossTarget() {
+    if (!this.boss) return this.seats[0];
+    const onBoss = this.seats.filter((seat) => seat.player.planet.boss);
+    if (!onBoss.length) return this.seats[0];
+    const at = this.boss.mesh.position;
+    return onBoss.reduce((best, seat) => (seat.player.pos.distanceTo(at) < best.player.pos.distanceTo(at) ? seat : best));
   }
 
   hitBoss(amount) {
@@ -1945,6 +2163,7 @@ export class SpaceWorld {
     if (boss.wave) this.scene.remove(boss.wave.ring);
     audio.stopMusic();
     audio.play('explosion');
+    if (!this.bossHurt) unlockTrophy(this.save, 'grapeClean');
     this.addBolts(BOSS_REWARD);
     this.shakeUntil = this.now + 900;
     const center = this.bossCenter();
@@ -1970,7 +2189,7 @@ export class SpaceWorld {
   // ---------- Baby Capybara's tips (see tips.js) ----------
 
   checkTips() {
-    if (!this.save.tips || this.won || this.danceState || this.beam) return;
+    if (!this.save.tips || this.team || this.won || this.danceState || this.player.beam) return;
     const p = this.player;
     if (!p.onGround) return;
     const body = this.playerBody();
@@ -2026,9 +2245,12 @@ export class SpaceWorld {
   }
 
   // Where a 3D point is on the screen, in pixels of the container.
-  toScreen(pos) {
-    const v = pos.clone().project(this.camera);
-    return { x: ((v.x + 1) / 2) * this.container.clientWidth, y: ((1 - v.y) / 2) * this.container.clientHeight };
+  toScreen(pos, seat = this.seat) {
+    const v = pos.clone().project(seat?.camera ?? this.camera);
+    const split = this.team && !this.trip;
+    const width = this.container.clientWidth / (split ? 2 : 1);
+    const left = split ? seat.index * width : 0;
+    return { x: left + ((v.x + 1) / 2) * width, y: ((1 - v.y) / 2) * this.container.clientHeight };
   }
 
   updateTip(dt) {
@@ -2067,15 +2289,44 @@ export class SpaceWorld {
 
   // Once you're standing on the ground, your hero dances, then `done` runs. No dance bought = `done` right away.
   startDance(done) {
-    const id = pickDance(this.save, this.character.id);
-    if (!id) return done();
-    this.pendingDance = { id, done };
+    const ids = this.seats.map((seat) => pickDance(this.save, seat.character.id));
+    if (ids.every((id) => !id)) return done();
+    this.pendingDance = { ids, done };
+  }
+
+  // When everybody is standing on the ground, every hero with a dance does it, all at the same time (TEAM: Ethan, 2026-11-21)
+  tryStartDance() {
+    if (!this.pendingDance || !this.seats.every((seat) => seat.player.onGround && !seat.player.beam)) return;
+    const { ids, done } = this.pendingDance;
+    this.pendingDance = null;
+    let longest = 0;
+    this.eachSeat((seat) => {
+      const p = this.player;
+      p.mechaUntil = Math.min(p.mechaUntil, this.now);
+      p.flyUntil = Math.min(p.flyUntil, this.now);
+      p.vel.set(0, 0, 0);
+      p.model.visible = true;
+      this.mechaModel.visible = false;
+      const id = ids[seat.index];
+      seat.dance = id ? { id, start: this.now, ms: id === 'wiggle' ? 1900 : id === 'fireworks' ? 2600 : 1700, hop: -1, bursts: [] } : null;
+      if (seat.dance) longest = Math.max(longest, seat.dance.ms);
+    });
+    this.danceState = { done, start: this.now, ms: longest };
+    audio.play('dance');
+  }
+
+  updateDance() {
+    this.eachSeat((seat) => seat.dance && this.danceSeat(seat));
+    if (this.now - this.danceState.start < this.danceState.ms) return;
+    const { done } = this.danceState;
+    this.danceState = null;
+    done();
   }
 
   // Waits for the hero to land (the normal loop keeps running until then), then dances in place, facing the camera.
-  updateDance() {
+  danceSeat(seat) {
     const p = this.player;
-    const d = this.danceState;
+    const d = seat.dance;
     const k = Math.min(1, (this.now - d.start) / d.ms);
     const up = this.upAt(p.planet, p.pos);
     p.model.position.copy(p.pos);
@@ -2105,10 +2356,9 @@ export class SpaceWorld {
     }
     if (this.aura) this.aura.position.copy(this.playerBody());
     if (k >= 1) {
-      this.danceState = null;
+      seat.dance = null;
       for (const burst of d.bursts) for (const part of burst.parts) this.scene.remove(part.mesh);
       orient(p.model, up, p.forward);
-      d.done();
     }
   }
 
@@ -2117,7 +2367,7 @@ export class SpaceWorld {
   makeGhostMoons(p) {
     const up = this.upAt(p.planet, p.pos);
     const material = new THREE.MeshStandardMaterial({ color: 0xb3e5fc, transparent: true, opacity: 0.45, emissive: 0x4fc3f7, emissiveIntensity: 0.6 });
-    this.ghostMoons = [1, 2, 3, 4].map((i) => {
+    p.ghostMoons = [1, 2, 3, 4].map((i) => {
       const radius = 1.2;
       const center = p.pos.clone().addScaledVector(p.forward, i * 2.8).addScaledVector(up, radius + 0.6 + i * 1.5);
       const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 16, 12), material);
@@ -2130,10 +2380,15 @@ export class SpaceWorld {
   }
 
   removeGhostMoons(p) {
-    for (const moon of this.ghostMoons) this.scene.remove(moon.mesh);
-    this.planets = this.planets.filter((planet) => !planet.ghost);
-    this.ghostMoons = null;
-    if (p.planet.ghost) {
+    for (const moon of p.ghostMoons) this.scene.remove(moon.mesh);
+    this.planets = this.planets.filter((planet) => !p.ghostMoons.includes(planet)); // (only this player's moons)
+    p.ghostMoons = null;
+    for (const other of this.seats.map((seat) => seat.player)) {
+      if (!other.planet.ghost || this.planets.includes(other.planet)) continue;
+      other.onGround = false;
+      other.planet = this.nearestPlanet(other.pos).planet;
+    }
+    if (p.planet.ghost && !this.planets.includes(p.planet)) {
       // Standing on one when it vanishes: fall back to the nearest real planet
       p.onGround = false;
       p.planet = this.nearestPlanet(p.pos).planet;
@@ -2178,7 +2433,7 @@ export class SpaceWorld {
     setTimeout(() => audio.play('win'), 400);
     if (!this.save.keys.includes('world2')) this.save.keys.push('world2');
     writeSave(this.save);
-    this.hud.message(t('game.gotKey'), t('game.world2Done'), 0);
+    this.hud.message(t('game.gotKey'), this.team ? this.raceResult() : t('game.world2Done'), 0);
     this.exitTimer = setTimeout(() => this.startTrip(), 2500);
   }
 
@@ -2202,7 +2457,11 @@ export class SpaceWorld {
     audio.play('rocket');
     // The camera backs off to the side so you can watch the whole thing
     const camera = land.clone().addScaledVector(p.forward, -12).addScaledVector(side, 9).addScaledVector(landDir, 5);
-    this.trip = { start: this.now, rocket, flame, land, up: landDir, camera, heroFrom: p.model.position.clone(), beeps: 0, splatted: false };
+    this.trip = { start: this.now, rocket, flame, land, up: landDir, camera, beeps: 0, splatted: false };
+    for (const seat of this.seats) seat.heroFrom = seat.player.model.position.clone();
+    this.raceBox?.remove();
+    this.hud.el('split').style.display = 'none';
+    this.resize(); // (one big screen again)
     // A black curtain for the fade at the end
     this.curtain = document.createElement('div');
     this.curtain.style.cssText = 'position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity 0.8s;';
@@ -2225,11 +2484,13 @@ export class SpaceWorld {
       rocket.position.copy(land);
       flame.visible = false;
       const k = (time - 2) / 0.8;
-      p.model.position.lerpVectors(trip.heroFrom, land.clone().addScaledVector(up, 1.5), k);
-      p.model.scale.setScalar(Math.max(0.01, 1 - k));
-      if (this.aura) this.aura.visible = false;
+      for (const seat of this.seats) {
+        seat.player.model.position.lerpVectors(seat.heroFrom, land.clone().addScaledVector(up, 1.5), k);
+        seat.player.model.scale.setScalar(Math.max(0.01, 1 - k));
+        if (seat.aura) seat.aura.visible = false;
+      }
     } else if (time < 4.4) {
-      p.model.visible = false;
+      for (const seat of this.seats) seat.player.model.visible = false;
       const beep = Math.floor((time - 2.8) / 0.5);
       if (beep > trip.beeps - 1 && beep < 3) {
         trip.beeps = beep + 1;
@@ -2383,6 +2644,7 @@ export class SpaceWorld {
     window.removeEventListener('resize', this.resize);
     this.hud.destroy();
     this.curtain?.remove();
+    this.raceBox?.remove();
     this.tip?.bubble.remove();
     this.agentBubble?.remove();
     this.sketch?.dispose();

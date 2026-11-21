@@ -276,7 +276,8 @@ export class SupermarketScene extends Phaser.Scene {
     this.infoText.setText(t(`shopInfo.${item.id}`));
     let status;
     let color = '#b9f6ca';
-    if (owns(this.save, item)) status = `✓ ${t('shop.haveIt')}`;
+    if (item.kind === 'pet' && owns(this.save, item)) status = this.save.pet === item.id ? `🐾 ${t('shop.yourPet')}` : t('shop.pickPet');
+    else if (owns(this.save, item)) status = `✓ ${t('shop.haveIt')}`;
     else if (this.cart.includes(item) && !item.usedUp) status = t('shop.takeOut');
     else if (missingNeed(this.save, item, this.cart)) {
       status = t('menu.buyFirst', { name: t(`powerUp.${item.needs}`) });
@@ -304,6 +305,14 @@ export class SupermarketScene extends Phaser.Scene {
   // X: put the item in the cart, or take it back out
   pickUp(spot) {
     const item = spot.item;
+    // A pet you already have: X makes it your pet again (Ethan, 2026-11-21)
+    if (item.kind === 'pet' && owns(this.save, item) && this.save.pet !== item.id) {
+      this.save.pet = item.id;
+      writeSave(this.save);
+      audio.play('crystal');
+      this.flash(`🐾 ${t('shop.yourPet')}`, '#b9f6ca');
+      return;
+    }
     if (owns(this.save, item)) {
       audio.play('error');
       return;

@@ -6,7 +6,7 @@
 
 const NOTE_STEPS = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 
-function noteToFrequency(note) {
+export function noteToFrequency(note) {
   const [, letter, accidental, octave] = /^([A-G])([#b]?)(\d)$/.exec(note);
   const midi = (Number(octave) + 1) * 12 + NOTE_STEPS[letter] + (accidental === '#' ? 1 : accidental === 'b' ? -1 : 0);
   return 440 * 2 ** ((midi - 69) / 12);
@@ -18,7 +18,7 @@ function noteToFrequency(note) {
 
 const bars = (...list) => list.join(' ');
 
-const SONGS = {
+export const SONGS = {
   // Heroic theme for the character select screen. C major.
   menu: {
     bpm: 150,
@@ -188,6 +188,14 @@ class GameAudio {
   setMuted(muted) {
     this.muted = muted;
     if (this.master) this.master.gain.setTargetAtTime(muted ? 0 : 1, this.context.currentTime, 0.05);
+  }
+
+  // The in-game piano (PianoScene): one soft piano-ish note, like "C5" or "F#4".
+  pianoNote(note, length = 0.7) {
+    if (!this.context) return;
+    const frequency = noteToFrequency(note);
+    this.tone({ wave: 'triangle', from: frequency, length, volume: 0.35 });
+    this.tone({ wave: 'sine', from: frequency * 2, length: length * 0.6, volume: 0.08 });
   }
 
   // ---------- Building blocks ----------

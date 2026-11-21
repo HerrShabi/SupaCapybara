@@ -493,6 +493,83 @@ Ethan's friend suggested "FBI Capybara" and "Secret Agent Cat". We make the cat 
 - **C: the magnifying glass** 🔍: for a few seconds, **hidden bolts** appear and bad guys show their **weak spots** 🎯 (badges do double damage). (In the 3D worlds it only does the weak spots.)
 - **How you get him:** find his **secret FBI van** 🚐 (a black van with a satellite dish) on a roof in **World 1, the city**. Knock on it (X) and he hops out to join your team.
 
+## 2 PLAYERS in World 2 (designed 2026-11-21)
+
+- Q1: Ethan picked **2 PLAYERS TEAM in World 2** (space, 3D) with a split screen, so two friends can play it together.
+- Q2: The screen splits **left and right** (player 1 on the left, player 2 on the right), like Cube Islands.
+- Q3: **Shared hearts**: both players use the same hearts. If they run out, both lose together.
+- Ethan's side idea: a **WHAT'S NEW button** (details in Q4).
+- Q4: WHAT'S NEW is a **news page**: a button on the title screen opens a list of the newest things in the game, each with a picture.
+- Q5: With 2 players, Grape Boss stays **the same** (no extra health), so it's easier with a friend.
+- Q6: If a saucer beams **one** player into the alien spaceship, the **other player can follow** by jumping into the beam on purpose to come help (each player can be somewhere different on the split screen).
+- Q7: After Grape Boss, **both heroes do their win dances together** on the planet, then hop into **one rocket** (which the grape splats as usual).
+- Q8: **Bolt race**: each player counts their own ⚡ bolts, and at the end the game shows who collected the most.
+- Q9: The WHAT'S NEW button sits in a **corner of the title screen** with a **red dot** when there's news you haven't read yet (the dot goes away once you've read it).
+- Q10: The first news (Ethan's list): **2 PLAYERS in space, Supa Tiger, the fireworks dance, Captain Waddle, Agent Whiskers, FBI Agent Chameleon, Copybara**, and more like that. Claude writes the words, in English and German.
+
+**Built (2026-11-21):** WORLD 2 is a choice in 2 PLAYERS → TEAM (after the World 1 key). Split screen left/right, shared hearts (out of hearts = both start again at their checkpoint), a bolt race (P1 ⚡ / P2 ⚡ at the top, the winner is shown with the key), Grape Boss the same, the friend can walk into a saucer's beam to follow into the spaceship (the button takes everybody out), both heroes dance together, then one rocket (on one big screen) and on to World 3 as a team. No power-ups, magic strawberries or tips in TEAM (like the other team modes). The 📰 WHAT'S NEW button is on the title screen (left, above SUPACAPY 2) with a blinking red dot until you open it.
+
+## Achievements (designed 2026-11-21)
+
+- Q11: Ethan picked **achievements** 🏆: little trophies you unlock (like "Beat Pizza Boss without getting hurt" or "Find every secret hero"), shown in a trophy room.
+- Q12: The trophies live **inside the WHAT'S NEW button**, **like in Minecraft**: the page gets a second tab for TROPHIES (next to the NEWS tab), like Minecraft's advancements screen.
+- Q13: Unlocking a trophy is **Minecraft style**: a box slides in at the top corner ("🏆 TROPHY UNLOCKED! <name>") with a little ding, and the game keeps going. The WHAT'S NEW button gets its red dot again too.
+- Q14: The first trophies are **boss trophies** (beat each boss, plus a harder one: beat him **without getting hurt**) **and secret trophies** (find every hidden hero, every capybara disco, the Cube Islands portal). Silly trophies maybe later.
+- Q15: A locked secret trophy shows **"???" as its name plus a hint** (like "Something is hiding behind the lava...").
+- Q16: Ethan **kept all 27 trophies**:
+  - Bosses: 1 Pizza Boss, 2 Pizza Boss without getting hurt, 3 Grape Boss, 4 Grape Boss without getting hurt, 5 Lava Dragon, 6 Lava Dragon without getting hurt, 7 robot copy in the clouds (World 4), 8 robot copy underwater (World 5), 9 robot copy in the jungle (World 6), 10 all 3 robot copies in the castle (World 7), 11 the Bad Guy King (World 8), 12 the Bad Guy King without getting hurt, 13 finish Boss Rush, 14 finish King Rush, 15 the ADVENTURE super boss, 16 the Cube Islands dragon, 17 the Pizza + Grape monster in the Drawings World.
+  - Secrets: 18 free Captain Waddle, 19 find Agent Whiskers, 20 find FBI Agent Chameleon's van, 21 find Supa Tiger, 22 open the Cube Islands portal, 23 first capybara disco, 24 every capybara disco, 25 a golden strawberry, 26 escape the alien spaceship (alien baby), 27 unlock the secret heroes.
+- Q17: Every trophy gives **⚡ bolts** (easy ones a few, hard ones LOTS). Trophy 12 (**the Bad Guy King without getting hurt**) also gives a **special prize** you can't buy in the shop (what it is: Q18).
+- Q18: The special prize (Ethan's own idea): **build with toy building bricks** 🧱 (like LEGO; in the game they're just called building bricks), with **no cooldown**: you can build as much as you want. How it works: Q19.
+- Q19: Both: **build anywhere** (a brick snaps in front of you; stack them into stairs, bridges over lava, walls that block shots, like Minecraft) **and build a ride** (bricks fly together into something you can drive; which ride: Q20).
+- Q20: **Three rides**: a **fighter jet** ✈️, a **race car** 🏎️ and a **brick dragon** 🐉. Building bricks has no cooldown, but the **rides do have a cooldown**.
+
+**Built (2026-11-21):** all 27 trophies (WHAT'S NEW → 🏆 TROPHIES tab, gold when you have them, 🔒 when not, "???" + hint for locked secrets), the Minecraft-style pop-up at the top corner with a ding and the bolts (an old save gets all the trophies it already earned at once, in one pop-up), the red dot for new trophies, and the building bricks in the side-scrolling worlds (K, or SELECT on a controller): bricks snap in front of you and stack, no cooldown. **Rides built (2026-11-21, Ethan asked right away):** in the side-scrolling worlds, **1 = 🏎️ race car** (super fast), **2 = ✈️ fighter jet** (flies, X = a long jet blast), **3 = 🐉 brick dragon** (flies, X = fire breath). Bricks zoom together to build the ride; while riding nothing hurts you and touching bad guys smashes them. A ride lasts 15 seconds, then it falls apart into bricks and the rides wait 20 seconds (Claude picked these numbers). iPad buttons (built 2026-11-21): a row of 🧱 🏎️ ✈️ 🐉 touch buttons above the power buttons. **Next time:** bricks and rides in the 3D worlds, and controller buttons for the rides.
+
+## Pet, race mode and song maker (designed 2026-11-21)
+
+- Ethan picked Claude's top 3 from a list of 10: **a pet that follows you** 🐶 (a little buddy that runs behind your hero and grabs bolts), **race mode** 🏁 (2 players race the race car through the city), and **make your own song** 🎵 (a piano in the game; play notes and save your song).
+- The other ideas on the list, for later: Candy Land, silly trophies, bricks and rides in space, controller buttons for the rides, a new hero, new Grape Boss moves, a secret night level.
+- Q21: **Several pets to pick from**, bought in the shop: puppy 🐶, kitten 🐱, baby penguin 🐧 and baby dragon 🐉.
+- Q22: Every pet **grabs bolts**: it runs to bolts near you and collects them for you.
+- Q23: Bad guys **never** hurt your pet; they ignore it.
+- Q24: Pets come to the **side-scrolling worlds first** (World 1, World 3, the story places), the 3D worlds later.
+- Q26: Pets are **plain pets you can dress up**: they wear little hats like your hero does.
+- Q27 (which hats pets can wear): Ethan said "not now", decide later. Pets are built first without hats.
+
+**Pets built (2026-11-21):** a 🐾 PETS aisle at the end of the supermarket: puppy 400 ⚡, kitten 400 ⚡, baby penguin 500 ⚡, baby dragon 800 ⚡ (Claude picked the prices). Buying one makes it your pet. In the side-scrolling worlds it follows you (the baby dragon floats by your shoulder), zooms to bolts near you and grabs them for you. Bad guys can't touch it. Switching pets (built 2026-11-21): in the PETS aisle, X on a pet you already own makes it your pet again ("Your pet!"). **Later:** pet hats (Q27), pets in the 3D worlds.
+- Q28 (song maker): a **button on the title screen** opens a big piano on the screen.
+- Q29: Play it **both ways**: tap/click the keys or use the computer keyboard (A S D F G H J K = C D E F G A B C). The keys show their note names, and **a key lights up when it plays**.
+- Ethan's idea: **learn the theme song**: the piano lights up the SuperCapybara theme song's notes one after the other, so you can play along.
+- Q30 (saving songs): **built simple first (2026-11-21, the last minutes)**: ⏺️ RECORD on the piano, play, ⏹️ STOP, and ▶ MY SONG plays it back (one song, saved). Still open for later: 3 song slots with names, and your song as the title screen music.
+
+**Piano built (2026-11-21):** 🎹 PIANO on the title screen (left, above WHAT'S NEW). Two octaves (C4 to C6) with note names; tap the keys or play Z X C V B N M (low) and A S D F G H J K (high), W E T Y U for black keys. Keys light up yellow when they play. 🎵 LEARN THE THEME: the next note of the theme song glows blue, play it to go on ("YOU PLAYED THE THEME SONG! 🎉" at the end). ▶ LISTEN plays the theme with the keys lighting up. - Ethan: learn the **1st or 2nd part** on its own: the buttons are now 🎵 LEARN PART 1 (lines 1-4 of the theme) and 🎵 LEARN PART 2 (lines 5-8). Finishing part 1 says "PART 1 DONE! Now try part 2!".
+**Next time:** saving your own songs (Q30), race mode.
+
+### Race mode (designed 2026-11-21)
+
+- Q31: You race on **a special race track**: a new track with ramps, loops and boost pads.
+- Q32: **Both**: race a friend (2 players, split screen) OR race computer robot cars when you're alone (they could be the story mode's robot copies).
+- Q33: The race track is **3D** (like space and ADVENTURE): a twisty track seen from behind your car. A big build: next time.
+- Q34: **Build your own car** in a garage before the race: pick the **body**, the **wheels** and the **spoiler**.
+- Q35: Bodies: **car shapes** (race car, monster truck, jeep, police car, go-kart) **and animal shapes** (capybara car, shark car, dragon car, cat car), **plus you pick the color**.
+- Q36: Wheels: **all of them**: normal, monster, tiny go-kart, flame 🔥, neon 💡 and spiky ⚡ (free, see Q37).
+- Q37: **Spoilers that do something**: a **rocket spoiler** (a quick boost), a **wing spoiler** (jump farther), a **shield spoiler** (bounces bumps away). **Only the spoilers cost ⚡**; bodies, colors and wheels are all free.
+- Q38: **You pick the laps** before the race: 1, 3 or 5.
+- Q39: Winning gives **both**: ⚡ bolts for every race (1st the most, then 2nd, then 3rd) AND **new race trophies** in the 🏆 TROPHIES tab (like "Win a 5-lap race").
+- Q40: The race track is called **CAPY CIRCUIT** 🦫🏁.
+- Q41: Besides ramps, loops and boost pads, the track has **jumps**.
+- Q42: The robot racers are **the robot copies from the story** (robot versions of the heroes) driving cars.
+- Q43: Ethan said "choose": Claude picked **3 robot racers** (4 cars in the race).
+- Q44: The robots **follow the difficulty** (easy on EASY, super fast on EXTREME), like the bosses (`src/difficulty.js`).
+- Q45: Winning: the top 3 cars on a **podium** with confetti, AND your hero jumps out and does their **win dance on top of the podium** with fireworks.
+- Q46: Cars **bump each other**: you can push the robot cars and they can push you (the shield spoiler bounces bumps away).
+- Q47 (Ethan's own mix): the start is **Baby Capybara HOLDING a traffic light**: red, red, red... GREEN! GO!
+- Q48: Race music: a **fast version of the SuperCapybara theme song** (`SONGS.menu`, sped up).
+- Q49: You get to CAPY CIRCUIT with **a 🏁 button on the title screen**.
+- **Next time, build first:** CAPY CIRCUIT. Ethan (2026-11-21, last minutes): start with **only the robot racers** (you against the robot cars). The garage and 2-player split screen come after that.
+- WHAT'S NEW already has a "COMING SOON: CAPY CIRCUIT!" teaser (`capyCircuit` in `news.js`). When it's built, change that news item to say it's here.
+
 ## Future updates (Ethan wants these later; don't forget!)
 
 - More worlds: underwater 🌊, a spooky castle 🏰, candy land 🍭.

@@ -32,6 +32,7 @@ export class GrapeMoonScene extends SideScrollerScene {
       world: 2,
       music: 'space',
       bossName: 'game.grapeBoss',
+      cleanTrophy: 'grapeClean',
       width: VIEW_WIDTH,
       arenaStart: 0,
       start: { x: 120, y: 360 },

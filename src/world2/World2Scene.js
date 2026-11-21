@@ -15,7 +15,10 @@ export class World2Scene extends Phaser.Scene {
     super('World2');
   }
 
-  create() {
+  // data.team: { heroes: [hero1, hero2] } from 2 PLAYERS TEAM (split screen)
+  create(data = {}) {
+    const team = data.team ?? null;
+    this.readsGamepad = Boolean(team); // each player's controller is read by SpaceWorld, not turned into keys
     const save = loadSave();
     setLanguage(save.language);
     this.game.canvas.style.visibility = 'hidden';
@@ -30,15 +33,16 @@ export class World2Scene extends Phaser.Scene {
       container: this.game.canvas.parentElement,
       save,
       discoPictures,
+      team,
       onExit: (next) => {
         this.world = null;
-        // After Grape Boss, the rocket crash-lands in World 3
-        if (next) this.scene.start(next, { crash: true });
-        else this.scene.start('Menu');
+        // After Grape Boss, the rocket crash-lands in World 3 (TEAM goes on to World 3 together, without the crash movie)
+        if (next) this.scene.start(next, team ? { team } : { crash: true });
+        else this.scene.start(team ? 'Title' : 'Menu');
       },
     });
     if (import.meta.env.DEV) window.world2 = this.world;
-    const touch = save.touch
+    const touch = save.touch && !team
       ? showTouchControls(this.game.canvas.parentElement, { ...touchButtonsFor(getCharacter(save.selected), activePowerUps(save), true), mega: megaBeamCount(save) > 0 && megaBeamOn(save) }, { jump: t('touch.jump') })
       : null;
 

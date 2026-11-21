@@ -5,6 +5,7 @@ import { audio } from '../audio.js';
 import { getCharacter } from '../characters.js';
 import { BOSS_REWARD, getDifficulty } from '../difficulty.js';
 import { writeSave } from '../save.js';
+import { unlockTrophy } from '../trophies.js';
 import { VIEW_WIDTH, VIEW_HEIGHT } from '../scenes/SideScrollerScene.js';
 import { heroKey } from '../art/heroes.js';
 import { createCrocKingTexture, createCastleTextures } from '../art/crocKing.js';
@@ -368,6 +369,10 @@ export class StoryKingScene extends StoryLevelScene {
   }
 
   finish() {
+    // TROPHIES: the King without getting hurt (the special prize: building bricks), and the end of KING RUSH
+    if (!this.heartsLost) unlockTrophy(this.save, 'kingClean');
+    if (this.rush) unlockTrophy(this.save, 'kingRush');
+    writeSave(this.save);
     if (this.worldNumber) return this.winWorld(); // World 8
     if (this.rush) {
       const message = this.bigMessage(t('story.kingRushDone'), '#b9f6ca').setScale(0.7);

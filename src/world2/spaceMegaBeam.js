@@ -56,7 +56,7 @@ export class SpaceMegaBeam {
     audio.play('superLaser');
     audio.play('key');
     world.hud.message(t('mega.go'), '', 1500);
-    if (world.beam) world.endBeam(true); // it breaks a tractor beam that has you
+    if (world.player.beam) world.endBeam(true); // it breaks a tractor beam that has you
 
     const group = new THREE.Group();
     const segments = [];

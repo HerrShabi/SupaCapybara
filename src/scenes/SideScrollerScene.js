@@ -2,6 +2,10 @@ import Phaser from 'phaser';
 import { Player } from '../Player.js';
 import { getCharacter, pickDance } from '../characters.js';
 import { loadSave, writeSave, activePowerUps } from '../save.js';
+import { unlockTrophy, hasTrophy } from '../trophies.js';
+import { Bricks } from '../bricks.js';
+import { Rides, RIDES } from '../rides.js';
+import { Pet } from '../pets.js';
 import { t, setLanguage } from '../i18n.js';
 import { getDifficulty, BAD_GUY_REWARD, BOSS_REWARD } from '../difficulty.js';
 import { audio } from '../audio.js';
@@ -103,6 +107,8 @@ export class SideScrollerScene extends Phaser.Scene {
     this.checkpoint = data.start ?? (this.bossRush ? this.level.arenaCheckpoint : this.level.start);
     this.bossStarted = false;
     this.levelBolts = 0;
+    this.heartsLost = 0; // for the "without getting hurt" trophies (trophies.js)
+    this.bossHeartsLost = 0;
 
     this.createScenery();
 
@@ -163,6 +169,11 @@ export class SideScrollerScene extends Phaser.Scene {
     this.magicPencil = this.save.magicPencil && !this.team ? new MagicPencil(this) : null;
     // The SUPA SNIPER (supaSniper.js): T / 🎯 looks through the hero's eyes for one super strong shot
     this.sniper = this.powerUps.includes('supa-sniper') && !this.team ? new SupaSniper(this) : null;
+    // BUILDING BRICKS (bricks.js): the prize for the UNTOUCHABLE trophy. K / SELECT snaps a brick in front of you
+    this.bricks = hasTrophy(this.save, 'kingClean') && !this.team ? new Bricks(this) : null;
+    this.rides = this.bricks ? new Rides(this) : null;
+    // Your pet (pets.js, bought in the supermarket) follows you and grabs bolts
+    this.pet = this.save.pet && !this.team ? new Pet(this, this.player, this.save.pet) : null; // ...and the brick rides (rides.js): 1 race car, 2 fighter jet, 3 brick dragon
     this.events.once('shutdown', () => {
       this.magicPencil?.destroy();
       this.sniper?.destroy();
@@ -173,7 +184,7 @@ export class SideScrollerScene extends Phaser.Scene {
       const container = this.game.canvas.parentElement;
       const touch = this.team
         ? showTwoPlayerTouch(container)
-        : showTouchControls(container, { ...touchButtonsFor(this.character, this.powerUps, false), ...this.extraTouchButtons, pencil: Boolean(this.magicPencil), mega: megaBeamCount(this.save) > 0 && megaBeamOn(this.save) }, { jump: t('touch.jump') });
+        : showTouchControls(container, { ...touchButtonsFor(this.character, this.powerUps, false), ...this.extraTouchButtons, pencil: Boolean(this.magicPencil), bricks: hasTrophy(this.save, 'kingClean') && !this.team, mega: megaBeamCount(this.save) > 0 && megaBeamOn(this.save) }, { jump: t('touch.jump') });
       this.events.once('shutdown', () => touch.destroy());
     }
 
@@ -385,7 +396,7 @@ export class SideScrollerScene extends Phaser.Scene {
 
   // Ultra Capybara's fire aura, the Mecha suit, a magic strawberry's rainbow and CAPTAIN WADDLE's slide smash whatever they touch.
   smashesOnTouch(player) {
-    return player.character.fireAura || player.mecha || player.rainbow || player.sliding;
+    return player.character.fireAura || player.mecha || player.rainbow || player.sliding || player.riding;
   }
 
   touchedBadGuy(badGuy, player = this.player) {
@@ -769,6 +780,8 @@ export class SideScrollerScene extends Phaser.Scene {
   // Returns false if that was the last heart (then you start again at the checkpoint).
   loseHeart() {
     this.hearts -= 1;
+    this.heartsLost += 1;
+    if (this.bossStarted) this.bossHeartsLost += 1;
     this.cameras.main.shake(150, 0.01);
     if (this.hearts > 0) {
       this.updateHearts();
@@ -957,8 +970,12 @@ export class SideScrollerScene extends Phaser.Scene {
     }
     audio.play('key');
     this.time.delayedCall(400, () => audio.play('win'));
+    // TROPHIES: the boss without getting hurt (level.cleanTrophy), and the end of Boss Rush
+    if (this.level.cleanTrophy && !this.bossHeartsLost) unlockTrophy(this.save, this.level.cleanTrophy);
+    if (this.bossRush && !this.level.bossRushNext) unlockTrophy(this.save, 'bossRush');
 
     if (this.bossRush) {
+      writeSave(this.save);
       // On to the next boss, with the hearts you have left
       const next = this.level.bossRushNext;
       this.bigMessage(t(next ? 'game.nextBoss' : 'game.bossRushDone'));
@@ -1027,8 +1044,14 @@ export class SideScrollerScene extends Phaser.Scene {
     for (const player of this.players) player.update();
     this.magicPencil?.afterPlayers();
     if (this.magicPencil && this.player.controls.justPressed('pencil')) this.magicPencil.open();
+    if (this.bricks && this.player.controls.justPressed('brick')) this.bricks.place(this.player);
+    this.pet?.update(delta);
+    if (this.rides) {
+      RIDES.forEach((kind, i) => this.player.controls.justPressed(`ride${i + 1}`) && this.rides.start(this.player, kind));
+      this.rides.update(this.player);
+    }
     if (this.sniper && this.player.controls.justPressed('sniper')) this.sniper.open();
-    this.powerText.setText(this.team ? '' : [this.player.powerStatus, this.magicPencil?.status, this.sniper?.status].filter(Boolean).join('     '));
+    this.powerText.setText(this.team ? '' : [this.player.powerStatus, this.magicPencil?.status, this.sniper?.status, this.bricks?.status, this.rides?.status(this.player)].filter(Boolean).join('     '));
     this.powerText.setScale(Math.min(1, (VIEW_WIDTH - 40) / Math.max(1, this.powerText.width))); // (lots of power-ups: shrink to fit)
     if (this.team) this.followTeam();
 

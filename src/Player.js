@@ -6,6 +6,7 @@ import { Controls } from './controls.js';
 import { createHatTextures, hatAnchor } from './art/hats.js';
 import { MegaBeam } from './megaBeam.js';
 import { CAT_FIREWORKS } from './characters.js';
+import { CAR_SPEED } from './rides.js';
 
 // The hero you control: running, jumping, and each hero's own powers.
 // The scene decides what got hit: scene.hitArea(area, damage, attacker), scene.nearestTarget(x, y, attacker), and overlaps on player.lasers.
@@ -209,7 +210,12 @@ export class Player {
 
   // Nothing can hurt you in shadow form, in the Mecha suit, with a magic strawberry's rainbow magic, or mid WADDLE SLIDE.
   get unhurtable() {
-    return this.shadow || this.mecha || this.rainbow || this.sliding;
+    return this.shadow || this.mecha || this.rainbow || this.sliding || this.riding;
+  }
+
+  // On a brick ride (rides.js): the race car, fighter jet or brick dragon
+  get riding() {
+    return Boolean(this.ride);
   }
 
   get sliding() {
@@ -317,7 +323,7 @@ export class Player {
     }
     const now = this.scene.time.now;
     const c = this.controls;
-    const speed = RUN_SPEED * (this.shadow ? SHADOW_SPEED : 1) * (this.rainbow ? MAGIC_SPEED : 1);
+    const speed = RUN_SPEED * (this.shadow ? SHADOW_SPEED : 1) * (this.rainbow ? MAGIC_SPEED : 1) * (this.ride?.kind === 'car' ? CAR_SPEED : 1);
     const body = this.sprite.body;
     const onGround = body.blocked.down;
     const bouncing = now < this.hurtAt + BOUNCE_MS;

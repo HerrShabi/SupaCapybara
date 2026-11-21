@@ -25,8 +25,12 @@ export const SCHEMES = {
     strawberry: ['B'],
     mega: ['G'],
     sniper: ['T'],
+    brick: ['K'],
+    ride1: ['ONE'],
+    ride2: ['TWO'],
+    ride3: ['THREE'],
   },
-  p1: { left: ['A'], right: ['D'], up: ['W'], down: ['S'], jump: ['W'], attack: ['F'], special: ['G'], shield: [], fly: [], mecha: [], swap: ['T'], freeze: [], pencil: [], strawberry: [], mega: [], sniper: [] },
+  p1: { left: ['A'], right: ['D'], up: ['W'], down: ['S'], jump: ['W'], attack: ['F'], special: ['G'], shield: [], fly: [], mecha: [], swap: ['T'], freeze: [], pencil: [], strawberry: [], mega: [], sniper: [], brick: [], ride1: [], ride2: [], ride3: [] },
   p2: {
     left: ['LEFT'],
     right: ['RIGHT'],
@@ -44,6 +48,10 @@ export const SCHEMES = {
     strawberry: [],
     mega: [],
     sniper: [],
+    brick: [],
+    ride1: [],
+    ride2: [],
+    ride3: [],
   },
 };
 
@@ -65,6 +73,10 @@ const PAD = {
   strawberry: (pad) => Boolean(pad.buttons?.[9]?.pressed), // START
   mega: (pad) => Boolean(pad.buttons?.[10]?.pressed), // press the left stick
   sniper: (pad) => pad.A && pad.Y, // A + Y together
+  brick: (pad) => Boolean(pad.buttons?.[8]?.pressed), // SELECT / BACK (building bricks, bricks.js)
+  ride1: () => false, // (the brick rides are keyboard only for now: 1 2 3)
+  ride2: () => false,
+  ride3: () => false,
 };
 
 export class Controls {

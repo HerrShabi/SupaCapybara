@@ -8,6 +8,7 @@ import { createHeroTextures, heroKey } from '../art/heroes.js';
 import { createHatTextures, hatAnchor } from '../art/hats.js';
 import { CHARACTERS } from '../characters.js';
 import { TIP_STYLES } from '../tips.js';
+import { hasUnreadNews } from '../news.js';
 import { createCastleTextures } from '../art/crocKing.js';
 import { drawSkyline, drawBuilding } from '../art/city.js';
 
@@ -67,6 +68,8 @@ export class TitleScene extends Phaser.Scene {
     this.createTipsButton();
     this.createAccountButton();
     this.createSupaCapy2Button();
+    this.createNewsButton();
+    this.createPianoButton();
 
     this.input.keyboard.on('keydown-UP', () => this.select(this.selected - 1));
     this.input.keyboard.on('keydown-DOWN', () => this.select(this.selected + 1));
@@ -227,6 +230,35 @@ export class TitleScene extends Phaser.Scene {
   }
 
   // SupaCapy 2, the sequel: a separate game built into public/supacapy2/ (`npm run build:sc1` in ../SupaCapy2).
+  // WHAT'S NEW (Ethan, 2026-11-21): the news page, with a red dot while there's news you haven't read (news.js)
+  createNewsButton() {
+    this.add
+      .rectangle(110, 350, 190, 34, 0x1565c0)
+      .setStrokeStyle(3, 0xffd23f)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        audio.play('click');
+        this.scene.start('News');
+      });
+    this.add.text(110, 350, `📰 ${t('news.button')}`, { fontFamily: FONT, fontSize: '15px', color: '#ffffff' }).setOrigin(0.5);
+    if (!hasUnreadNews(this.save)) return;
+    const dot = this.add.circle(200, 335, 10, 0xe53935).setStrokeStyle(3, 0xffffff);
+    this.tweens.add({ targets: dot, scale: 1.25, duration: 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+  }
+
+  // THE PIANO (Ethan, 2026-11-21): play notes, learn the theme song (PianoScene)
+  createPianoButton() {
+    this.add
+      .rectangle(110, 300, 190, 34, 0x6a1b9a)
+      .setStrokeStyle(3, 0xffd23f)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        audio.play('click');
+        this.scene.start('Piano');
+      });
+    this.add.text(110, 300, `🎹 ${t('piano.button')}`, { fontFamily: FONT, fontSize: '15px', color: '#ffffff' }).setOrigin(0.5);
+  }
+
   createSupaCapy2Button() {
     this.add
       .rectangle(110, 400, 190, 34, 0xd8343f)

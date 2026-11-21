@@ -49,7 +49,7 @@ export class SpaceSniper {
 
   open() {
     const world = this.world;
-    if (this.busy || world.won || world.beam) return;
+    if (this.busy || world.won || world.player.beam) return;
     if (world.now < this.readyAt) {
       audio.play('error');
       return;

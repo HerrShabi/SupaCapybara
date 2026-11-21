@@ -1,6 +1,7 @@
 import { POWER_UPS, DANCES } from './characters.js';
 import { SHOP_HATS, SHOP_HAT_PRICE } from './art/hats.js';
 import { setPowerUpOn } from './save.js';
+import { PETS } from './pets.js';
 
 // Everything the supermarket sells (SupermarketScene), aisle by aisle: power-ups, new hats, win dances.
 // Each item: { kind: 'powerUp' | 'hat' | 'dance', id, price, icon (emoji, or null for hats: they show the hat), needs?, usedUp? }
@@ -13,6 +14,7 @@ export const AISLES = [
   { id: 'powerUps', items: POWER_UPS.filter((p) => p.ready).map((p) => ({ kind: 'powerUp', icon: POWER_UP_ICONS[p.id] ?? '⚡', ...p })) },
   { id: 'hats', items: SHOP_HATS.map((id) => ({ kind: 'hat', id, price: SHOP_HAT_PRICE, icon: null })) },
   { id: 'dances', items: DANCES.map((d) => ({ kind: 'dance', ...d })) },
+  { id: 'pets', items: PETS.map((p) => ({ kind: 'pet', ...p })) }, // (Ethan, 2026-11-21: buying one makes it your pet)
 ];
 
 export function itemName(t, item) {
@@ -29,6 +31,7 @@ export function owns(save, item) {
   if (item.usedUp) return false;
   if (item.kind === 'powerUp') return save.powerUps.includes(item.id);
   if (item.kind === 'hat') return (save.hats ?? []).includes(item.id);
+  if (item.kind === 'pet') return (save.pets ?? []).includes(item.id);
   return (save.dances ?? []).includes(item.id);
 }
 
@@ -52,5 +55,9 @@ export function buyItem(save, item) {
   else if (item.kind === 'powerUp') save.powerUps.push(item.id);
   if (item.kind === 'powerUp') setPowerUpOn(save, item.id, true); // new power-ups come switched ON (PowerUpsScene)
   else if (item.kind === 'hat') (save.hats ??= []).push(item.id);
+  else if (item.kind === 'pet') {
+    (save.pets ??= []).push(item.id);
+    save.pet = item.id; // your newest pet comes with you
+  }
   else (save.dances ??= []).push(item.id);
 }

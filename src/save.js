@@ -6,6 +6,7 @@
 import { STARTING_CHARACTERS } from './characters.js';
 import { isTouchDevice } from './touch.js';
 import { FOOD_COLORS, TEAM_SIZE } from './quest/map.js';
+import { checkTrophies } from './trophies.js';
 
 const STORAGE_KEY = 'supercapybara-save-v1';
 
@@ -105,7 +106,15 @@ export function loadSave() {
 }
 
 export function writeSave(save) {
-  localStorage.setItem(saveKey(loadAccounts().current), JSON.stringify(save));
+  const key = saveKey(loadAccounts().current);
+  // TROPHIES (trophies.js): keep the ones another copy of the save already unlocked, then check for new ones
+  try {
+    const stored = JSON.parse(localStorage.getItem(key) ?? 'null');
+    if (stored?.trophies?.length) save.trophies = [...new Set([...(save.trophies ?? []), ...stored.trophies])];
+    if ((stored?.trophiesSeen ?? 0) > (save.trophiesSeen ?? 0)) save.trophiesSeen = stored.trophiesSeen;
+  } catch {}
+  checkTrophies(save);
+  localStorage.setItem(key, JSON.stringify(save));
 }
 
 // POWER-UP SWITCHES (Ethan, 2026-11-13): each power-up you own can be ON or OFF (PowerUpsScene).

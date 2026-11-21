@@ -16,6 +16,10 @@ const KEYS = {
   KeyZ: { key: 'z', keyCode: 90 },
   KeyE: { key: 'e', keyCode: 69 },
   KeyB: { key: 'b', keyCode: 66 },
+  KeyK: { key: 'k', keyCode: 75 }, // building bricks (bricks.js)
+  Digit1: { key: '1', keyCode: 49 }, // brick rides (rides.js)
+  Digit2: { key: '2', keyCode: 50 },
+  Digit3: { key: '3', keyCode: 51 },
   Escape: { key: 'Escape', keyCode: 27 },
   // Two players: player 1 uses A D W F G, player 2 uses the arrows, ENTER and SHIFT (see controls.js)
   KeyA: { key: 'a', keyCode: 65 },
@@ -87,6 +91,9 @@ export function showTouchControls(container, buttons, labels) {
     buttons.sniper && ['KeyT', '🎯'],
   ].filter(Boolean);
   powers.forEach(([code, emoji], i) => add(code, emoji, { right: `${20 + i * 72}px`, bottom: '140px', ...size(62), fontSize: '26px' }));
+  // Building bricks and the brick rides (the UNTOUCHABLE trophy's prize): a row above the powers
+  const bricks = buttons.bricks ? [['KeyK', '🧱'], ['Digit1', '🏎️'], ['Digit2', '✈️'], ['Digit3', '🐉']] : [];
+  bricks.forEach(([code, emoji], i) => add(code, emoji, { right: `${20 + i * 72}px`, bottom: '212px', ...size(62), fontSize: '26px' }));
 
   add('Escape', '⏸', { left: '50%', bottom: '16px', marginLeft: '-24px', ...size(48), fontSize: '18px' });
 

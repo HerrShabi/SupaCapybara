@@ -88,6 +88,7 @@ export class World3Scene extends SideScrollerScene {
     super('World3', {
       world: 3,
       keyId: 'world3',
+      cleanTrophy: 'dragonClean',
       music: 'volcano',
       disco: { x: 1812, y: 458 }, // the secret disco: a crack in the rock wall just above a lava pit
       bossName: 'game.lavaDragon',

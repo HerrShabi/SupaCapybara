@@ -29,7 +29,7 @@ export class TwoPlayerScene extends Phaser.Scene {
     const setup = this.save.twoPlayer ?? {};
     this.mode = setup.mode ?? 'team';
     this.picks = (setup.heroes ?? [this.heroes[0], this.heroes[1] ?? this.heroes[0]]).map((id) => (this.heroes.includes(id) ? id : this.heroes[0]));
-    this.world = setup.world === 3 && this.worldOpen(3) ? 3 : 1;
+    this.world = [2, 3].includes(setup.world) && this.worldOpen(setup.world) ? setup.world : 1;
     this.arena = setup.arena ?? 'helipad';
 
     this.add.text(480, 40, t('menu.twoPlayers'), { fontFamily: FONT, fontSize: '40px', color: '#ffd23f' }).setStroke('#000000', 8).setOrigin(0.5);
@@ -44,7 +44,7 @@ export class TwoPlayerScene extends Phaser.Scene {
     keyboard.on('keydown-ESC', () => this.scene.start('Title'));
   }
 
-  // World 3 needs the key from World 2 (like in Adventure).
+  // World 2 needs the key from World 1, World 3 the key from World 2 (like in Adventure).
   worldOpen(number) {
     return number === 1 || this.save.keys.includes(`world${number - 1}`);
   }
@@ -82,10 +82,10 @@ export class TwoPlayerScene extends Phaser.Scene {
     // TEAM: which world. BATTLE: which arena.
     const options =
       this.mode === 'team'
-        ? [1, 3].map((number) => ({ label: t('menu.world', { number }), active: this.world === number, open: this.worldOpen(number), set: () => this.setOption('world', number) }))
+        ? [1, 2, 3].map((number) => ({ label: t('menu.world', { number }), active: this.world === number, open: this.worldOpen(number), set: () => this.setOption('world', number) }))
         : ['helipad', 'lava'].map((arena) => ({ label: t(`menu.arena.${arena}`), active: this.arena === arena, open: true, set: () => this.setOption('arena', arena) }));
     options.forEach((option, i) => {
-      const x = 360 + i * 240;
+      const x = options.length === 3 ? 240 + i * 240 : 360 + i * 240;
       add(this.add.rectangle(x, 420, 220, 40, option.active ? 0x1565c0 : 0x2c2c54).setStrokeStyle(3, option.active ? 0xffd23f : 0x555588).setAlpha(option.open ? 1 : 0.4))
         .setInteractive({ useHandCursor: true })
         .on('pointerdown', () => (option.open ? option.set() : audio.play('error')));
