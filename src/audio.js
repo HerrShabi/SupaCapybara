@@ -115,6 +115,8 @@ SONGS.strawberry = {
   drums: Array(8).fill('kh h sh h kh kh sh h').join(' '),
 };
 SONGS.strawberryHurry = { ...SONGS.strawberry, bpm: 236 };
+// CAPY CIRCUIT's race music (Ethan): the SuperCapybara theme song, fast.
+SONGS.race = { ...SONGS.menu, bpm: 220 };
 
 // Turns "C5 - . D5" into notes with a start step and a length in steps.
 function toNotes(track) {

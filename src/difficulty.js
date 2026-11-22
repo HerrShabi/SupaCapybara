@@ -7,6 +7,8 @@ export const BOSS_REWARD = 10;
 
 export const DIFFICULTIES = {
   easy: {
+    raceRobotSpeed: 0.74, // CAPY CIRCUIT: the robot cars' top speed (1 = as fast as your car)
+    raceSteerHelp: 0.6, // CAPY CIRCUIT: how much your car follows the curves by itself (1 = all of it)
     hearts: 5,
     hurtSafeMs: 2000, // after getting hit, nothing can hurt you for this long (keep it a multiple of 200)
     enemyShotSpeed: 180,
@@ -18,6 +20,8 @@ export const DIFFICULTIES = {
     color: 0x43a047,
   },
   medium: {
+    raceRobotSpeed: 0.86, // CAPY CIRCUIT: the robot cars' top speed (1 = as fast as your car)
+    raceSteerHelp: 0.4, // CAPY CIRCUIT: how much your car follows the curves by itself (1 = all of it)
     hearts: 4,
     hurtSafeMs: 1600,
     enemyShotSpeed: 220,
@@ -29,6 +33,8 @@ export const DIFFICULTIES = {
     color: 0xfdd835,
   },
   hard: {
+    raceRobotSpeed: 0.96, // CAPY CIRCUIT: the robot cars' top speed (1 = as fast as your car)
+    raceSteerHelp: 0.2, // CAPY CIRCUIT: how much your car follows the curves by itself (1 = all of it)
     hearts: 3,
     hurtSafeMs: 1400,
     enemyShotSpeed: 260,
@@ -40,6 +46,8 @@ export const DIFFICULTIES = {
     color: 0xfb8c00,
   },
   extreme: {
+    raceRobotSpeed: 1.04, // CAPY CIRCUIT: the robot cars' top speed (1 = as fast as your car)
+    raceSteerHelp: 0, // CAPY CIRCUIT: how much your car follows the curves by itself (1 = all of it)
     hearts: 3,
     hurtSafeMs: 1200,
     enemyShotSpeed: 300,

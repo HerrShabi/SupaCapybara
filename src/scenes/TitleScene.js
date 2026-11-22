@@ -70,6 +70,7 @@ export class TitleScene extends Phaser.Scene {
     this.createSupaCapy2Button();
     this.createNewsButton();
     this.createPianoButton();
+    this.createRaceButton();
 
     this.input.keyboard.on('keydown-UP', () => this.select(this.selected - 1));
     this.input.keyboard.on('keydown-DOWN', () => this.select(this.selected + 1));
@@ -246,6 +247,19 @@ export class TitleScene extends Phaser.Scene {
     this.tweens.add({ targets: dot, scale: 1.25, duration: 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
   }
 
+  // CAPY CIRCUIT (Ethan, 2026-11-22): race the robot copies (race/RaceScene.js)
+  createRaceButton() {
+    this.add
+      .rectangle(110, 250, 190, 34, 0x2e7d32)
+      .setStrokeStyle(3, 0xffd23f)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        audio.play('click');
+        this.scene.start('Race');
+      });
+    this.add.text(110, 250, `🏁 ${t('race.button')}`, { fontFamily: FONT, fontSize: '15px', color: '#ffffff' }).setOrigin(0.5);
+  }
+
   // THE PIANO (Ethan, 2026-11-21): play notes, learn the theme song (PianoScene)
   createPianoButton() {
     this.add
@@ -357,8 +371,8 @@ export class TitleScene extends Phaser.Scene {
   createKingRush() {
     if (!this.save.story?.kingBeaten) return;
     createCastleTextures(this);
-    this.add.rectangle(70, 236, 70, 12, 0xffa000);
-    const trophy = goldify(this.add.image(70, 190, 'croc-king-walk').setScale(0.5));
+    this.add.rectangle(70, 216, 70, 12, 0xffa000);
+    const trophy = goldify(this.add.image(70, 170, 'croc-king-walk').setScale(0.5));
     this.tweens.add({ targets: trophy, alpha: 0.75, duration: 900, yoyo: true, repeat: -1 });
     this.add
       .rectangle(360, 34, 190, 32, 0x4a148c)

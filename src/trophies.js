@@ -1,4 +1,4 @@
-// TROPHIES (Ethan, 2026-11-21): 27 achievements, like Minecraft's advancements. They're on the WHAT'S NEW page's
+// TROPHIES (Ethan, 2026-11-21): 30 achievements (27, plus 3 for CAPY CIRCUIT), like Minecraft's advancements. They're on the WHAT'S NEW page's
 // TROPHIES tab, and unlocking one slides a box in at the top corner (a little ding, the game keeps going) and
 // gives ⚡ bolts. Texts: trophy.<id>.name, and trophy.<id>.hint for secret ones (shown as "???" + the hint while locked).
 //
@@ -32,6 +32,9 @@ export const TROPHIES = [
   { id: 'superBoss', icon: '🦹', bolts: 300, has: (s) => s.adventure?.superBossBeaten },
   { id: 'cubeDragon', icon: '🧊', bolts: 300, has: (s) => s.quest?.dragonBeaten },
   { id: 'monster', icon: '✏️', bolts: 300, has: (s) => s.magicPencil },
+  { id: 'raceWin', icon: '🏁', bolts: 150 }, // CAPY CIRCUIT (race/RaceWorld.js showPodium)
+  { id: 'race5', icon: '🏎️', bolts: 300 },
+  { id: 'raceExtreme', icon: '🔥', bolts: 500 },
   // Secrets
   { id: 'waddle', icon: '🐧', bolts: 150, secret: true, has: (s) => s.owned?.includes('captain-waddle') },
   { id: 'whiskers', icon: '🕶️', bolts: 150, secret: true, has: (s) => s.owned?.includes('agent-whiskers') },

@@ -55,12 +55,17 @@ function boltShape() {
 }
 
 // Where the top of the head and the eyes are on each 3D animal (for hats).
-const HEAD_3D = {
+export const HEAD_3D = {
   capybara: { top: [0, 1.13, 0.62], eyes: [0, 0.98, 0.95] },
   cat: { top: [0, 1.28, 0.6], eyes: [0, 1.02, 0.92] },
   chameleon: { top: [0, 1.12, 0.6], eyes: [0, 0.9, 0.78] },
   penguin: { top: [0, 1.38, 0.02], eyes: [0, 1.17, 0.27] },
 };
+
+// A hero's suit color and animal (CAPY CIRCUIT paints your race car in your hero's color).
+export function heroLook(id) {
+  return HERO_LOOKS[id] ?? HERO_LOOKS['supa-capybara'];
+}
 
 // A 3D hat or costume, sitting on y = 0.
 export function makeHat3D(hat) {

@@ -80,6 +80,7 @@ export function showTouchControls(container, buttons, labels) {
     buttons.shadow && ['KeyC', '🌑'],
     buttons.slide && ['KeyC', '🛷'],
     buttons.lens && ['KeyC', '🔍'],
+    buttons.rocket && ['KeyC', '🚀'], // CAPY CIRCUIT's rocket spoiler
     buttons.shield && ['KeyV', '🛡️'],
     buttons.fly && ['KeyF', '🕊️'],
     buttons.mecha && ['KeyR', '🤖'],

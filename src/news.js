@@ -6,7 +6,8 @@
 import { newTrophies } from './trophies.js';
 
 export const NEWS = [
-  { id: 'capyCircuit', emoji: '🏁' }, // (coming soon: GAME_DESIGN.md race mode)
+  { id: 'garage', emoji: '🔧' }, // CAPY CIRCUIT's garage (2026-11-22)
+  { id: 'capyCircuit', emoji: '🏁' }, // CAPY CIRCUIT is here (2026-11-22)
   { id: 'piano', emoji: '🎹' },
   { id: 'pets', emoji: '🐶' },
   { id: 'trophies', emoji: '🏆' },
