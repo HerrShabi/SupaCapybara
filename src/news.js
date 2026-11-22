@@ -6,6 +6,8 @@
 import { newTrophies } from './trophies.js';
 
 export const NEWS = [
+  { id: 'detective', emoji: '🕵️' }, // Ethan's 4th game, ../CapybaraDetective (2026-11-22)
+  { id: 'supercapybara3', emoji: '🧟' }, // Ethan's 3rd game, ../SuperCapybara3
   { id: 'garage', emoji: '🔧' }, // CAPY CIRCUIT's garage (2026-11-22)
   { id: 'capyCircuit', emoji: '🏁' }, // CAPY CIRCUIT is here (2026-11-22)
   { id: 'piano', emoji: '🎹' },
